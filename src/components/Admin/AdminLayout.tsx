@@ -33,7 +33,7 @@ const menuItems: MenuItem[] = [
   {
     label: "申請類型管理",
     href: "/admin/task-types",
-    permission: 'admin_task:write',
+    permission: 'admin_task:create',
   },
   {
     label: "首頁內容",
