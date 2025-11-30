@@ -1,0 +1,28 @@
+type FranchisePage {
+  id: ID!
+  hero: JSON
+  marketTrends: JSON
+  policySupport: JSON
+  marketOpportunity: JSON
+  partnershipAdvantages: JSON
+  franchiseProcess: JSON
+  cta: JSON
+}
+
+extend type Query {
+  franchisePage: [FranchisePage!]!
+}
+
+input UpdateFranchisePageInput {
+  hero: JSON
+  marketTrends: JSON
+  policySupport: JSON
+  marketOpportunity: JSON
+  partnershipAdvantages: JSON
+  franchiseProcess: JSON
+  cta: JSON
+}
+
+extend type Mutation {
+  updateFranchisePage(input: UpdateFranchisePageInput!): FranchisePage
+}

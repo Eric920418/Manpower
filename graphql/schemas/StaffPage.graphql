@@ -1,0 +1,20 @@
+type StaffPage {
+  id: ID!
+  hero: JSON
+  staffList: JSON
+  ctaSection: JSON
+}
+
+extend type Query {
+  staffPage: [StaffPage!]!
+}
+
+input UpdateStaffPageInput {
+  hero: JSON
+  staffList: JSON
+  ctaSection: JSON
+}
+
+extend type Mutation {
+  updateStaffPage(input: UpdateStaffPageInput!): StaffPage
+}

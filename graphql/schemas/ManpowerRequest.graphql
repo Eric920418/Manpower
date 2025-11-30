@@ -1,0 +1,59 @@
+type ManpowerRequest {
+  id: Int!
+  requestNo: String!
+  selectedResumeIds: JSON!
+  companyName: String
+  contactPerson: String!
+  contactPhone: String!
+  contactEmail: String!
+  positionTitle: String
+  jobDescription: String
+  quantity: Int!
+  salaryRange: String
+  expectedStartDate: String
+  workLocation: String
+  additionalRequirements: String
+  status: String!
+  notes: String
+  processedBy: String
+  processedAt: String
+  ipAddress: String
+  userAgent: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+input ManpowerRequestFilter {
+  status: String
+  contactEmail: String
+  startDate: String
+  endDate: String
+}
+
+input UpdateManpowerRequestInput {
+  id: Int!
+  status: String
+  notes: String
+  processedBy: String
+}
+
+type ManpowerRequestStats {
+  total: Int!
+  pending: Int!
+  processing: Int!
+  completed: Int!
+  rejected: Int!
+  cancelled: Int!
+}
+
+extend type Query {
+  manpowerRequests(filter: ManpowerRequestFilter): [ManpowerRequest!]!
+  manpowerRequest(id: Int!): ManpowerRequest
+  manpowerRequestByNo(requestNo: String!): ManpowerRequest
+  manpowerRequestStats: ManpowerRequestStats!
+}
+
+extend type Mutation {
+  updateManpowerRequest(input: UpdateManpowerRequestInput!): ManpowerRequest!
+  deleteManpowerRequest(id: Int!): Boolean!
+}

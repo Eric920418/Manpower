@@ -1,0 +1,22 @@
+type FaqPage {
+  id: ID!
+  hero: JSON
+  categories: JSON
+  faqs: JSON
+  contactSection: JSON
+}
+
+extend type Query {
+  faqPage: [FaqPage!]!
+}
+
+input UpdateFaqPageInput {
+  hero: JSON
+  categories: JSON
+  faqs: JSON
+  contactSection: JSON
+}
+
+extend type Mutation {
+  updateFaqPage(input: UpdateFaqPageInput!): FaqPage
+}

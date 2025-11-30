@@ -1,0 +1,22 @@
+type WorkersPage {
+  id: ID!
+  hero: JSON
+  filterOptions: JSON
+  workers: JSON
+  ctaSection: JSON
+}
+
+extend type Query {
+  workersPage: [WorkersPage!]!
+}
+
+input UpdateWorkersPageInput {
+  hero: JSON
+  filterOptions: JSON
+  workers: JSON
+  ctaSection: JSON
+}
+
+extend type Mutation {
+  updateWorkersPage(input: UpdateWorkersPageInput!): WorkersPage
+}

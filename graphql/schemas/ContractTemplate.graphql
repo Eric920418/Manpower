@@ -1,0 +1,38 @@
+type ContractTemplate {
+  id: ID!
+  name: String!
+  type: String!
+  content: String!
+  variables: JSON
+  isActive: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+extend type Query {
+  contractTemplates: [ContractTemplate!]!
+  contractTemplate(id: ID!): ContractTemplate
+}
+
+input CreateContractTemplateInput {
+  name: String!
+  type: String!
+  content: String!
+  variables: JSON
+  isActive: Boolean
+}
+
+input UpdateContractTemplateInput {
+  id: ID!
+  name: String
+  type: String
+  content: String
+  variables: JSON
+  isActive: Boolean
+}
+
+extend type Mutation {
+  createContractTemplate(input: CreateContractTemplateInput!): ContractTemplate
+  updateContractTemplate(input: UpdateContractTemplateInput!): ContractTemplate
+  deleteContractTemplate(id: ID!): Boolean
+}

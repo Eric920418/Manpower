@@ -1,0 +1,26 @@
+type HomePage {
+  id: ID!
+  header: JSON
+  hero: JSON
+  featuredTalents: JSON
+  newsSection: JSON
+  contactSection: JSON
+  footer: JSON
+}
+
+extend type Query {
+  homePage: [HomePage!]!
+}
+
+input UpdateHomePageInput {
+  header: JSON
+  hero: JSON
+  featuredTalents: JSON
+  newsSection: JSON
+  contactSection: JSON
+  footer: JSON
+}
+
+extend type Mutation {
+  updateHomePage(input: UpdateHomePageInput!): HomePage
+}

@@ -1,0 +1,142 @@
+# 用戶角色枚舉
+enum Role {
+  SUPER_ADMIN
+  OWNER
+  STAFF
+}
+
+# 用戶類型
+type User {
+  id: ID!
+  email: String!
+  name: String
+  role: Role!
+  department: String
+  phone: String
+  avatar: String
+  isActive: Boolean!
+  lastLoginAt: String
+  invitationCode: String      # 邀請碼（SUPER_ADMIN 除外）
+  invitationCount: Int!       # 成功邀請次數
+  # 業務人員展示欄位
+  position: String
+  bio: String
+  specialties: JSON
+  lineId: String
+  isPublic: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+# 用戶列表返回類型
+type UserListResponse {
+  users: [User!]!
+  total: Int!
+  page: Int!
+  pageSize: Int!
+  totalPages: Int!
+}
+
+# 用戶查詢輸入
+input UserFilterInput {
+  search: String
+  role: Role
+  isActive: Boolean
+  department: String
+}
+
+# 用戶創建輸入
+input CreateUserInput {
+  email: String!
+  name: String!
+  password: String!
+  role: Role!
+  department: String
+  phone: String
+  isActive: Boolean
+}
+
+# 用戶更新輸入
+input UpdateUserInput {
+  email: String
+  name: String
+  password: String
+  role: Role
+  department: String
+  phone: String
+  avatar: String
+  isActive: Boolean
+  # 業務人員展示欄位
+  position: String
+  bio: String
+  specialties: JSON
+  lineId: String
+  isPublic: Boolean
+}
+
+# 邀請碼驗證結果
+type InvitationCodeValidation {
+  valid: Boolean!
+  userId: String
+  userName: String
+  message: String
+}
+
+# 業務人員簡易資訊（公開 API 用）
+type StaffInfo {
+  id: ID!
+  name: String!
+}
+
+# 業務人員完整資訊（公開展示頁面用）
+type StaffMember {
+  id: ID!
+  name: String!
+  position: String
+  avatar: String
+  phone: String
+  email: String!
+  lineId: String
+  bio: String
+  specialties: JSON
+  department: String
+}
+
+# 用戶查詢
+extend type Query {
+  # 獲取所有用戶（分頁）
+  users(page: Int, pageSize: Int, filter: UserFilterInput): UserListResponse!
+
+  # 獲取單個用戶
+  user(id: ID!): User
+
+  # 獲取當前登入用戶
+  me: User
+
+  # 驗證邀請碼
+  validateInvitationCode(code: String!): InvitationCodeValidation!
+
+  # 獲取所有業務人員列表（公開 API，用於表單選擇介紹人）
+  staffList: [StaffInfo!]!
+
+  # 獲取所有公開業務人員完整資訊（公開展示頁面用）
+  staffMembers: [StaffMember!]!
+}
+
+# 用戶操作
+extend type Mutation {
+  # 創建用戶
+  createUser(input: CreateUserInput!): User!
+
+  # 更新用戶
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+
+  # 刪除用戶
+  deleteUser(id: ID!): Boolean!
+
+  # 啟用/停用用戶
+  toggleUserStatus(id: ID!): User!
+
+  # 重置密碼
+  resetUserPassword(id: ID!, newPassword: String!): Boolean!
+}

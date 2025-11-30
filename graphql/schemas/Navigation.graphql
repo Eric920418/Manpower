@@ -1,0 +1,60 @@
+type Navigation {
+  id: Int!
+  label: String!
+  url: String
+  parentId: Int
+  order: Int!
+  isActive: Boolean!
+  icon: String
+  target: String!
+  parent: Navigation
+  children: [Navigation!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+input NavigationInput {
+  label: String!
+  url: String
+  parentId: Int
+  order: Int
+  isActive: Boolean
+  icon: String
+  target: String
+}
+
+input UpdateNavigationInput {
+  id: Int!
+  label: String
+  url: String
+  parentId: Int
+  order: Int
+  isActive: Boolean
+  icon: String
+  target: String
+}
+
+extend type Query {
+  # 取得所有導航項目（支援階層結構）
+  navigations: [Navigation!]!
+
+  # 取得單一導航項目
+  navigation(id: Int!): Navigation
+
+  # 取得啟用的頂層導航（用於前台 Header）
+  activeNavigations: [Navigation!]!
+}
+
+extend type Mutation {
+  # 建立導航項目
+  createNavigation(input: NavigationInput!): Navigation!
+
+  # 更新導航項目
+  updateNavigation(input: UpdateNavigationInput!): Navigation!
+
+  # 刪除導航項目（會同時刪除子項目）
+  deleteNavigation(id: Int!): Boolean!
+
+  # 批次更新排序
+  reorderNavigations(ids: [Int!]!): Boolean!
+}

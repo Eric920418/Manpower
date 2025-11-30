@@ -1,0 +1,179 @@
+# 表單模板類型
+type FormTemplate {
+  id: ID!
+  name: String!
+  type: String!
+  description: String
+  fields: JSON!
+  settings: JSON
+  isActive: Boolean!
+  createdAt: String!
+  updatedAt: String!
+  # 關聯統計
+  submissionCount: Int
+}
+
+# 表單提交記錄
+type FormSubmission {
+  id: ID!
+  templateId: Int!
+  formType: String!
+  data: JSON!
+  status: String!
+  notes: String
+  submitterName: String
+  submitterEmail: String
+  submitterPhone: String
+  ipAddress: String
+  processedAt: String
+  processedBy: String
+  createdAt: String!
+  updatedAt: String!
+  # 關聯
+  template: FormTemplate
+  processor: User
+  attachments: [Attachment!]
+}
+
+# 檔案附件
+type Attachment {
+  id: ID!
+  filename: String!
+  originalName: String!
+  mimeType: String!
+  size: Int!
+  path: String!
+  url: String
+  uploadedBy: String
+  createdAt: String!
+}
+
+# 表單模板列表返回類型
+type FormTemplateListResponse {
+  templates: [FormTemplate!]!
+  total: Int!
+  page: Int!
+  pageSize: Int!
+  totalPages: Int!
+}
+
+# 表單提交列表返回類型
+type FormSubmissionListResponse {
+  submissions: [FormSubmission!]!
+  total: Int!
+  page: Int!
+  pageSize: Int!
+  totalPages: Int!
+}
+
+# 表單模板篩選輸入
+input FormTemplateFilterInput {
+  search: String
+  type: String
+  isActive: Boolean
+}
+
+# 表單提交篩選輸入
+input FormSubmissionFilterInput {
+  search: String
+  formType: String
+  status: String
+  dateFrom: String
+  dateTo: String
+}
+
+# 創建表單模板輸入
+input CreateFormTemplateInput {
+  name: String!
+  type: String!
+  description: String
+  fields: JSON!
+  settings: JSON
+  isActive: Boolean
+}
+
+# 更新表單模板輸入
+input UpdateFormTemplateInput {
+  name: String
+  type: String
+  description: String
+  fields: JSON
+  settings: JSON
+  isActive: Boolean
+}
+
+# 處理表單提交輸入
+input ProcessFormSubmissionInput {
+  status: String!
+  notes: String
+}
+
+# 附件列表返回類型
+type AttachmentListResponse {
+  attachments: [Attachment!]!
+  total: Int!
+  page: Int!
+  pageSize: Int!
+  totalPages: Int!
+}
+
+# 附件篩選輸入
+input AttachmentFilterInput {
+  search: String
+  mimeType: String
+}
+
+# 表單查詢
+extend type Query {
+  # 獲取所有表單模板（分頁）
+  formTemplates(page: Int, pageSize: Int, filter: FormTemplateFilterInput): FormTemplateListResponse!
+
+  # 獲取單個表單模板
+  formTemplate(id: ID!): FormTemplate
+
+  # 獲取所有表單提交（分頁）
+  formSubmissions(page: Int, pageSize: Int, filter: FormSubmissionFilterInput): FormSubmissionListResponse!
+
+  # 獲取單個表單提交
+  formSubmission(id: ID!): FormSubmission
+
+  # 獲取所有附件（分頁）
+  attachments(page: Int, pageSize: Int, filter: AttachmentFilterInput): AttachmentListResponse!
+
+  # 獲取單個附件
+  attachment(id: ID!): Attachment
+
+  # 統計數據
+  formStats: FormStats!
+}
+
+# 表單統計類型
+type FormStats {
+  totalTemplates: Int!
+  activeTemplates: Int!
+  totalSubmissions: Int!
+  pendingSubmissions: Int!
+  processingSubmissions: Int!
+  completedSubmissions: Int!
+}
+
+# 表單操作
+extend type Mutation {
+  # 創建表單模板
+  createFormTemplate(input: CreateFormTemplateInput!): FormTemplate!
+
+  # 更新表單模板
+  updateFormTemplate(id: ID!, input: UpdateFormTemplateInput!): FormTemplate!
+
+  # 刪除表單模板
+  deleteFormTemplate(id: ID!): Boolean!
+
+  # 啟用/停用表單模板
+  toggleFormTemplateStatus(id: ID!): FormTemplate!
+
+  # 處理表單提交
+  processFormSubmission(id: ID!, input: ProcessFormSubmissionInput!): FormSubmission!
+
+  # 刪除表單提交
+  deleteFormSubmission(id: ID!): Boolean!
+}

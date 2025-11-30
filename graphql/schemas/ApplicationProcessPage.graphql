@@ -1,0 +1,20 @@
+type ApplicationProcessPage {
+  id: ID!
+  hero: JSON
+  categories: JSON
+  contactCTA: JSON
+}
+
+extend type Query {
+  applicationProcessPage: [ApplicationProcessPage!]!
+}
+
+input UpdateApplicationProcessPageInput {
+  hero: JSON
+  categories: JSON
+  contactCTA: JSON
+}
+
+extend type Mutation {
+  updateApplicationProcessPage(input: UpdateApplicationProcessPageInput!): ApplicationProcessPage
+}

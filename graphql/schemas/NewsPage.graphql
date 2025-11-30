@@ -1,0 +1,22 @@
+type NewsPage {
+  id: ID!
+  hero: JSON
+  categories: JSON
+  featuredNews: JSON
+  newsList: JSON
+}
+
+extend type Query {
+  newsPage: [NewsPage!]!
+}
+
+input UpdateNewsPageInput {
+  hero: JSON
+  categories: JSON
+  featuredNews: JSON
+  newsList: JSON
+}
+
+extend type Mutation {
+  updateNewsPage(input: UpdateNewsPageInput!): NewsPage
+}
