@@ -92,11 +92,11 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // 合約管理 - 所有角色都可以查看
-    if (pathname.startsWith('/admin/contracts')) {
-      if (!hasPermission(userRole, PermissionEnum.CONTRACT_READ)) {
+    // 行政事務管理 - 需要 admin_task:read 權限
+    if (pathname.startsWith('/admin/admin-tasks')) {
+      if (!hasPermission(userRole, PermissionEnum.ADMIN_TASK_READ)) {
         return NextResponse.redirect(
-          new URL('/admin/dashboard?error=forbidden&reason=no_contract_permission', req.url)
+          new URL('/admin/dashboard?error=forbidden&reason=no_admin_task_permission', req.url)
         );
       }
     }

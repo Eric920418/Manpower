@@ -86,13 +86,17 @@ model User {
   invitationCode    String?   @unique // 自己的邀請碼（SUPER_ADMIN 除外）
   invitationCount   Int       @default(0) // 成功邀請次數
 
-  // 關聯
-  createdForms    FormSubmission[] @relation("FormCreator")
-  processedForms  FormSubmission[] @relation("FormProcessor")
-  contracts       Contract[]       @relation("ContractCreator")
-  signatures      Signature[]
+  // 關聯 - 活動日誌
   activityLogs    ActivityLog[]
+
+  // 關聯 - 人力需求
   invitedRequests ManpowerRequest[] @relation("InvitedBy") // 透過邀請碼帶來的需求
+
+  // 關聯 - 行政事務簽核
+  appliedTasks      AdminTask[]      @relation("TaskApplicant")   // 我申請的任務
+  processedTasks    AdminTask[]      @relation("TaskProcessor")   // 我處理的任務
+  approvedTasks     AdminTask[]      @relation("TaskApprover")    // 我審批的任務
+  approvalRecords   ApprovalRecord[] @relation("ApprovalActor")   // 我的審批記錄
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -106,7 +110,7 @@ model ActivityLog {
   id        Int      @id @default(autoincrement())
   userId    String
   action    String   // login, logout, create, update, delete
-  entity    String   // user, form, contract, page
+  entity    String   // user, admin_task, page
   entityId  String?
   details   Json?
   ipAddress String?
@@ -115,164 +119,9 @@ model ActivityLog {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
 
-  // ✅ 優化：複合索引
-  @@index([userId, createdAt(sort: Desc)]) // 用戶活動歷史
-  @@index([entity, entityId, createdAt(sort: Desc)]) // 實體操作歷史
-  @@index([action, createdAt(sort: Desc)]) // 按操作類型查詢
-}
-
-// ==================== 表單系統 ====================
-model FormTemplate {
-  id          Int      @id @default(autoincrement())
-  name        String
-  type        String   // job, company, franchise, contact, custom
-  description String?
-  fields      Json     // 表單欄位定義
-  settings    Json?    // 表單設定（驗證規則、通知等）
-  isActive    Boolean  @default(true)
-
-  submissions FormSubmission[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model FormSubmission {
-  id           Int           @id @default(autoincrement())
-  templateId   Int
-  formType     String        // job, company, franchise, contact, custom
-  data         Json          // 提交的表單數據
-  status       String        @default("pending") // pending, processing, completed, rejected
-  notes        String?       // 處理備註
-
-  // 提交者資訊
-  submitterName  String?
-  submitterEmail String?
-  submitterPhone String?
-  ipAddress      String?
-
-  // 處理資訊
-  processedAt    DateTime?
-  processedBy    String?
-
-  // ✅ 修復：使用 ID 作為外鍵而非 email
-  createdById    String?      // 創建者 ID（登入用戶）
-
-  // 關聯
-  template    FormTemplate @relation(fields: [templateId], references: [id])
-  creator     User?        @relation("FormCreator", fields: [createdById], references: [id])
-  processor   User?        @relation("FormProcessor", fields: [processedBy], references: [id])
-  attachments Attachment[]
-
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  // ✅ 優化：複合索引（常一起查詢的欄位）
-  @@index([formType, status, createdAt(sort: Desc)]) // 列表查詢優化
-  @@index([submitterEmail(ops: raw("varchar_pattern_ops"))]) // 模糊搜尋優化
-  @@index([createdById]) // 外鍵索引
-  @@index([processedBy]) // 外鍵索引
-  @@index([templateId]) // 🆕 外鍵索引，用於 include: { template: true }
-  @@index([status, processedAt(sort: Desc)]) // 🆕 已處理提交查詢
-  @@index([templateId, status, createdAt(sort: Desc)]) // 🆕 按模板篩選
-}
-
-// ==================== 合約管理 ====================
-model ContractTemplate {
-  id          Int        @id @default(autoincrement())
-  name        String
-  type        String     // employment, service, franchise
-  content     String     // 合約內容模板（支援變數）
-  variables   Json?      // 可用變數定義
-  isActive    Boolean    @default(true)
-
-  contracts   Contract[]
-
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model Contract {
-  id           Int               @id @default(autoincrement())
-  templateId   Int
-  contractNo   String            @unique // 合約編號
-  title        String
-  content      String            // 最終合約內容
-  parties      Json              // 簽約方資訊
-  status       String            @default("draft") // draft, pending, signed, expired, terminated
-
-  // 有效期
-  validFrom    DateTime?
-  validUntil   DateTime?
-
-  // 簽署資訊
-  signedAt     DateTime?
-
-  // 關聯
-  template     ContractTemplate  @relation(fields: [templateId], references: [id])
-  createdBy    String
-  creator      User              @relation("ContractCreator", fields: [createdBy], references: [id])
-  signatures   Signature[]
-  attachments  Attachment[]
-
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  // ✅ 優化：複合索引
-  @@index([status, validUntil]) // 過期合約查詢
-  @@index([contractNo]) // 唯一編號查詢
-  @@index([createdBy, createdAt(sort: Desc)]) // 用戶合約列表
-  @@index([templateId]) // 🆕 外鍵索引，用於 include: { template: true }
-  @@index([validFrom, validUntil]) // 🆕 查詢有效期間的合約
-  @@index([status]) // 🆕 按狀態篩選合約
-}
-
-// 電子簽名
-model Signature {
-  id          Int      @id @default(autoincrement())
-  contractId  Int
-  userId      String
-  signedName  String   // 簽署者姓名
-  signedAt    DateTime @default(now())
-  ipAddress   String
-  signature   String?  // Base64 編碼的簽名圖片
-
-  // OTP 驗證
-  otpCode     String?
-  otpVerified Boolean  @default(false)
-
-  contract    Contract @relation(fields: [contractId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
-
-  @@unique([contractId, userId])
-  @@index([contractId])
-}
-
-// ==================== 檔案管理 ====================
-model Attachment {
-  id             Int             @id @default(autoincrement())
-  filename       String
-  originalName   String
-  mimeType       String
-  size           Int             // 檔案大小（bytes）
-  path           String          // 儲存路徑
-  url            String?         // 公開訪問 URL
-
-  // 多態關聯（簡化版本）
-  formId         Int?
-  contractId     Int?
-
-  // 關聯
-  form           FormSubmission? @relation(fields: [formId], references: [id], onDelete: Cascade)
-  contract       Contract?       @relation(fields: [contractId], references: [id], onDelete: Cascade)
-
-  uploadedBy     String?
-  createdAt      DateTime        @default(now())
-
-  @@index([formId])
-  @@index([contractId])
-  @@index([formId, createdAt(sort: Desc)]) // 🆕 表單附件列表
-  @@index([contractId, createdAt(sort: Desc)]) // 🆕 合約附件列表
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([entity, entityId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
 }
 
 // ==================== 系統設定 ====================
@@ -286,7 +135,6 @@ model SystemConfig {
 
   @@index([category])
 }
-
 
 // ==================== 人力需求管理 ====================
 model ManpowerRequest {
@@ -333,20 +181,137 @@ model ManpowerRequest {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  // ✅ 優化：複合索引
-  @@index([status, createdAt(sort: Desc)]) // 需求列表（按狀態和時間）
-  @@index([contactEmail]) // 客戶需求查詢
-  @@index([requestNo]) // 編號查詢
-  @@index([processedBy, status]) // 處理人員工作列表
-  @@index([invitedBy, createdAt(sort: Desc)]) // 邀請人的客戶列表
-  @@index([status, processedAt(sort: Desc)]) // 🆕 已處理需求查詢
-  @@index([invitedBy, status, createdAt(sort: Desc)]) // 🆕 業務人員工作列表
+  @@index([status, createdAt(sort: Desc)])
+  @@index([contactEmail])
+  @@index([requestNo])
+  @@index([processedBy, status])
+  @@index([invitedBy, createdAt(sort: Desc)])
+  @@index([status, processedAt(sort: Desc)])
+  @@index([invitedBy, status, createdAt(sort: Desc)])
+}
+
+// ==================== 行政事務簽核 ====================
+// 行政任務類型
+enum AdminTaskType {
+  CREATE_FILE        // 建檔
+  TERMINATION        // 廢聘
+  LONG_TERM_CARE     // 長照求才
+  RETURN_SUPPLEMENT  // 退補件
+  RECRUITMENT_LETTER // 申請招募函
+  HEALTH_CHECK       // 體檢(報告/核備)
+  ENTRY_ONESTOP      // 一站式入境
+  TAKEOVER_NOTIFY    // 承接通報(雙方合意)
+  CERTIFICATION      // 印辦認證
+  OTHER              // 其他
+}
+
+// 行政任務狀態
+enum AdminTaskStatus {
+  PENDING     // 待處理
+  PROCESSING  // 處理中
+  APPROVED    // 已批准
+  REJECTED    // 已退回
+  COMPLETED   // 已完成
+}
+
+// 審批路線
+enum ApprovalRoute {
+  V_ROUTE    // V 路線（主要審批）
+  DASH_ROUTE // - 路線（次要審批）
+}
+
+// 行政任務
+model AdminTask {
+  id              Int              @id @default(autoincrement())
+  taskNo          String           @unique // 任務編號（自動生成，格式：AT-YYYYMMDD-XXXX）
+  taskType        AdminTaskType    // 任務類型
+  title           String           // 任務標題
+
+  // 關聯人員
+  applicantId     String           // 申請人 ID
+  applicant       User             @relation("TaskApplicant", fields: [applicantId], references: [id])
+  processorId     String?          // 完成人/經辦人 ID
+  processor       User?            @relation("TaskProcessor", fields: [processorId], references: [id])
+  approverId      String?          // 主管檢核 ID
+  approver        User?            @relation("TaskApprover", fields: [approverId], references: [id])
+
+  // 時間資訊
+  applicationDate DateTime         @default(now()) // 申請日期
+  deadline        DateTime?        // 完成限期
+  receivedAt      DateTime?        // 受理日期時間
+  completedAt     DateTime?        // 完成時間
+
+  // 狀態與路線
+  status          AdminTaskStatus  @default(PENDING)
+  approvalRoute   ApprovalRoute    @default(V_ROUTE)
+  approvalMark    String?          // 主管檢核標記 (V 或 -)
+
+  // 動態表單資料（根據 taskType 不同結構）
+  payload         Json             @default("{}")
+
+  // 備註
+  notes           String?          @db.Text
+
+  // 附件
+  attachments     AdminTaskAttachment[]
+
+  // 審批記錄
+  approvalRecords ApprovalRecord[]
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([taskType, status, applicationDate(sort: Desc)])
+  @@index([applicantId, status])
+  @@index([processorId, status])
+  @@index([approverId, status])
+  @@index([taskNo])
+  @@index([status, deadline])
+  @@index([status, applicationDate(sort: Desc)])
+}
+
+// 審批記錄
+model ApprovalRecord {
+  id          Int              @id @default(autoincrement())
+  taskId      Int
+  task        AdminTask        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  action      String           // approve, reject, request_revision, add_signer
+  comment     String?          @db.Text
+
+  approverId  String
+  approver    User             @relation("ApprovalActor", fields: [approverId], references: [id])
+
+  createdAt   DateTime         @default(now())
+
+  @@index([taskId, createdAt(sort: Desc)])
+  @@index([approverId])
+}
+
+// 行政任務附件
+model AdminTaskAttachment {
+  id            Int       @id @default(autoincrement())
+  taskId        Int
+  task          AdminTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int       // 檔案大小（bytes）
+  path          String    // 儲存路徑
+  url           String?   // 公開訪問 URL
+
+  uploadedBy    String?
+  createdAt     DateTime  @default(now())
+
+  @@index([taskId])
+  @@index([taskId, createdAt(sort: Desc)])
 }
 
 // ==================== 分析與報表 ====================
 model Analytics {
   id          Int      @id @default(autoincrement())
-  event       String   // page_view, form_submit, contract_signed
+  event       String   // page_view, form_submit, task_created
   category    String   // traffic, conversion, engagement
   action      String?
   label       String?
@@ -363,7 +328,7 @@ model Analytics {
   @@index([event, createdAt])
   @@index([category, createdAt])
   @@index([userId, createdAt])
-  @@index([event, userId, createdAt(sort: Desc)]) // 🆕 用戶事件跟蹤
-  @@index([category, event, createdAt(sort: Desc)]) // 🆕 分類統計
-  @@index([createdAt(sort: Desc)]) // 🆕 最近事件排序
+  @@index([event, userId, createdAt(sort: Desc)])
+  @@index([category, event, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }

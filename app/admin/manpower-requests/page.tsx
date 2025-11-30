@@ -1,10 +1,12 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import Image from "next/image";
+import { hasPermission } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
 
 interface ManpowerRequest {
   id: number;
@@ -42,8 +44,15 @@ interface ManpowerRequestStats {
 
 export default function ManpowerRequestsPage() {
   const { data: session, status } = useSession();
-  const { can } = usePermission();
+  const { can, getRole } = usePermission();
   const router = useRouter();
+
+  // 使用穩定的權限檢查，避免無限循環
+  const userRole = getRole();
+  const canReadForms = useMemo(() => {
+    if (!userRole) return false;
+    return hasPermission(userRole as Role, 'form:read');
+  }, [userRole]);
 
   const [requests, setRequests] = useState<ManpowerRequest[]>([]);
   const [stats, setStats] = useState<ManpowerRequestStats | null>(null);
@@ -165,10 +174,10 @@ export default function ManpowerRequestsPage() {
 
   useEffect(() => {
     // 只在已登入且有權限時才載入資料
-    if (status === "authenticated" && can("form:read")) {
+    if (status === "authenticated" && canReadForms) {
       fetchData();
     }
-  }, [status, can, fetchData]);
+  }, [status, canReadForms, fetchData]);
 
   const handleViewDetails = (request: ManpowerRequest) => {
     setSelectedRequest(request);

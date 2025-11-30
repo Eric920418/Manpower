@@ -3,10 +3,9 @@ import { prisma } from "./prismaClient";
 import { JSONScalar } from "./utils/jsonScalar";
 import { getDefaultPayload, type BlockKey } from "./utils/defaults";
 import { userResolvers } from "./resolvers/userResolvers";
-import { formResolvers } from "./resolvers/formResolvers";
 import { navigationResolvers } from "./resolvers/navigationResolvers";
-import { contractResolvers } from "./resolvers/contractResolvers";
 import { manpowerRequestResolvers } from "./resolvers/manpowerRequestResolvers";
+import { adminTaskResolvers } from "./resolvers/adminTaskResolvers";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -84,14 +83,12 @@ const Query = {
   franchisePage: createQueryResolver("franchisePage"),
   // 用戶管理 queries
   ...userResolvers.Query,
-  // 表單管理 queries
-  ...formResolvers.Query,
   // 導航管理 queries
   ...navigationResolvers.Query,
-  // 合約管理 queries
-  ...contractResolvers.Query,
   // 人力需求管理 queries
   ...manpowerRequestResolvers.Query,
+  // 行政事務簽核 queries
+  ...adminTaskResolvers.Query,
 };
 
 const Mutation = {
@@ -104,14 +101,12 @@ const Mutation = {
   updateFranchisePage: createMutationResolver("franchisePage"),
   // 用戶管理 mutations
   ...userResolvers.Mutation,
-  // 表單管理 mutations
-  ...formResolvers.Mutation,
   // 導航管理 mutations
   ...navigationResolvers.Mutation,
-  // 合約管理 mutations
-  ...contractResolvers.Mutation,
   // 人力需求管理 mutations
   ...manpowerRequestResolvers.Mutation,
+  // 行政事務簽核 mutations
+  ...adminTaskResolvers.Mutation,
 };
 
 const resolvers = {

@@ -5,7 +5,7 @@
  */
 
 import DataLoader from 'dataloader';
-import { PrismaClient, User, FormTemplate, Contract, Signature } from '@prisma/client';
+import { PrismaClient, User, AdminTask, ApprovalRecord } from '@prisma/client';
 
 /**
  * 創建 User DataLoader
@@ -30,68 +30,52 @@ export function createUserLoader(prisma: PrismaClient) {
 }
 
 /**
- * 創建 FormTemplate DataLoader
- * 批量載入表單模板（通過 ID）
+ * 創建 AdminTask DataLoader
+ * 批量載入行政任務（通過 ID）
  */
-export function createFormTemplateLoader(prisma: PrismaClient) {
-  return new DataLoader<number, FormTemplate | null>(async (templateIds) => {
-    const templates = await prisma.formTemplate.findMany({
+export function createAdminTaskLoader(prisma: PrismaClient) {
+  return new DataLoader<number, AdminTask | null>(async (taskIds) => {
+    const tasks = await prisma.adminTask.findMany({
       where: {
         id: {
-          in: [...templateIds],
+          in: [...taskIds],
         },
       },
     });
 
-    const templateMap = new Map(templates.map((t) => [t.id, t]));
-    return templateIds.map((id) => templateMap.get(id) || null);
+    const taskMap = new Map(tasks.map((t) => [t.id, t]));
+    return taskIds.map((id) => taskMap.get(id) || null);
   });
 }
 
 /**
- * 創建 Contract DataLoader
- * 批量載入合約資料（通過 ID）
- */
-export function createContractLoader(prisma: PrismaClient) {
-  return new DataLoader<number, Contract | null>(async (contractIds) => {
-    const contracts = await prisma.contract.findMany({
-      where: {
-        id: {
-          in: [...contractIds],
-        },
-      },
-    });
-
-    const contractMap = new Map(contracts.map((c) => [c.id, c]));
-    return contractIds.map((id) => contractMap.get(id) || null);
-  });
-}
-
-/**
- * 創建 Signature DataLoader
- * 批量載入簽名資料（通過合約 ID）
+ * 創建 ApprovalRecord DataLoader
+ * 批量載入審批記錄（通過任務 ID）
  * 注意：這是一對多關係，返回陣列
  */
-export function createSignaturesByContractLoader(prisma: PrismaClient) {
-  return new DataLoader<number, Signature[]>(async (contractIds) => {
-    const signatures = await prisma.signature.findMany({
+export function createApprovalRecordsByTaskLoader(prisma: PrismaClient) {
+  return new DataLoader<number, ApprovalRecord[]>(async (taskIds) => {
+    const records = await prisma.approvalRecord.findMany({
       where: {
-        contractId: {
-          in: [...contractIds],
+        taskId: {
+          in: [...taskIds],
         },
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
 
-    // 按 contractId 分組
-    const signatureMap = new Map<number, Signature[]>();
-    contractIds.forEach((id) => signatureMap.set(id, []));
-    signatures.forEach((sig) => {
-      const existing = signatureMap.get(sig.contractId) || [];
-      existing.push(sig);
-      signatureMap.set(sig.contractId, existing);
+    // 按 taskId 分組
+    const recordMap = new Map<number, ApprovalRecord[]>();
+    taskIds.forEach((id) => recordMap.set(id, []));
+    records.forEach((record) => {
+      const existing = recordMap.get(record.taskId) || [];
+      existing.push(record);
+      recordMap.set(record.taskId, existing);
     });
 
-    return contractIds.map((id) => signatureMap.get(id) || []);
+    return taskIds.map((id) => recordMap.get(id) || []);
   });
 }
 
@@ -102,9 +86,8 @@ export function createSignaturesByContractLoader(prisma: PrismaClient) {
 export function createDataLoaders(prisma: PrismaClient) {
   return {
     userLoader: createUserLoader(prisma),
-    formTemplateLoader: createFormTemplateLoader(prisma),
-    contractLoader: createContractLoader(prisma),
-    signaturesByContractLoader: createSignaturesByContractLoader(prisma),
+    adminTaskLoader: createAdminTaskLoader(prisma),
+    approvalRecordsByTaskLoader: createApprovalRecordsByTaskLoader(prisma),
   };
 }
 

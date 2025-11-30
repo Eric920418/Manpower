@@ -53,8 +53,7 @@ export async function POST(request: Request) {
     // 使用內建的 formData() 方法取得表單資料
     const formData = await request.formData();
     const fileField = formData.get("file");
-    const relatedType = formData.get('relatedType') as string; // 'form' 或 'contract'
-    const relatedId = formData.get('relatedId') as string;
+    const taskId = formData.get('taskId') as string; // 行政任務 ID
 
     // 檢查是否有上傳檔案，且是否為 File 物件
     if (!fileField || !(fileField instanceof File)) {
@@ -90,64 +89,62 @@ export async function POST(request: Request) {
     // 寫入檔案到指定目錄
     await fs.writeFile(filePath, fileBuffer);
 
-    // 使用 Transaction 確保資料一致性（附件和日誌同時成功或失敗）
-    const attachment = await prisma.$transaction(async (tx) => {
-      // 建立資料庫記錄
-      const newAttachment = await tx.attachment.create({
-        data: {
-          filename,
-          originalName: fileField.name,
-          mimeType: fileField.type,
-          size: fileField.size,
-          path: filePath,
-          url: `/api/files/${filename}`,
-          uploadedBy: session.user.id,
-          // 如果有關聯的表單或合約，建立關聯
-          ...(relatedType === 'form' && relatedId
-            ? { formId: parseInt(relatedId) }
-            : {}),
-          ...(relatedType === 'contract' && relatedId
-            ? { contractId: parseInt(relatedId) }
-            : {}),
-        },
-      });
-
-      // 記錄活動日誌
-      await tx.activityLog.create({
-        data: {
-          userId: session.user.id,
-          action: 'upload',
-          entity: 'attachment',
-          entityId: newAttachment.id.toString(),
-          details: {
-            filename: fileField.name,
-            fileSize: fileField.size,
+    // 如果有指定任務 ID，建立 AdminTaskAttachment 記錄
+    let attachment = null;
+    if (taskId) {
+      attachment = await prisma.$transaction(async (tx) => {
+        // 建立資料庫記錄
+        const newAttachment = await tx.adminTaskAttachment.create({
+          data: {
+            taskId: parseInt(taskId),
+            filename,
+            originalName: fileField.name,
             mimeType: fileField.type,
-            relatedType,
-            relatedId,
+            size: fileField.size,
+            path: filePath,
+            url: `/api/uploads/${filename}`,
+            uploadedBy: session.user.id,
           },
-        },
-      });
+        });
 
-      return newAttachment;
-    });
+        // 記錄活動日誌
+        await tx.activityLog.create({
+          data: {
+            userId: session.user.id,
+            action: 'upload',
+            entity: 'admin_task_attachment',
+            entityId: newAttachment.id.toString(),
+            details: {
+              filename: fileField.name,
+              fileSize: fileField.size,
+              mimeType: fileField.type,
+              taskId,
+            },
+          },
+        });
+
+        return newAttachment;
+      });
+    }
 
     // 回傳成功訊息以及檔案資訊
     return NextResponse.json({
       success: true,
       file: {
-        id: attachment.id,
-        filename: attachment.filename,
-        originalName: attachment.originalName,
-        mimeType: attachment.mimeType,
-        size: attachment.size,
-        url: attachment.url,
+        id: attachment?.id,
+        filename,
+        originalName: fileField.name,
+        mimeType: fileField.type,
+        size: fileField.size,
+        url: `/api/uploads/${filename}`,
+        path: filePath,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("上傳錯誤：", error);
+    const errorMessage = error instanceof Error ? error.message : '未知錯誤';
     return NextResponse.json(
-      { error: `檔案上傳失敗: ${error.message}` },
+      { error: `檔案上傳失敗: ${errorMessage}` },
       { status: 500 }
     );
   }

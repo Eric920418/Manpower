@@ -99,14 +99,12 @@ pnpm lint             # 程式碼檢查
 | 第二級 | OWNER | 內容管理、表單管理、合約管理、用戶查看 |
 | 第三級 | STAFF | 表單處理、合約簽署、檔案上傳 |
 
-### 3. 智能表單系統
-- 求職應徵表、企業需求表、加盟申請表
-- 多狀態管理（待處理、處理中、已完成、已拒絕）
-- 表單統計數據
-
-### 4. 電子簽約管理
-- 合約模板庫（勞動合約、服務協議、加盟合約）
-- 簽署流程、合約追蹤
+### 3. 行政事務簽核系統
+- **十大任務類型**：建檔、廢聘、長照求才、退補件、申請招募函、體檢報告、一站式入境、承接通報、印辦認證、其他
+- **五種任務狀態**：待處理、處理中、已批准、已退回、已完成
+- **審批路線管理**：V 路線（主要審批）、- 路線（次要審批）
+- **審批記錄追蹤**：完整記錄每次審批操作和意見
+- **統計儀表板**：任務數量、完成率、逾期監控
 
 ### 5. 工作類別與申請流程管理
 - 多類別管理（看護工、幫傭、廠工、營造工、養護機構）
@@ -132,8 +130,8 @@ manpower/
 │   ├── admin/                # 後台管理
 │   │   ├── dashboard/        # 儀表板
 │   │   ├── users/            # 用戶管理
-│   │   ├── forms/            # 表單管理
-│   │   ├── contracts/        # 合約管理
+│   │   ├── admin-tasks/      # 行政事務簽核
+│   │   ├── manpower-requests/# 人力需求管理
 │   │   ├── navigation/       # 導航管理
 │   │   └── [slug]/           # 動態頁面編輯
 │   └── api/                  # API 路由
@@ -172,15 +170,14 @@ manpower/
 | User | 用戶管理（含邀請碼、權限） |
 | ContentBlock | 動態內容儲存（JSON payload） |
 | Navigation | 導航選單（支援階層） |
-| FormSubmission | 表單提交記錄 |
-| FormTemplate | 表單模板 |
-| Contract | 電子合約 |
-| ContractTemplate | 合約模板 |
+| Page | 動態頁面管理 |
+| AdminTask | 行政任務（十種類型、五種狀態） |
+| ApprovalRecord | 審批記錄 |
+| AdminTaskAttachment | 行政任務附件 |
 | ManpowerRequest | 人力需求單 |
-| Attachment | 附件檔案 |
 | ActivityLog | 操作日誌 |
 | Analytics | 數據分析 |
-| IpBlocklist | IP 黑名單 |
+| SystemConfig | 系統設定 |
 
 ## 🔐 安全機制
 
@@ -197,7 +194,7 @@ manpower/
 ### 後端優化
 - **Prisma Client 單例**：避免連接池災難
 - **N+1 查詢修復**：使用 Prisma include 和 select
-- **DataLoader 批量載入**：User、FormTemplate、Contract、Signature 批量查詢
+- **DataLoader 批量載入**：User、AdminTask、ApprovalRecord 批量查詢
 - **GraphQL 響應快取**：靜態資料 5 分鐘快取，動態資料 30 秒快取
 - **資料庫索引優化**：複合索引支援常用查詢模式
 
@@ -270,8 +267,8 @@ DEBUG_GRAPHQL         # 顯示所有 GraphQL 操作
 - 基礎 CMS 功能（ContentBlock + GraphQL API）
 
 ### Phase 2 - 核心功能 ✅
-- 表單管理系統（完整 CRUD、提交記錄處理）
-- 權限管理 (RBAC)（三級權限 + 44 項細粒度權限）
+- 行政事務簽核系統（十種類型、五種狀態、審批流程）
+- 權限管理 (RBAC)（三級權限 + 細粒度權限控制）
 - 檔案上傳與管理
 
 ### Phase 3 - 頁面系統 ✅
@@ -288,12 +285,17 @@ DEBUG_GRAPHQL         # 顯示所有 GraphQL 操作
 ### 後台管理頁面
 - `/admin/dashboard` - 儀表板
 - `/admin/users` - 用戶管理
-- `/admin/forms` - 表單管理
-- `/admin/files` - 檔案管理
-- `/admin/contracts` - 合約管理
+- `/admin/admin-tasks` - 行政事務管理（簽核系統）
+- `/admin/manpower-requests` - 人力需求管理
 - `/admin/navigation` - 導航管理
 - `/admin/analytics` - 數據分析
-- `/admin/[slug]` - 動態頁面編輯
+- `/admin/home-page` - 首頁編輯
+- `/admin/application-process` - 申請流程編輯
+- `/admin/workers` - 移工列表編輯
+- `/admin/faq` - 常見問題編輯
+- `/admin/news` - 最新消息編輯
+- `/admin/staff` - 業務人員編輯
+- `/admin/franchise` - 創業加盟編輯
 
 ### 前台展示頁面
 - `/` - 首頁

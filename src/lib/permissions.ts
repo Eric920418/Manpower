@@ -39,13 +39,12 @@ export type Permission =
   | 'form:delete'
   | 'form:process'
   | 'form:export'
-  // 合約管理
-  | 'contract:create'
-  | 'contract:read'
-  | 'contract:update'
-  | 'contract:delete'
-  | 'contract:sign'
-  | 'contract:approve'
+  // 行政事務管理
+  | 'admin_task:create'
+  | 'admin_task:read'
+  | 'admin_task:update'
+  | 'admin_task:delete'
+  | 'admin_task:approve'
   // 檔案管理
   | 'file:upload'
   | 'file:read'
@@ -93,13 +92,12 @@ export const PermissionEnum = {
   FORM_DELETE: 'form:delete' as const,
   FORM_PROCESS: 'form:process' as const,
   FORM_EXPORT: 'form:export' as const,
-  // 合約管理
-  CONTRACT_CREATE: 'contract:create' as const,
-  CONTRACT_READ: 'contract:read' as const,
-  CONTRACT_UPDATE: 'contract:update' as const,
-  CONTRACT_DELETE: 'contract:delete' as const,
-  CONTRACT_SIGN: 'contract:sign' as const,
-  CONTRACT_APPROVE: 'contract:approve' as const,
+  // 行政事務管理
+  ADMIN_TASK_CREATE: 'admin_task:create' as const,
+  ADMIN_TASK_READ: 'admin_task:read' as const,
+  ADMIN_TASK_UPDATE: 'admin_task:update' as const,
+  ADMIN_TASK_DELETE: 'admin_task:delete' as const,
+  ADMIN_TASK_APPROVE: 'admin_task:approve' as const,
   // 檔案管理
   FILE_UPLOAD: 'file:upload' as const,
   FILE_READ: 'file:read' as const,
@@ -151,13 +149,12 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'form:delete',
     'form:process',
     'form:export',
-    // 合約管理
-    'contract:create',
-    'contract:read',
-    'contract:update',
-    'contract:delete',
-    'contract:sign',
-    'contract:approve',
+    // 行政事務管理
+    'admin_task:create',
+    'admin_task:read',
+    'admin_task:update',
+    'admin_task:delete',
+    'admin_task:approve',
     // 檔案管理
     'file:upload',
     'file:read',
@@ -175,12 +172,13 @@ export const RolePermissions: Record<Role, Permission[]> = {
    * 業主 - 公司經營者
    * 可以：
    * - 管理所有內容和頁面
-   * - 查看所有表單和合約
+   * - 查看所有表單
    * - 查看系統分析和日誌
    * - 管理一般用戶（不能管理超級管理員）
    * 不可以：
    * - 修改系統核心設定
    * - 刪除用戶
+   * - 審批行政事務（目前僅 SUPER_ADMIN）
    */
   OWNER: [
     // 用戶管理（受限）
@@ -216,13 +214,10 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'form:process',
     'form:export',
 
-    // 合約管理（完整）
-    'contract:create',
-    'contract:read',
-    'contract:update',
-    'contract:delete',
-    'contract:sign',
-    'contract:approve',
+    // 行政事務管理（僅創建和查看，不能審批）
+    'admin_task:create',
+    'admin_task:read',
+    'admin_task:update',
 
     // 檔案管理（完整）
     'file:upload',
@@ -242,13 +237,14 @@ export const RolePermissions: Record<Role, Permission[]> = {
    * 業務人員 - 一般員工
    * 可以：
    * - 查看和處理表單
-   * - 查看合約（僅自己相關）
+   * - 創建行政任務（作為申請人）
    * - 上傳檔案
    * - 查看基本儀表板
    * 不可以：
    * - 管理用戶
    * - 刪除任何資料
    * - 修改系統設定
+   * - 審批行政事務
    */
   STAFF: [
     // 用戶管理（僅查看自己）
@@ -267,9 +263,9 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'form:read',
     'form:process',
 
-    // 合約管理（受限）
-    'contract:read',
-    'contract:sign',
+    // 行政事務管理（僅創建和查看）
+    'admin_task:create',
+    'admin_task:read',
 
     // 檔案管理（受限）
     'file:upload',

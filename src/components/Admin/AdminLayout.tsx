@@ -26,6 +26,11 @@ const menuItems: MenuItem[] = [
     permission: 'user:read',
   },
   {
+    label: "行政事務",
+    href: "/admin/admin-tasks",
+    permission: 'admin_task:read',
+  },
+  {
     label: "首頁內容",
     href: "/admin/home-page",
     permission: 'content:read',
@@ -69,16 +74,6 @@ const menuItems: MenuItem[] = [
     label: "人力需求",
     href: "/admin/manpower-requests",
     permission: 'form:read',
-  },
-  {
-    label: "合約管理",
-    href: "/admin/contracts",
-    permission: 'contract:read',
-  },
-  {
-    label: "檔案管理",
-    href: "/admin/files",
-    permission: 'file:read',
   },
   {
     label: "數據分析",
