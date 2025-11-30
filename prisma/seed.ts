@@ -442,6 +442,30 @@ async function main() {
   });
   console.log('✓ 首頁內容區塊建立完成');
 
+  // 9. 創建預設任務類型
+  console.log('📋 創建預設任務類型...');
+  const taskTypes = [
+    { code: 'CREATE_FILE', label: '建檔', description: '新案件建檔', order: 0 },
+    { code: 'TERMINATION', label: '廢聘', description: '解除聘僱關係', order: 1 },
+    { code: 'LONG_TERM_CARE', label: '長照求才', description: '長期照護人力需求', order: 2 },
+    { code: 'RETURN_SUPPLEMENT', label: '退補件', description: '退件與補件處理', order: 3 },
+    { code: 'RECRUITMENT_LETTER', label: '申請招募函', description: '向勞動部申請招募許可', order: 4 },
+    { code: 'HEALTH_CHECK', label: '體檢(報告/核備)', description: '健康檢查相關事項', order: 5 },
+    { code: 'ENTRY_ONESTOP', label: '一站式入境', description: '一站式入境服務', order: 6 },
+    { code: 'TAKEOVER_NOTIFY', label: '承接通報(雙方合意)', description: '承接通報申請', order: 7 },
+    { code: 'CERTIFICATION', label: '印辦認證', description: '文件認證服務', order: 8 },
+    { code: 'OTHER', label: '其他', description: '其他類型申請', order: 9 },
+  ];
+
+  for (const taskType of taskTypes) {
+    await prisma.taskType.upsert({
+      where: { code: taskType.code },
+      update: {},
+      create: taskType,
+    });
+  }
+  console.log(`✓ ${taskTypes.length} 個任務類型建立完成`);
+
   console.log('\n🎉 資料庫初始化完成！');
   console.log('\n📝 測試帳號資訊：');
   console.log('━'.repeat(50));

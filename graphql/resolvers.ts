@@ -6,6 +6,7 @@ import { userResolvers } from "./resolvers/userResolvers";
 import { navigationResolvers } from "./resolvers/navigationResolvers";
 import { manpowerRequestResolvers } from "./resolvers/manpowerRequestResolvers";
 import { adminTaskResolvers } from "./resolvers/adminTaskResolvers";
+import { taskTypeResolvers } from "./resolvers/taskTypeResolvers";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -87,6 +88,8 @@ const Query = {
   ...navigationResolvers.Query,
   // 人力需求管理 queries
   ...manpowerRequestResolvers.Query,
+  // 任務類型 queries
+  ...taskTypeResolvers.Query,
   // 行政事務簽核 queries
   ...adminTaskResolvers.Query,
 };
@@ -105,6 +108,8 @@ const Mutation = {
   ...navigationResolvers.Mutation,
   // 人力需求管理 mutations
   ...manpowerRequestResolvers.Mutation,
+  // 任務類型 mutations
+  ...taskTypeResolvers.Mutation,
   // 行政事務簽核 mutations
   ...adminTaskResolvers.Mutation,
 };

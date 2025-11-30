@@ -1,19 +1,5 @@
 # ==================== 行政事務簽核 ====================
 
-# 行政任務類型
-enum AdminTaskType {
-  CREATE_FILE        # 建檔
-  TERMINATION        # 廢聘
-  LONG_TERM_CARE     # 長照求才
-  RETURN_SUPPLEMENT  # 退補件
-  RECRUITMENT_LETTER # 申請招募函
-  HEALTH_CHECK       # 體檢(報告/核備)
-  ENTRY_ONESTOP      # 一站式入境
-  TAKEOVER_NOTIFY    # 承接通報(雙方合意)
-  CERTIFICATION      # 印辦認證
-  OTHER              # 其他
-}
-
 # 行政任務狀態
 enum AdminTaskStatus {
   PENDING     # 待處理
@@ -64,12 +50,14 @@ type ApprovalRecord {
 type AdminTask {
   id: ID!
   taskNo: String!
-  taskType: AdminTaskType!
+  taskType: TaskType!
   title: String!
 
   # 關聯人員
   applicant: TaskUser!
+  applicantName: String
   processor: TaskUser
+  processorName: String
   approver: TaskUser
 
   # 時間資訊
@@ -126,7 +114,7 @@ type AdminTaskStats {
 
 # 按類型統計
 type TaskTypeStats {
-  taskType: AdminTaskType!
+  taskType: TaskType!
   count: Int!
   completed: Int!
   pending: Int!
@@ -140,7 +128,7 @@ extend type Query {
     page: Int
     pageSize: Int
     status: AdminTaskStatus
-    taskType: AdminTaskType
+    taskTypeId: Int
     applicantId: String
     processorId: String
     approverId: String
@@ -246,8 +234,10 @@ input OtherPayload {
 
 # 創建行政任務輸入
 input CreateAdminTaskInput {
-  taskType: AdminTaskType!
+  taskTypeId: Int!
   title: String!
+  applicantName: String
+  processorName: String
   deadline: String
   approvalRoute: ApprovalRoute
   payload: JSON!
@@ -258,6 +248,9 @@ input CreateAdminTaskInput {
 input UpdateAdminTaskInput {
   id: Int!
   title: String
+  taskTypeId: Int
+  applicantName: String
+  processorName: String
   deadline: String
   processorId: String
   approverId: String

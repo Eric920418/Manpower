@@ -1,0 +1,57 @@
+# ==================== 任務類型管理 ====================
+
+# 任務類型
+type TaskType {
+  id: ID!
+  code: String!
+  label: String!
+  description: String
+  order: Int!
+  isActive: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ==================== Queries ====================
+
+extend type Query {
+  # 獲取所有任務類型
+  taskTypes(includeInactive: Boolean): [TaskType!]!
+
+  # 獲取單個任務類型
+  taskType(id: Int!): TaskType
+}
+
+# ==================== Inputs ====================
+
+input CreateTaskTypeInput {
+  code: String!
+  label: String!
+  description: String
+  order: Int
+}
+
+input UpdateTaskTypeInput {
+  id: Int!
+  code: String
+  label: String
+  description: String
+  order: Int
+  isActive: Boolean
+}
+
+# ==================== Mutations ====================
+
+extend type Mutation {
+  # 創建任務類型
+  createTaskType(input: CreateTaskTypeInput!): TaskType!
+
+  # 更新任務類型
+  updateTaskType(input: UpdateTaskTypeInput!): TaskType!
+
+  # 刪除任務類型（軟刪除，設為停用）
+  deleteTaskType(id: Int!): Boolean!
+
+  # 批量更新排序
+  reorderTaskTypes(ids: [Int!]!): [TaskType!]!
+}

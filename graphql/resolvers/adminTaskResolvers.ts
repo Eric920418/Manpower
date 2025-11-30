@@ -1,5 +1,5 @@
 import { prisma } from "../prismaClient";
-import type { AdminTaskType, AdminTaskStatus, ApprovalRoute, Prisma } from "@prisma/client";
+import type { AdminTaskStatus, ApprovalRoute, Prisma } from "@prisma/client";
 
 // 生成任務編號
 const generateTaskNo = async (): Promise<string> => {
@@ -26,20 +26,6 @@ const generateTaskNo = async (): Promise<string> => {
   }
 
   return `${prefix}${nextNum.toString().padStart(4, "0")}`;
-};
-
-// 任務類型中文名稱映射
-const taskTypeNames: Record<AdminTaskType, string> = {
-  CREATE_FILE: "建檔",
-  TERMINATION: "廢聘",
-  LONG_TERM_CARE: "長照求才",
-  RETURN_SUPPLEMENT: "退補件",
-  RECRUITMENT_LETTER: "申請招募函",
-  HEALTH_CHECK: "體檢(報告/核備)",
-  ENTRY_ONESTOP: "一站式入境",
-  TAKEOVER_NOTIFY: "承接通報(雙方合意)",
-  CERTIFICATION: "印辦認證",
-  OTHER: "其他",
 };
 
 // Context 類型
@@ -85,9 +71,22 @@ const formatUser = (user: { id: string; name: string | null; email: string; role
   };
 };
 
+// 格式化任務類型
+const formatTaskType = (taskType: { id: number; code: string; label: string; description: string | null; order: number; isActive: boolean; createdAt: Date; updatedAt: Date }) => ({
+  id: taskType.id,
+  code: taskType.code,
+  label: taskType.label,
+  description: taskType.description,
+  order: taskType.order,
+  isActive: taskType.isActive,
+  createdAt: formatDate(taskType.createdAt),
+  updatedAt: formatDate(taskType.updatedAt),
+});
+
 // 格式化任務
 const formatTask = (task: Prisma.AdminTaskGetPayload<{
   include: {
+    taskType: true;
     applicant: true;
     processor: true;
     approver: true;
@@ -97,10 +96,12 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
 }>) => ({
   id: task.id,
   taskNo: task.taskNo,
-  taskType: task.taskType,
+  taskType: formatTaskType(task.taskType),
   title: task.title,
   applicant: formatUser(task.applicant),
+  applicantName: task.applicantName,
   processor: formatUser(task.processor),
+  processorName: task.processorName,
   approver: formatUser(task.approver),
   applicationDate: formatDate(task.applicationDate),
   deadline: formatDate(task.deadline),
@@ -136,6 +137,7 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
 
 // 包含關聯的查詢選項
 const taskInclude = {
+  taskType: true,
   applicant: true,
   processor: true,
   approver: true,
@@ -157,7 +159,7 @@ export const adminTaskResolvers = {
         page?: number;
         pageSize?: number;
         status?: AdminTaskStatus;
-        taskType?: AdminTaskType;
+        taskTypeId?: number;
         applicantId?: string;
         processorId?: string;
         approverId?: string;
@@ -176,7 +178,7 @@ export const adminTaskResolvers = {
       const where: Prisma.AdminTaskWhereInput = {};
 
       if (args.status) where.status = args.status;
-      if (args.taskType) where.taskType = args.taskType;
+      if (args.taskTypeId) where.taskTypeId = args.taskTypeId;
       if (args.applicantId) where.applicantId = args.applicantId;
       if (args.processorId) where.processorId = args.processorId;
       if (args.approverId) where.approverId = args.approverId;
@@ -255,27 +257,20 @@ export const adminTaskResolvers = {
     adminTaskStatsByType: async (_: unknown, __: unknown, context: Context) => {
       requireSuperAdmin(context);
 
-      const taskTypes: AdminTaskType[] = [
-        "CREATE_FILE",
-        "TERMINATION",
-        "LONG_TERM_CARE",
-        "RETURN_SUPPLEMENT",
-        "RECRUITMENT_LETTER",
-        "HEALTH_CHECK",
-        "ENTRY_ONESTOP",
-        "TAKEOVER_NOTIFY",
-        "CERTIFICATION",
-        "OTHER",
-      ];
+      // 獲取所有啟用的任務類型
+      const taskTypes = await prisma.taskType.findMany({
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+      });
 
       const stats = await Promise.all(
         taskTypes.map(async (taskType) => {
           const [count, completed, pending] = await Promise.all([
-            prisma.adminTask.count({ where: { taskType } }),
-            prisma.adminTask.count({ where: { taskType, status: "COMPLETED" } }),
-            prisma.adminTask.count({ where: { taskType, status: "PENDING" } }),
+            prisma.adminTask.count({ where: { taskTypeId: taskType.id } }),
+            prisma.adminTask.count({ where: { taskTypeId: taskType.id, status: "COMPLETED" } }),
+            prisma.adminTask.count({ where: { taskTypeId: taskType.id, status: "PENDING" } }),
           ]);
-          return { taskType, count, completed, pending };
+          return { taskType: formatTaskType(taskType), count, completed, pending };
         })
       );
 
@@ -386,8 +381,10 @@ export const adminTaskResolvers = {
       _: unknown,
       args: {
         input: {
-          taskType: AdminTaskType;
+          taskTypeId: number;
           title: string;
+          applicantName?: string;
+          processorName?: string;
           deadline?: string;
           approvalRoute?: ApprovalRoute;
           payload: Record<string, unknown>;
@@ -398,14 +395,24 @@ export const adminTaskResolvers = {
     ) => {
       const user = requireAuth(context);
 
+      // 驗證任務類型存在
+      const taskType = await prisma.taskType.findUnique({
+        where: { id: args.input.taskTypeId },
+      });
+      if (!taskType) {
+        throw new Error("找不到該任務類型");
+      }
+
       const taskNo = await generateTaskNo();
 
       const task = await prisma.adminTask.create({
         data: {
           taskNo,
-          taskType: args.input.taskType,
+          taskTypeId: args.input.taskTypeId,
           title: args.input.title,
           applicantId: user.id,
+          applicantName: args.input.applicantName || null,
+          processorName: args.input.processorName || null,
           deadline: args.input.deadline ? new Date(args.input.deadline) : null,
           approvalRoute: args.input.approvalRoute || "V_ROUTE",
           payload: args.input.payload as Prisma.InputJsonValue,
@@ -423,7 +430,7 @@ export const adminTaskResolvers = {
           entityId: task.id.toString(),
           details: {
             taskNo: task.taskNo,
-            taskType: task.taskType,
+            taskTypeId: task.taskTypeId,
             title: task.title,
           },
         },
@@ -439,6 +446,9 @@ export const adminTaskResolvers = {
         input: {
           id: number;
           title?: string;
+          taskTypeId?: number;
+          applicantName?: string;
+          processorName?: string;
           deadline?: string;
           processorId?: string;
           approverId?: string;
@@ -467,6 +477,11 @@ export const adminTaskResolvers = {
       const updateData: Prisma.AdminTaskUpdateInput = {};
 
       if (args.input.title !== undefined) updateData.title = args.input.title;
+      if (args.input.taskTypeId !== undefined) {
+        updateData.taskType = { connect: { id: args.input.taskTypeId } };
+      }
+      if (args.input.applicantName !== undefined) updateData.applicantName = args.input.applicantName;
+      if (args.input.processorName !== undefined) updateData.processorName = args.input.processorName;
       if (args.input.deadline !== undefined) {
         updateData.deadline = args.input.deadline ? new Date(args.input.deadline) : null;
       }

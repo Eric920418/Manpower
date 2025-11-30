@@ -100,10 +100,9 @@ pnpm lint             # 程式碼檢查
 | 第三級 | STAFF | 表單處理、合約簽署、檔案上傳 |
 
 ### 3. 行政事務簽核系統
-- **十大任務類型**：建檔、廢聘、長照求才、退補件、申請招募函、體檢報告、一站式入境、承接通報、印辦認證、其他
+- **動態任務類型管理**：可自由新增、編輯、刪除申請類型（預設含建檔、廢聘、長照求才等10種類型）
 - **五種任務狀態**：待處理、處理中、已批准、已退回、已完成
-- **審批路線管理**：V 路線（主要審批）、- 路線（次要審批）
-- **審批記錄追蹤**：完整記錄每次審批操作和意見
+- **自訂申請人/完成人**：可手動輸入申請人和完成人名稱，不限於系統用戶
 - **統計儀表板**：任務數量、完成率、逾期監控
 
 ### 5. 工作類別與申請流程管理
@@ -171,7 +170,8 @@ manpower/
 | ContentBlock | 動態內容儲存（JSON payload） |
 | Navigation | 導航選單（支援階層） |
 | Page | 動態頁面管理 |
-| AdminTask | 行政任務（十種類型、五種狀態） |
+| TaskType | 可動態管理的任務類型 |
+| AdminTask | 行政任務（關聯 TaskType、五種狀態） |
 | ApprovalRecord | 審批記錄 |
 | AdminTaskAttachment | 行政任務附件 |
 | ManpowerRequest | 人力需求單 |
@@ -286,6 +286,7 @@ DEBUG_GRAPHQL         # 顯示所有 GraphQL 操作
 - `/admin/dashboard` - 儀表板
 - `/admin/users` - 用戶管理
 - `/admin/admin-tasks` - 行政事務管理（簽核系統）
+- `/admin/task-types` - 申請類型管理
 - `/admin/manpower-requests` - 人力需求管理
 - `/admin/navigation` - 導航管理
 - `/admin/analytics` - 數據分析

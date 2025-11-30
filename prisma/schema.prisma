@@ -191,18 +191,22 @@ model ManpowerRequest {
 }
 
 // ==================== 行政事務簽核 ====================
-// 行政任務類型
-enum AdminTaskType {
-  CREATE_FILE        // 建檔
-  TERMINATION        // 廢聘
-  LONG_TERM_CARE     // 長照求才
-  RETURN_SUPPLEMENT  // 退補件
-  RECRUITMENT_LETTER // 申請招募函
-  HEALTH_CHECK       // 體檢(報告/核備)
-  ENTRY_ONESTOP      // 一站式入境
-  TAKEOVER_NOTIFY    // 承接通報(雙方合意)
-  CERTIFICATION      // 印辦認證
-  OTHER              // 其他
+
+// 行政任務類型（可動態管理）
+model TaskType {
+  id          Int         @id @default(autoincrement())
+  code        String      @unique  // 類型代碼（如 CREATE_FILE）
+  label       String               // 顯示名稱（如 建檔）
+  description String?              // 描述
+  order       Int         @default(0)  // 排序
+  isActive    Boolean     @default(true) // 是否啟用
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // 關聯
+  tasks       AdminTask[]
+
+  @@index([isActive, order])
 }
 
 // 行政任務狀態
@@ -224,14 +228,17 @@ enum ApprovalRoute {
 model AdminTask {
   id              Int              @id @default(autoincrement())
   taskNo          String           @unique // 任務編號（自動生成，格式：AT-YYYYMMDD-XXXX）
-  taskType        AdminTaskType    // 任務類型
+  taskTypeId      Int              // 任務類型 ID
+  taskType        TaskType         @relation(fields: [taskTypeId], references: [id])
   title           String           // 任務標題
 
   // 關聯人員
-  applicantId     String           // 申請人 ID
+  applicantId     String           // 申請人 ID（系統登入用戶）
   applicant       User             @relation("TaskApplicant", fields: [applicantId], references: [id])
-  processorId     String?          // 完成人/經辦人 ID
+  applicantName   String?          // 自訂申請人名稱（可覆蓋系統用戶名稱）
+  processorId     String?          // 完成人/經辦人 ID（系統用戶）
   processor       User?            @relation("TaskProcessor", fields: [processorId], references: [id])
+  processorName   String?          // 自訂完成人名稱
   approverId      String?          // 主管檢核 ID
   approver        User?            @relation("TaskApprover", fields: [approverId], references: [id])
 
@@ -261,7 +268,7 @@ model AdminTask {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  @@index([taskType, status, applicationDate(sort: Desc)])
+  @@index([taskTypeId, status, applicationDate(sort: Desc)])
   @@index([applicantId, status])
   @@index([processorId, status])
   @@index([approverId, status])

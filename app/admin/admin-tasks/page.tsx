@@ -31,13 +31,24 @@ interface ApprovalRecord {
   createdAt: string;
 }
 
+interface TaskType {
+  id: number;
+  code: string;
+  label: string;
+  description: string | null;
+  order: number;
+  isActive: boolean;
+}
+
 interface AdminTask {
   id: number;
   taskNo: string;
-  taskType: string;
+  taskType: TaskType;
   title: string;
   applicant: TaskUser;
+  applicantName: string | null;
   processor: TaskUser | null;
+  processorName: string | null;
   approver: TaskUser | null;
   applicationDate: string;
   deadline: string | null;
@@ -71,20 +82,6 @@ interface PageInfo {
   totalPages: number;
 }
 
-// 任務類型映射
-const taskTypeLabels: Record<string, string> = {
-  CREATE_FILE: "建檔",
-  TERMINATION: "廢聘",
-  LONG_TERM_CARE: "長照求才",
-  RETURN_SUPPLEMENT: "退補件",
-  RECRUITMENT_LETTER: "申請招募函",
-  HEALTH_CHECK: "體檢(報告/核備)",
-  ENTRY_ONESTOP: "一站式入境",
-  TAKEOVER_NOTIFY: "承接通報(雙方合意)",
-  CERTIFICATION: "印辦認證",
-  OTHER: "其他",
-};
-
 // 狀態映射
 const statusLabels: Record<string, { label: string; className: string }> = {
   PENDING: { label: "待處理", className: "bg-yellow-100 text-yellow-800" },
@@ -105,6 +102,7 @@ export default function AdminTasksPage() {
 
   // 狀態
   const [tasks, setTasks] = useState<AdminTask[]>([]);
+  const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [stats, setStats] = useState<AdminTaskStats | null>(null);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,8 +118,9 @@ export default function AdminTasksPage() {
 
   // 創建表單狀態
   const [createForm, setCreateForm] = useState({
-    taskType: "CREATE_FILE",
+    taskTypeId: 0,
     title: "",
+    applicantName: "", // 自訂申請人名稱
     deadline: "",
     notes: "",
     payload: {} as Record<string, unknown>,
@@ -131,6 +130,7 @@ export default function AdminTasksPage() {
   // 審批狀態
   const [approvalAction, setApprovalAction] = useState("");
   const [approvalComment, setApprovalComment] = useState("");
+  const [approvalProcessorName, setApprovalProcessorName] = useState(""); // 完成人
   const [approving, setApproving] = useState(false);
 
   // 獲取資料
@@ -153,14 +153,32 @@ export default function AdminTasksPage() {
         }
       `;
 
+      // 獲取任務類型
+      const taskTypesQuery = `
+        query {
+          taskTypes {
+            id
+            code
+            label
+            description
+            order
+            isActive
+          }
+        }
+      `;
+
       // 獲取任務列表
       const tasksQuery = `
-        query AdminTasks($page: Int, $pageSize: Int, $status: AdminTaskStatus, $taskType: AdminTaskType) {
-          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskType: $taskType) {
+        query AdminTasks($page: Int, $pageSize: Int, $status: AdminTaskStatus, $taskTypeId: Int) {
+          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId) {
             items {
               id
               taskNo
-              taskType
+              taskType {
+                id
+                code
+                label
+              }
               title
               applicant {
                 id
@@ -168,12 +186,14 @@ export default function AdminTasksPage() {
                 email
                 role
               }
+              applicantName
               processor {
                 id
                 name
                 email
                 role
               }
+              processorName
               approver {
                 id
                 name
@@ -228,9 +248,9 @@ export default function AdminTasksPage() {
         pageSize: 20,
       };
       if (statusFilter !== "all") variables.status = statusFilter;
-      if (typeFilter !== "all") variables.taskType = typeFilter;
+      if (typeFilter !== "all") variables.taskTypeId = parseInt(typeFilter, 10);
 
-      const [statsRes, tasksRes] = await Promise.all([
+      const [statsRes, taskTypesRes, tasksRes] = await Promise.all([
         fetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -239,16 +259,22 @@ export default function AdminTasksPage() {
         fetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: taskTypesQuery }),
+        }),
+        fetch("/api/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: tasksQuery, variables }),
         }),
       ]);
 
-      if (!statsRes.ok || !tasksRes.ok) {
-        throw new Error(`HTTP 錯誤: ${statsRes.status || tasksRes.status}`);
+      if (!statsRes.ok || !taskTypesRes.ok || !tasksRes.ok) {
+        throw new Error(`HTTP 錯誤: ${statsRes.status || taskTypesRes.status || tasksRes.status}`);
       }
 
-      const [statsData, tasksData] = await Promise.all([
+      const [statsData, taskTypesData, tasksData] = await Promise.all([
         statsRes.json(),
+        taskTypesRes.json(),
         tasksRes.json(),
       ]);
 
@@ -256,12 +282,17 @@ export default function AdminTasksPage() {
         console.error("GraphQL Stats Error:", statsData.errors);
         throw new Error(statsData.errors[0].message);
       }
+      if (taskTypesData.errors) {
+        console.error("GraphQL TaskTypes Error:", taskTypesData.errors);
+        throw new Error(taskTypesData.errors[0].message);
+      }
       if (tasksData.errors) {
         console.error("GraphQL Tasks Error:", tasksData.errors);
         throw new Error(tasksData.errors[0].message);
       }
 
       setStats(statsData.data.adminTaskStats);
+      setTaskTypes(taskTypesData.data.taskTypes);
       setTasks(tasksData.data.adminTasks.items);
       setPageInfo(tasksData.data.adminTasks.pageInfo);
     } catch (err) {
@@ -282,6 +313,10 @@ export default function AdminTasksPage() {
 
   // 創建任務
   const handleCreateTask = async () => {
+    if (!createForm.taskTypeId) {
+      alert("請選擇申請類型");
+      return;
+    }
     if (!createForm.title.trim()) {
       alert("請輸入任務標題");
       return;
@@ -300,8 +335,9 @@ export default function AdminTasksPage() {
 
       const variables = {
         input: {
-          taskType: createForm.taskType,
+          taskTypeId: createForm.taskTypeId,
           title: createForm.title,
+          applicantName: createForm.applicantName || null,
           deadline: createForm.deadline || null,
           payload: createForm.payload,
           notes: createForm.notes || null,
@@ -323,8 +359,9 @@ export default function AdminTasksPage() {
       alert(`任務創建成功！編號：${data.data.createAdminTask.taskNo}`);
       setShowCreateModal(false);
       setCreateForm({
-        taskType: "CREATE_FILE",
+        taskTypeId: taskTypes.length > 0 ? taskTypes[0].id : 0,
         title: "",
+        applicantName: "",
         deadline: "",
         notes: "",
         payload: {},
@@ -347,6 +384,38 @@ export default function AdminTasksPage() {
 
     setApproving(true);
     try {
+      // 如果有填寫完成人，先更新完成人
+      if (approvalProcessorName.trim()) {
+        const updateMutation = `
+          mutation UpdateAdminTask($input: UpdateAdminTaskInput!) {
+            updateAdminTask(input: $input) {
+              id
+              processorName
+            }
+          }
+        `;
+
+        const updateRes = await fetch("/api/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: updateMutation,
+            variables: {
+              input: {
+                id: selectedTask.id,
+                processorName: approvalProcessorName,
+              },
+            },
+          }),
+        });
+
+        const updateData = await updateRes.json();
+        if (updateData.errors) {
+          throw new Error(updateData.errors[0].message);
+        }
+      }
+
+      // 執行審批操作
       const mutation = `
         mutation ApproveTask($input: ApprovalInput!) {
           approveTask(input: $input) {
@@ -381,6 +450,7 @@ export default function AdminTasksPage() {
       setShowDetailModal(false);
       setApprovalAction("");
       setApprovalComment("");
+      setApprovalProcessorName("");
       fetchData();
     } catch (error) {
       console.error("審批失敗：", error);
@@ -553,9 +623,9 @@ export default function AdminTasksPage() {
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">全部</option>
-                {Object.entries(taskTypeLabels).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
+                {taskTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.label}
                   </option>
                 ))}
               </select>
@@ -635,7 +705,7 @@ export default function AdminTasksPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                          {taskTypeLabels[task.taskType] || task.taskType}
+                          {task.taskType?.label || "未知類型"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -645,7 +715,7 @@ export default function AdminTasksPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {task.applicant?.name || task.applicant?.email}
+                          {task.applicantName || task.applicant?.name || task.applicant?.email}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -660,6 +730,7 @@ export default function AdminTasksPage() {
                         <button
                           onClick={() => {
                             setSelectedTask(task);
+                            setApprovalProcessorName(task.processorName || "");
                             setShowDetailModal(true);
                           }}
                           className="text-blue-600 hover:text-blue-800 font-medium text-sm"
@@ -728,15 +799,16 @@ export default function AdminTasksPage() {
                     申請類型 *
                   </label>
                   <select
-                    value={createForm.taskType}
+                    value={createForm.taskTypeId}
                     onChange={(e) =>
-                      setCreateForm({ ...createForm, taskType: e.target.value })
+                      setCreateForm({ ...createForm, taskTypeId: parseInt(e.target.value, 10) })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {Object.entries(taskTypeLabels).map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
+                    <option value={0}>請選擇類型</option>
+                    {taskTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.label}
                       </option>
                     ))}
                   </select>
@@ -754,6 +826,22 @@ export default function AdminTasksPage() {
                       setCreateForm({ ...createForm, title: e.target.value })
                     }
                     placeholder="請輸入任務標題"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* 申請人 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    申請人
+                  </label>
+                  <input
+                    type="text"
+                    value={createForm.applicantName}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, applicantName: e.target.value })
+                    }
+                    placeholder="請輸入申請人名稱（留空則使用當前登入用戶）"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -841,7 +929,7 @@ export default function AdminTasksPage() {
                     <div>
                       <p className="text-xs text-gray-600 mb-1">類型</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {taskTypeLabels[selectedTask.taskType]}
+                        {selectedTask.taskType?.label || "未知類型"}
                       </p>
                     </div>
                     <div>
@@ -857,8 +945,18 @@ export default function AdminTasksPage() {
                     <div>
                       <p className="text-xs text-gray-600 mb-1">申請人</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {selectedTask.applicant?.name ||
+                        {selectedTask.applicantName ||
+                          selectedTask.applicant?.name ||
                           selectedTask.applicant?.email}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1">完成人</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {selectedTask.processorName ||
+                          selectedTask.processor?.name ||
+                          selectedTask.processor?.email ||
+                          "-"}
                       </p>
                     </div>
                     <div>
@@ -876,40 +974,6 @@ export default function AdminTasksPage() {
                   </div>
                 </div>
 
-                {/* 審批路線 */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    審批資訊
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">審批路線：</span>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-medium">
-                          {selectedTask.approvalRoute === "V_ROUTE"
-                            ? "V 路線"
-                            : "- 路線"}
-                        </span>
-                      </div>
-                      {selectedTask.approvalMark && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600">
-                            審批標記：
-                          </span>
-                          <span
-                            className={`px-2 py-1 text-xs rounded font-bold ${
-                              selectedTask.approvalMark === "V"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {selectedTask.approvalMark}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
 
                 {/* 備註 */}
                 {selectedTask.notes && (
@@ -1020,6 +1084,18 @@ export default function AdminTasksPage() {
                             要求修改
                           </button>
                         </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          完成人
+                        </label>
+                        <input
+                          type="text"
+                          value={approvalProcessorName}
+                          onChange={(e) => setApprovalProcessorName(e.target.value)}
+                          placeholder="請輸入完成人名稱"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">

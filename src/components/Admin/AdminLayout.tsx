@@ -31,6 +31,11 @@ const menuItems: MenuItem[] = [
     permission: 'admin_task:read',
   },
   {
+    label: "申請類型管理",
+    href: "/admin/task-types",
+    permission: 'admin_task:write',
+  },
+  {
     label: "首頁內容",
     href: "/admin/home-page",
     permission: 'content:read',
