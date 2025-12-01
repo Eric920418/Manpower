@@ -154,7 +154,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {sidebarOpen && (
                 <div>
                   <h1 className="text-xl font-bold">佑羲人力系統</h1>
-                  <p className="text-xs text-gray-400">Youshi HR</p>
                 </div>
               )}
               <button
@@ -176,11 +175,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <p className="text-xs text-gray-400">
                   {userRole && RoleNames[userRole]}
                 </p>
-                {session.user.department && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {session.user.department}
-                  </p>
-                )}
               </div>
             </div>
           )}
@@ -245,7 +239,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="p-4 border-b border-gray-800 flex justify-between items-center">
             <div>
               <h1 className="text-xl font-bold">佑羲人力系統</h1>
-              <p className="text-xs text-gray-400">Youshi HR</p>
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}

@@ -7,6 +7,7 @@ import { navigationResolvers } from "./resolvers/navigationResolvers";
 import { manpowerRequestResolvers } from "./resolvers/manpowerRequestResolvers";
 import { adminTaskResolvers } from "./resolvers/adminTaskResolvers";
 import { taskTypeResolvers } from "./resolvers/taskTypeResolvers";
+import { dashboardResolvers } from "./resolvers/dashboardResolvers";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -92,6 +93,8 @@ const Query = {
   ...taskTypeResolvers.Query,
   // 行政事務簽核 queries
   ...adminTaskResolvers.Query,
+  // Dashboard 統計 queries
+  ...dashboardResolvers.Query,
 };
 
 const Mutation = {

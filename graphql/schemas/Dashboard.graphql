@@ -1,0 +1,69 @@
+# Dashboard 統計資料
+
+type DashboardStats {
+  # 用戶統計
+  totalUsers: Int!
+  activeUsers: Int!
+  staffCount: Int!
+  ownerCount: Int!
+
+  # 人力需求統計
+  totalManpowerRequests: Int!
+  pendingManpowerRequests: Int!
+  processingManpowerRequests: Int!
+  completedManpowerRequests: Int!
+
+  # 行政任務統計
+  totalAdminTasks: Int!
+  pendingAdminTasks: Int!
+  processingAdminTasks: Int!
+  completedAdminTasks: Int!
+  overdueAdminTasks: Int!
+
+  # 本月統計
+  monthlyNewRequests: Int!
+  monthlyCompletedRequests: Int!
+  monthlyNewTasks: Int!
+  monthlyCompletedTasks: Int!
+}
+
+type RecentActivity {
+  id: Int!
+  userId: String!
+  userName: String
+  action: String!
+  entity: String!
+  entityId: String
+  details: JSON
+  createdAt: String!
+}
+
+type RecentManpowerRequest {
+  id: Int!
+  requestNo: String!
+  companyName: String
+  contactPerson: String!
+  status: String!
+  createdAt: String!
+}
+
+type RecentAdminTask {
+  id: Int!
+  taskNo: String!
+  title: String!
+  status: String!
+  taskTypeName: String!
+  applicantName: String
+  createdAt: String!
+}
+
+type DashboardData {
+  stats: DashboardStats!
+  recentActivities: [RecentActivity!]!
+  recentManpowerRequests: [RecentManpowerRequest!]!
+  recentAdminTasks: [RecentAdminTask!]!
+}
+
+extend type Query {
+  dashboardData: DashboardData
+}
