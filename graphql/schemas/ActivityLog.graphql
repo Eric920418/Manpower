@@ -1,0 +1,56 @@
+# 活動日誌類型
+type ActivityLog {
+  id: Int!
+  userId: String!
+  action: String!
+  entity: String!
+  entityId: String
+  details: JSON
+  ipAddress: String
+  userAgent: String
+  user: User!
+  createdAt: String!
+}
+
+# 活動日誌列表返回
+type ActivityLogList {
+  items: [ActivityLog!]!
+  total: Int!
+  page: Int!
+  pageSize: Int!
+}
+
+# 活動統計
+type ActivityStats {
+  totalToday: Int!
+  totalThisWeek: Int!
+  totalThisMonth: Int!
+  byAction: [ActionCount!]!
+  byEntity: [EntityCount!]!
+}
+
+type ActionCount {
+  action: String!
+  count: Int!
+}
+
+type EntityCount {
+  entity: String!
+  count: Int!
+}
+
+extend type Query {
+  # 獲取活動日誌列表（僅 SUPER_ADMIN）
+  activityLogs(
+    page: Int
+    pageSize: Int
+    userId: String
+    action: String
+    entity: String
+    startDate: String
+    endDate: String
+  ): ActivityLogList!
+
+  # 獲取活動統計（僅 SUPER_ADMIN）
+  activityStats: ActivityStats!
+}

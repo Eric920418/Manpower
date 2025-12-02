@@ -6,6 +6,12 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 
 const prisma = new PrismaClient();
 
+// 自訂權限結構
+interface CustomPermissions {
+  granted: string[];
+  denied: string[];
+}
+
 // 擴展 NextAuth 類型定義
 declare module 'next-auth' {
   interface Session {
@@ -15,6 +21,7 @@ declare module 'next-auth' {
       name: string | null;
       role: Role;
       department: string | null;
+      customPermissions: CustomPermissions | null;
     };
     accessToken?: string;
   }
@@ -25,6 +32,7 @@ declare module 'next-auth' {
     name: string | null;
     role: Role;
     department: string | null;
+    customPermissions: CustomPermissions | null;
   }
 }
 
@@ -33,6 +41,7 @@ declare module 'next-auth/jwt' {
     id: string;
     role: Role;
     department: string | null;
+    customPermissions: CustomPermissions | null;
     accessToken?: string;
   }
 }
@@ -122,12 +131,23 @@ export const authOptions: NextAuthOptions = {
             },
           });
 
+          // 解析 customPermissions
+          let customPermissions: CustomPermissions | null = null;
+          if (user.customPermissions) {
+            const cp = user.customPermissions as any;
+            customPermissions = {
+              granted: Array.isArray(cp.granted) ? cp.granted : [],
+              denied: Array.isArray(cp.denied) ? cp.denied : [],
+            };
+          }
+
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
             department: user.department,
+            customPermissions,
           };
         } catch (error) {
           console.error('登入錯誤:', error);
@@ -151,12 +171,29 @@ export const authOptions: NextAuthOptions = {
         token.department = user.department;
         token.email = user.email;
         token.name = user.name;
+        token.customPermissions = user.customPermissions;
       }
 
       // 處理 session 更新
       if (trigger === 'update' && session) {
         token.name = session.name;
         token.email = session.email;
+        // 如果權限更新了，重新從資料庫獲取
+        if (session.refreshPermissions) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: { customPermissions: true },
+          });
+          if (dbUser?.customPermissions) {
+            const cp = dbUser.customPermissions as any;
+            token.customPermissions = {
+              granted: Array.isArray(cp.granted) ? cp.granted : [],
+              denied: Array.isArray(cp.denied) ? cp.denied : [],
+            };
+          } else {
+            token.customPermissions = null;
+          }
+        }
       }
 
       return token;
@@ -171,6 +208,7 @@ export const authOptions: NextAuthOptions = {
           name: token.name as string | null,
           role: token.role,
           department: token.department,
+          customPermissions: token.customPermissions,
         };
         // 將完整的 JWT token 添加到 session 供 Apollo Client 使用
         session.accessToken = token.sub || token.id; // 使用 token ID

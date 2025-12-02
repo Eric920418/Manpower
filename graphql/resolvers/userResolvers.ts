@@ -1,9 +1,29 @@
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { hasPermission, canManageRole, PermissionEnum } from '../../src/lib/permissions';
+import {
+  hasPermission,
+  canManageRole,
+  PermissionEnum,
+  AllPermissionDefinitions,
+  getEffectivePermissions,
+  type CustomPermissions,
+  type Permission
+} from '../../src/lib/permissions';
 import type { DataLoaders } from '../dataloaders';
 import { validateInvitationCode, assignInvitationCodeToUser } from '../../src/lib/invitationCode';
 import { prisma } from '../prismaClient';
+
+// 格式化自訂權限
+const formatCustomPermissions = (customPermissions: unknown): { granted: string[]; denied: string[] } | null => {
+  if (!customPermissions) return null;
+  if (typeof customPermissions !== 'object') return null;
+
+  const cp = customPermissions as Record<string, unknown>;
+  return {
+    granted: Array.isArray(cp.granted) ? cp.granted.filter((p): p is string => typeof p === 'string') : [],
+    denied: Array.isArray(cp.denied) ? cp.denied.filter((p): p is string => typeof p === 'string') : [],
+  };
+};
 
 interface Context {
   user?: {
@@ -126,13 +146,17 @@ export const userResolvers = {
           specialties: true,
           lineId: true,
           isPublic: true,
+          customPermissions: true,
           createdAt: true,
           updatedAt: true,
         },
       });
 
-      // 不需要再移除密碼，因為根本沒有查詢
-      const safeUsers = users;
+      // 格式化用戶資料（包含自訂權限）
+      const safeUsers = users.map(user => ({
+        ...user,
+        customPermissions: formatCustomPermissions(user.customPermissions),
+      }));
 
       return {
         users: safeUsers,
@@ -176,6 +200,7 @@ export const userResolvers = {
           specialties: true,
           lineId: true,
           isPublic: true,
+          customPermissions: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -185,7 +210,10 @@ export const userResolvers = {
         throw new Error('用戶不存在');
       }
 
-      return user;
+      return {
+        ...user,
+        customPermissions: formatCustomPermissions(user.customPermissions),
+      };
     },
 
     /**
@@ -216,6 +244,7 @@ export const userResolvers = {
           specialties: true,
           lineId: true,
           isPublic: true,
+          customPermissions: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -225,7 +254,10 @@ export const userResolvers = {
         throw new Error('用戶不存在');
       }
 
-      return user;
+      return {
+        ...user,
+        customPermissions: formatCustomPermissions(user.customPermissions),
+      };
     },
 
     /**
@@ -305,6 +337,53 @@ export const userResolvers = {
         specialties: member.specialties,
         department: member.department,
       }));
+    },
+
+    /**
+     * 獲取所有可用權限列表（僅 SUPER_ADMIN）
+     */
+    availablePermissions: async (_: unknown, __: unknown, context: Context) => {
+      if (!context.user) {
+        throw new Error('未授權：請先登入');
+      }
+
+      if (context.user.role !== 'SUPER_ADMIN') {
+        throw new Error('權限不足：僅超級管理員可查看');
+      }
+
+      return AllPermissionDefinitions;
+    },
+
+    /**
+     * 獲取用戶的有效權限列表
+     */
+    userEffectivePermissions: async (
+      _: unknown,
+      args: { userId: string },
+      context: Context
+    ) => {
+      if (!context.user) {
+        throw new Error('未授權：請先登入');
+      }
+
+      if (context.user.role !== 'SUPER_ADMIN') {
+        throw new Error('權限不足：僅超級管理員可查看');
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: args.userId },
+        select: {
+          role: true,
+          customPermissions: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error('用戶不存在');
+      }
+
+      const customPerms = formatCustomPermissions(user.customPermissions) as CustomPermissions | null;
+      return getEffectivePermissions(user.role, customPerms);
     },
   },
 
@@ -637,6 +716,114 @@ export const userResolvers = {
       });
 
       return true;
+    },
+
+    /**
+     * 更新用戶權限（僅 SUPER_ADMIN）
+     */
+    updateUserPermissions: async (
+      _: unknown,
+      args: {
+        userId: string;
+        input: {
+          granted: string[];
+          denied: string[];
+        };
+      },
+      context: Context
+    ) => {
+      // 權限檢查
+      if (!context.user) {
+        throw new Error('未授權：請先登入');
+      }
+
+      if (context.user.role !== 'SUPER_ADMIN') {
+        throw new Error('權限不足：僅超級管理員可管理用戶權限');
+      }
+
+      // 查詢目標用戶
+      const targetUser = await prisma.user.findUnique({
+        where: { id: args.userId },
+      });
+
+      if (!targetUser) {
+        throw new Error('用戶不存在');
+      }
+
+      // 不能修改 SUPER_ADMIN 的權限
+      if (targetUser.role === 'SUPER_ADMIN') {
+        throw new Error('無法修改超級管理員的權限');
+      }
+
+      // 驗證權限代碼是否有效
+      const allPermissionKeys = AllPermissionDefinitions.flatMap(cat =>
+        cat.permissions.map(p => p.key)
+      );
+
+      const invalidGranted = args.input.granted.filter(p => !allPermissionKeys.includes(p as Permission));
+      const invalidDenied = args.input.denied.filter(p => !allPermissionKeys.includes(p as Permission));
+
+      if (invalidGranted.length > 0) {
+        throw new Error(`無效的權限代碼：${invalidGranted.join(', ')}`);
+      }
+      if (invalidDenied.length > 0) {
+        throw new Error(`無效的權限代碼：${invalidDenied.join(', ')}`);
+      }
+
+      // 更新用戶權限
+      const customPermissions = {
+        granted: args.input.granted,
+        denied: args.input.denied,
+      };
+
+      const user = await prisma.user.update({
+        where: { id: args.userId },
+        data: {
+          customPermissions: customPermissions,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          department: true,
+          phone: true,
+          avatar: true,
+          isActive: true,
+          lastLoginAt: true,
+          invitationCode: true,
+          invitationCount: true,
+          position: true,
+          bio: true,
+          specialties: true,
+          lineId: true,
+          isPublic: true,
+          customPermissions: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // 記錄操作日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: context.user.id,
+          action: 'update_permissions',
+          entity: 'user',
+          entityId: args.userId,
+          details: {
+            targetEmail: targetUser.email,
+            targetRole: targetUser.role,
+            granted: args.input.granted,
+            denied: args.input.denied,
+          },
+        },
+      });
+
+      return {
+        ...user,
+        customPermissions: formatCustomPermissions(user.customPermissions),
+      };
     },
   },
 };

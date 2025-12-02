@@ -103,7 +103,7 @@ interface User {
 }
 
 export default function UsersPage() {
-  const { can } = usePermission();
+  const { can, canManage } = usePermission();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -380,6 +380,7 @@ export default function UsersPage() {
               >
                 <option value="">全部角色</option>
                 <option value={Role.SUPER_ADMIN}>超級管理員</option>
+                <option value={Role.ADMIN}>管理員</option>
                 <option value={Role.OWNER}>業主</option>
                 <option value={Role.STAFF}>業務人員</option>
               </select>
@@ -437,9 +438,7 @@ export default function UsersPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         角色
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        邀請碼
-                      </th>
+                      
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         電話
                       </th>
@@ -472,6 +471,8 @@ export default function UsersPage() {
                             className={`px-2 py-1 text-xs font-semibold rounded-full ${
                               user.role === Role.SUPER_ADMIN
                                 ? "bg-purple-100 text-purple-800"
+                                : user.role === Role.ADMIN
+                                ? "bg-orange-100 text-orange-800"
                                 : user.role === Role.OWNER
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-green-100 text-green-800"
@@ -479,22 +480,6 @@ export default function UsersPage() {
                           >
                             {RoleNames[user.role]}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {user.invitationCode ? (
-                            <div>
-                              <div className="text-sm font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">
-                                {user.invitationCode}
-                              </div>
-                              {user.invitationCount > 0 && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  已邀請 {user.invitationCount} 人
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">-</span>
-                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {user.phone || "-"}
@@ -707,9 +692,9 @@ export default function UsersPage() {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value={Role.STAFF}>業務人員</option>
-                    <option value={Role.OWNER}>業主</option>
-                    <option value={Role.SUPER_ADMIN}>超級管理員</option>
+                    {canManage(Role.STAFF) && <option value={Role.STAFF}>業務人員</option>}
+                    {canManage(Role.OWNER) && <option value={Role.OWNER}>業主</option>}
+                    {canManage(Role.ADMIN) && <option value={Role.ADMIN}>管理員</option>}
                   </select>
                 </div>
 

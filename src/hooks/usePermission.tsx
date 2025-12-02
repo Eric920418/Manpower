@@ -1,35 +1,36 @@
 /**
  * 權限檢查 Hook
  * 用於前端組件的權限控制
+ * 支援角色權限 + 自定義權限（granted/denied）
  */
 
 import { useSession } from 'next-auth/react';
 import { Role } from '@prisma/client';
 import {
   Permission,
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
+  hasPermissionWithCustom,
   canManageRole,
+  CustomPermissions,
 } from '@/lib/permissions';
 
 export function usePermission() {
   const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role as Role | undefined;
+  const user = session?.user as {
+    role?: Role;
+    customPermissions?: CustomPermissions | null;
+  } | undefined;
+
+  const userRole = user?.role;
+  const customPermissions = user?.customPermissions;
 
   return {
     /**
      * 檢查是否擁有特定權限
+     * 考慮角色權限 + 自定義權限（granted/denied）
      */
     can: (permission: Permission): boolean => {
       if (!userRole) return false;
-
-      // 超級管理員直接返回 true
-      if ((userRole as string) === 'SUPER_ADMIN') {
-        return true;
-      }
-
-      return hasPermission(userRole, permission);
+      return hasPermissionWithCustom(userRole, permission, customPermissions);
     },
 
     /**
@@ -37,7 +38,7 @@ export function usePermission() {
      */
     canAny: (permissions: Permission[]): boolean => {
       if (!userRole) return false;
-      return hasAnyPermission(userRole, permissions);
+      return permissions.some((p) => hasPermissionWithCustom(userRole, p, customPermissions));
     },
 
     /**
@@ -45,7 +46,7 @@ export function usePermission() {
      */
     canAll: (permissions: Permission[]): boolean => {
       if (!userRole) return false;
-      return hasAllPermissions(userRole, permissions);
+      return permissions.every((p) => hasPermissionWithCustom(userRole, p, customPermissions));
     },
 
     /**
@@ -61,6 +62,20 @@ export function usePermission() {
      */
     isSuperAdmin: (): boolean => {
       return userRole === Role.SUPER_ADMIN;
+    },
+
+    /**
+     * 檢查是否為管理員
+     */
+    isAdmin: (): boolean => {
+      return userRole === Role.ADMIN;
+    },
+
+    /**
+     * 檢查是否為管理員或以上（ADMIN 或 SUPER_ADMIN）
+     */
+    isAdminOrAbove: (): boolean => {
+      return userRole === Role.SUPER_ADMIN || userRole === Role.ADMIN;
     },
 
     /**
@@ -82,6 +97,13 @@ export function usePermission() {
      */
     getRole: (): Role | undefined => {
       return userRole;
+    },
+
+    /**
+     * 獲取當前用戶的自定義權限
+     */
+    getCustomPermissions: (): CustomPermissions | null | undefined => {
+      return customPermissions;
     },
   };
 }

@@ -2,11 +2,12 @@
 
 # 行政任務狀態
 enum AdminTaskStatus {
-  PENDING     # 待處理
-  PROCESSING  # 處理中
-  APPROVED    # 已批准
-  REJECTED    # 已退回
-  COMPLETED   # 已完成
+  PENDING            # 待處理
+  PROCESSING         # 處理中
+  PENDING_DOCUMENTS  # 待補件
+  APPROVED           # 已批准
+  REJECTED           # 已退回
+  COMPLETED          # 已完成
 }
 
 # 審批路線
@@ -52,6 +53,12 @@ type AdminTask {
   taskNo: String!
   taskType: TaskType!
   title: String!
+
+  # 任務關聯（用於流程串接）
+  parentTaskId: Int           # 父任務 ID
+  parentTask: AdminTask       # 父任務關聯
+  childTasks: [AdminTask!]!   # 子任務列表
+  groupId: String             # 案件群組 ID（同群組任務會一起顯示）
 
   # 關聯人員
   applicant: TaskUser!
@@ -106,6 +113,7 @@ type AdminTaskStats {
   total: Int!
   pending: Int!
   processing: Int!
+  pendingDocuments: Int!
   approved: Int!
   rejected: Int!
   completed: Int!
@@ -135,6 +143,8 @@ extend type Query {
     search: String
     sortBy: String
     sortOrder: String
+    groupId: String       # 按群組篩選
+    includeGrouped: Boolean  # 是否包含分組顯示（預設 true）
   ): AdminTaskConnection!
 
   # 獲取單個行政任務
@@ -242,6 +252,8 @@ input CreateAdminTaskInput {
   approvalRoute: ApprovalRoute
   payload: JSON!
   notes: String
+  parentTaskId: Int    # 父任務 ID（關聯任務時使用）
+  groupId: String      # 群組 ID（自動生成或繼承）
 }
 
 # 更新行政任務輸入
@@ -262,7 +274,7 @@ input UpdateAdminTaskInput {
 # 審批操作輸入
 input ApprovalInput {
   taskId: Int!
-  action: String!  # approve, reject, request_revision
+  action: String!  # approve, reject, pending_documents, request_revision
   comment: String
 }
 

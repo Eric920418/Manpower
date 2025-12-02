@@ -36,6 +36,7 @@
     "@types/webpack": "^5.28.5",
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
+    "@xyflow/react": "^12.9.3",
     "apollo3-cache-persist": "^0.15.0",
     "bcryptjs": "^3.0.3",
     "ckeditor5": "^44.3.0",

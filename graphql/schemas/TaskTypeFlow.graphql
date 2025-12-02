@@ -1,0 +1,75 @@
+# 流程條件
+type FlowCondition {
+  questionId: String
+  answer: String
+}
+
+# 任務類型流程關聯
+type TaskTypeFlow {
+  id: Int!
+  fromTaskTypeId: Int!
+  toTaskTypeId: Int!
+  label: String
+  condition: FlowCondition
+  order: Int!
+  createdAt: String!
+  updatedAt: String!
+  fromTaskType: TaskType!
+  toTaskType: TaskType!
+}
+
+# 流程條件輸入
+input FlowConditionInput {
+  questionId: String
+  answer: String
+}
+
+# 創建流程輸入
+input CreateTaskTypeFlowInput {
+  fromTaskTypeId: Int!
+  toTaskTypeId: Int!
+  label: String
+  condition: FlowConditionInput
+  order: Int
+}
+
+# 更新流程輸入
+input UpdateTaskTypeFlowInput {
+  label: String
+  condition: FlowConditionInput
+  order: Int
+}
+
+# 批量更新節點位置輸入
+input UpdateNodePositionInput {
+  id: Int!
+  positionX: Float!
+  positionY: Float!
+}
+
+# 批量保存流程輸入（用於流程編輯器）
+input SaveWorkflowInput {
+  nodes: [UpdateNodePositionInput!]!
+  flows: [CreateTaskTypeFlowInput!]!
+  deletedFlowIds: [Int!]
+}
+
+extend type Query {
+  # 獲取所有流程
+  taskTypeFlows: [TaskTypeFlow!]!
+  # 獲取指定任務類型的後續流程
+  taskTypeOutgoingFlows(taskTypeId: Int!): [TaskTypeFlow!]!
+  # 獲取指定任務類型的前置流程
+  taskTypeIncomingFlows(taskTypeId: Int!): [TaskTypeFlow!]!
+}
+
+extend type Mutation {
+  # 創建流程
+  createTaskTypeFlow(input: CreateTaskTypeFlowInput!): TaskTypeFlow!
+  # 更新流程
+  updateTaskTypeFlow(id: Int!, input: UpdateTaskTypeFlowInput!): TaskTypeFlow!
+  # 刪除流程
+  deleteTaskTypeFlow(id: Int!): Boolean!
+  # 批量保存工作流程（用於流程編輯器）
+  saveWorkflow(input: SaveWorkflowInput!): Boolean!
+}

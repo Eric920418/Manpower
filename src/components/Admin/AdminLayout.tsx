@@ -5,85 +5,55 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePermission } from "@/hooks/usePermission";
-import { Permission } from "@/lib/permissions";
 import { RoleNames } from "@/lib/permissions";
 
 interface MenuItem {
   label: string;
   href: string;
-  permission?: Permission;
-  roles?: string[];
 }
 
-const menuItems: MenuItem[] = [
+interface MenuGroup {
+  title: string;
+  roles: string[]; // 哪些角色可以看到這個分組
+  items: MenuItem[];
+}
+
+// 分組選單結構
+const menuGroups: MenuGroup[] = [
   {
-    label: "儀表板",
-    href: "/admin/dashboard",
+    title: "管理員操作",
+    roles: ['SUPER_ADMIN', 'ADMIN'],
+    items: [
+      { label: "儀表板", href: "/admin/dashboard" },
+      { label: "行政事務", href: "/admin/admin-tasks" },
+      { label: "人力需求", href: "/admin/manpower-requests" },
+      { label: "用戶管理", href: "/admin/users" },
+    ],
   },
   {
-    label: "用戶管理",
-    href: "/admin/users",
-    permission: 'user:read',
+    title: "網站內容",
+    roles: ['SUPER_ADMIN', 'ADMIN'],
+    items: [
+      { label: "首頁內容", href: "/admin/home-page" },
+      { label: "申請流程", href: "/admin/application-process" },
+      { label: "移工列表", href: "/admin/workers" },
+      { label: "常見問題", href: "/admin/faq" },
+      { label: "最新消息", href: "/admin/news" },
+      { label: "主力人力", href: "/admin/staff" },
+      { label: "創業加盟", href: "/admin/franchise" },
+      { label: "導航選單", href: "/admin/navigation" },
+    ],
   },
   {
-    label: "行政事務",
-    href: "/admin/admin-tasks",
-    permission: 'admin_task:read',
-  },
-  {
-    label: "申請類型管理",
-    href: "/admin/task-types",
-    permission: 'admin_task:create',
-  },
-  {
-    label: "首頁內容",
-    href: "/admin/home-page",
-    permission: 'content:read',
-  },
-  {
-    label: "申請流程",
-    href: "/admin/application-process",
-    permission: 'content:read',
-  },
-  {
-    label: "移工列表",
-    href: "/admin/workers",
-    permission: 'content:read',
-  },
-  {
-    label: "常見問題",
-    href: "/admin/faq",
-    permission: 'content:read',
-  },
-  {
-    label: "最新消息",
-    href: "/admin/news",
-    permission: 'content:read',
-  },
-  {
-    label: "主力人力",
-    href: "/admin/staff",
-    permission: 'content:read',
-  },
-  {
-    label: "創業加盟",
-    href: "/admin/franchise",
-    permission: 'content:read',
-  },
-  {
-    label: "導航選單",
-    href: "/admin/navigation",
-    permission: 'nav:read',
-  },
-  {
-    label: "人力需求",
-    href: "/admin/manpower-requests",
-    permission: 'form:read',
-  },
-  {
-    label: "數據分析",
-    href: "/admin/analytics",
-    permission: 'system:analytics',
+    title: "系統管理",
+    roles: ['SUPER_ADMIN'],
+    items: [
+      { label: "申請類型管理", href: "/admin/task-types" },
+      { label: "管理員任務分配", href: "/admin/admin-assignments" },
+      { label: "用戶權限管理", href: "/admin/user-permissions" },
+      { label: "活動日誌", href: "/admin/activity-logs" },
+      { label: "數據分析", href: "/admin/analytics" },
+    ],
   },
 ];
 
@@ -95,9 +65,43 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const { can, isSuperAdmin, getRole } = usePermission();
+  const { getRole } = usePermission();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  // 從 localStorage 讀取展開狀態
+  useEffect(() => {
+    const saved = localStorage.getItem("admin-sidebar-expanded");
+    if (saved) {
+      try {
+        setExpandedGroups(JSON.parse(saved));
+      } catch {
+        // 預設全部展開
+        const defaultExpanded: Record<string, boolean> = {};
+        menuGroups.forEach((group) => {
+          defaultExpanded[group.title] = true;
+        });
+        setExpandedGroups(defaultExpanded);
+      }
+    } else {
+      // 預設全部展開
+      const defaultExpanded: Record<string, boolean> = {};
+      menuGroups.forEach((group) => {
+        defaultExpanded[group.title] = true;
+      });
+      setExpandedGroups(defaultExpanded);
+    }
+  }, []);
+
+  // 保存展開狀態到 localStorage
+  const toggleGroup = (title: string) => {
+    setExpandedGroups((prev) => {
+      const newState = { ...prev, [title]: !prev[title] };
+      localStorage.setItem("admin-sidebar-expanded", JSON.stringify(newState));
+      return newState;
+    });
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -125,19 +129,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push("/admin/login");
   };
 
-  // 過濾選單項目，只顯示用戶有權限的項目
-  const visibleMenuItems = menuItems.filter((item) => {
-    // 非 SUPER_ADMIN 只能看到人力需求頁面
-    if (!isSuperAdmin()) {
-      return item.href === "/admin/manpower-requests";
-    }
-
-    // SUPER_ADMIN 根據權限顯示
-    if (!item.permission) return true; // 沒有權限要求的項目都顯示
-    return can(item.permission);
-  });
-
   const userRole = getRole();
+
+  // 過濾分組，只顯示用戶有權限的分組
+  const visibleMenuGroups = menuGroups
+    .filter((group) => userRole && group.roles.includes(userRole))
+    .map((group) => ({
+      ...group,
+      items: group.items, // 分組內的所有項目都顯示
+    }));
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -182,27 +182,53 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* 選單項目 */}
           {sidebarOpen && (
             <nav className="flex-1 overflow-y-auto py-4">
-              <ul className="space-y-1 px-2">
-                {visibleMenuItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={`flex items-center px-3 py-2.5 rounded-lg transition ${
-                          isActive
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-300 hover:bg-gray-800"
+              {visibleMenuGroups.map((group, groupIndex) => {
+                const isExpanded = expandedGroups[group.title] !== false;
+                return (
+                  <div key={group.title} className={groupIndex > 0 ? "mt-2" : ""}>
+                    <button
+                      onClick={() => toggleGroup(group.title)}
+                      className="w-full px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-800/50 transition"
+                    >
+                      <span>{group.title}</span>
+                      <span
+                        className={`transform transition-transform duration-200 ${
+                          isExpanded ? "rotate-0" : "-rotate-90"
                         }`}
                       >
-                        <span className="text-sm font-medium">
-                          {item.label}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+                        ▼
+                      </span>
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-200 ${
+                        isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                      }`}
+                    >
+                      <ul className="space-y-1 px-2">
+                        {group.items.map((item) => {
+                          const isActive = pathname === item.href;
+                          return (
+                            <li key={item.href}>
+                              <Link
+                                href={item.href}
+                                className={`flex items-center px-3 py-2.5 rounded-lg transition ${
+                                  isActive
+                                    ? "bg-blue-600 text-white"
+                                    : "text-gray-300 hover:bg-gray-800"
+                                }`}
+                              >
+                                <span className="text-sm font-medium">
+                                  {item.label}
+                                </span>
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })}
             </nav>
           )}
 
@@ -260,28 +286,54 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* 選單項目 */}
           <nav className="flex-1 overflow-y-auto py-4">
-            <ul className="space-y-1 px-2">
-              {visibleMenuItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center px-3 py-2.5 rounded-lg transition ${
-                        isActive
-                          ? "bg-blue-600 text-white"
-                          : "text-gray-300 hover:bg-gray-800"
+            {visibleMenuGroups.map((group, groupIndex) => {
+              const isExpanded = expandedGroups[group.title] !== false;
+              return (
+                <div key={group.title} className={groupIndex > 0 ? "mt-2" : ""}>
+                  <button
+                    onClick={() => toggleGroup(group.title)}
+                    className="w-full px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-800/50 transition"
+                  >
+                    <span>{group.title}</span>
+                    <span
+                      className={`transform transition-transform duration-200 ${
+                        isExpanded ? "rotate-0" : "-rotate-90"
                       }`}
                     >
-                      <span className="text-sm font-medium">
-                        {item.label}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                      ▼
+                    </span>
+                  </button>
+                  <div
+                    className={`overflow-hidden transition-all duration-200 ${
+                      isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <ul className="space-y-1 px-2">
+                      {group.items.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={`flex items-center px-3 py-2.5 rounded-lg transition ${
+                                isActive
+                                  ? "bg-blue-600 text-white"
+                                  : "text-gray-300 hover:bg-gray-800"
+                              }`}
+                            >
+                              <span className="text-sm font-medium">
+                                {item.label}
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
           </nav>
 
           {/* 登出按鈕 */}

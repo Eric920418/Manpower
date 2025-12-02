@@ -54,6 +54,24 @@ const requireSuperAdmin = (context: Context) => {
   return user;
 };
 
+// 檢查是否為管理員（SUPER_ADMIN 或 ADMIN）
+const requireAdmin = (context: Context) => {
+  const user = requireAuth(context);
+  if (user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
+    throw new Error("權限不足：需要管理員權限");
+  }
+  return user;
+};
+
+// 獲取管理員被分配的任務類型 ID 列表
+const getAdminAssignedTaskTypeIds = async (userId: string): Promise<number[]> => {
+  const assignments = await prisma.adminTaskTypeAssignment.findMany({
+    where: { adminId: userId },
+    select: { taskTypeId: true },
+  });
+  return assignments.map((a) => a.taskTypeId);
+};
+
 // 格式化日期
 const formatDate = (date: Date | null | undefined): string | null => {
   if (!date) return null;
@@ -71,16 +89,103 @@ const formatUser = (user: { id: string; name: string | null; email: string; role
   };
 };
 
+// 問題觸發條件定義
+interface QuestionTrigger {
+  answer: string;
+  taskTypeId: number;
+}
+
+// 問題類型定義
+interface Question {
+  id: string;
+  label: string;
+  type: "TEXT" | "RADIO" | "CHECKBOX";
+  options?: string[];
+  required?: boolean;
+  trigger?: QuestionTrigger;
+}
+
+// 格式化問題列表
+const formatQuestions = (questions: unknown): Question[] => {
+  if (!questions || !Array.isArray(questions)) return [];
+  return questions.map((q: Question) => ({
+    id: q.id || "",
+    label: q.label || "",
+    type: q.type || "TEXT",
+    options: q.options || [],
+    required: q.required || false,
+    trigger: q.trigger || undefined,
+  }));
+};
+
+// 流程關聯格式化
+interface OutgoingFlow {
+  id: number;
+  fromTaskTypeId: number;
+  toTaskTypeId: number;
+  label: string | null;
+  condition: unknown;
+  order: number;
+  toTaskType?: {
+    id: number;
+    code: string;
+    label: string;
+    description: string | null;
+    order: number;
+    isActive: boolean;
+  };
+}
+
+const formatOutgoingFlow = (flow: OutgoingFlow) => ({
+  id: flow.id,
+  fromTaskTypeId: flow.fromTaskTypeId,
+  toTaskTypeId: flow.toTaskTypeId,
+  label: flow.label,
+  condition: flow.condition || null,
+  order: flow.order,
+  toTaskType: flow.toTaskType ? {
+    id: flow.toTaskType.id,
+    code: flow.toTaskType.code,
+    label: flow.toTaskType.label,
+    description: flow.toTaskType.description,
+    order: flow.toTaskType.order,
+    isActive: flow.toTaskType.isActive,
+  } : null,
+});
+
 // 格式化任務類型
-const formatTaskType = (taskType: { id: number; code: string; label: string; description: string | null; order: number; isActive: boolean; createdAt: Date; updatedAt: Date }) => ({
+const formatTaskType = (taskType: { id: number; code: string; label: string; description: string | null; order: number; isActive: boolean; questions?: unknown; outgoingFlows?: OutgoingFlow[]; createdAt: Date; updatedAt: Date }) => ({
   id: taskType.id,
   code: taskType.code,
   label: taskType.label,
   description: taskType.description,
   order: taskType.order,
   isActive: taskType.isActive,
+  questions: formatQuestions(taskType.questions),
+  outgoingFlows: taskType.outgoingFlows?.map(formatOutgoingFlow) || [],
   createdAt: formatDate(taskType.createdAt),
   updatedAt: formatDate(taskType.updatedAt),
+});
+
+// 簡化的任務格式（用於父子關聯避免循環）
+interface SimpleTask {
+  id: number;
+  taskNo: string;
+  title: string;
+  status: string;
+  taskType: { id: number; code: string; label: string; description: string | null; order: number; isActive: boolean; questions?: unknown; outgoingFlows?: OutgoingFlow[]; createdAt: Date; updatedAt: Date };
+  applicant: { id: string; name: string | null; email: string; role: string };
+  createdAt: Date;
+}
+
+const formatSimpleTask = (task: SimpleTask) => ({
+  id: task.id,
+  taskNo: task.taskNo,
+  title: task.title,
+  status: task.status,
+  taskType: formatTaskType(task.taskType),
+  applicant: formatUser(task.applicant),
+  createdAt: formatDate(task.createdAt),
 });
 
 // 格式化任務
@@ -92,12 +197,20 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
     approver: true;
     attachments: true;
     approvalRecords: { include: { approver: true } };
+    parentTask: { include: { taskType: true; applicant: true } };
+    childTasks: { include: { taskType: true; applicant: true } };
   };
 }>) => ({
   id: task.id,
   taskNo: task.taskNo,
   taskType: formatTaskType(task.taskType),
   title: task.title,
+  // 任務關聯
+  parentTaskId: task.parentTaskId,
+  parentTask: task.parentTask ? formatSimpleTask(task.parentTask as SimpleTask) : null,
+  childTasks: (task.childTasks || []).map((child) => formatSimpleTask(child as SimpleTask)),
+  groupId: task.groupId,
+  // 關聯人員
   applicant: formatUser(task.applicant),
   applicantName: task.applicantName,
   processor: formatUser(task.processor),
@@ -137,7 +250,15 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
 
 // 包含關聯的查詢選項
 const taskInclude = {
-  taskType: true,
+  taskType: {
+    include: {
+      outgoingFlows: {
+        include: {
+          toTaskType: true,
+        },
+      },
+    },
+  },
   applicant: true,
   processor: true,
   approver: true,
@@ -147,6 +268,20 @@ const taskInclude = {
   approvalRecords: {
     include: { approver: true },
     orderBy: { createdAt: "desc" as const },
+  },
+  // 父子任務關聯
+  parentTask: {
+    include: {
+      taskType: true,
+      applicant: true,
+    },
+  },
+  childTasks: {
+    include: {
+      taskType: true,
+      applicant: true,
+    },
+    orderBy: { createdAt: "asc" as const },
   },
 };
 
@@ -169,7 +304,7 @@ export const adminTaskResolvers = {
       },
       context: Context
     ) => {
-      requireSuperAdmin(context);
+      const user = requireAdmin(context);
 
       const page = args.page || 1;
       const pageSize = Math.min(args.pageSize || 20, 100);
@@ -177,8 +312,33 @@ export const adminTaskResolvers = {
 
       const where: Prisma.AdminTaskWhereInput = {};
 
+      // ADMIN 角色只能看到被分配的任務類型
+      if (user.role === "ADMIN") {
+        const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
+        if (assignedTaskTypeIds.length === 0) {
+          // 沒有被分配任何任務類型，返回空列表
+          return {
+            items: [],
+            pageInfo: { total: 0, page, pageSize, totalPages: 0 },
+          };
+        }
+        where.taskTypeId = { in: assignedTaskTypeIds };
+      }
+
       if (args.status) where.status = args.status;
-      if (args.taskTypeId) where.taskTypeId = args.taskTypeId;
+      if (args.taskTypeId) {
+        // 如果是 ADMIN，確保只能查詢被分配的任務類型
+        if (user.role === "ADMIN") {
+          const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
+          if (!assignedTaskTypeIds.includes(args.taskTypeId)) {
+            return {
+              items: [],
+              pageInfo: { total: 0, page, pageSize, totalPages: 0 },
+            };
+          }
+        }
+        where.taskTypeId = args.taskTypeId;
+      }
       if (args.applicantId) where.applicantId = args.applicantId;
       if (args.processorId) where.processorId = args.processorId;
       if (args.approverId) where.approverId = args.approverId;
@@ -231,26 +391,38 @@ export const adminTaskResolvers = {
 
     // 獲取行政任務統計
     adminTaskStats: async (_: unknown, __: unknown, context: Context) => {
-      requireSuperAdmin(context);
+      const user = requireAdmin(context);
 
       const now = new Date();
 
-      const [total, pending, processing, approved, rejected, completed, overdue] = await Promise.all([
-        prisma.adminTask.count(),
-        prisma.adminTask.count({ where: { status: "PENDING" } }),
-        prisma.adminTask.count({ where: { status: "PROCESSING" } }),
-        prisma.adminTask.count({ where: { status: "APPROVED" } }),
-        prisma.adminTask.count({ where: { status: "REJECTED" } }),
-        prisma.adminTask.count({ where: { status: "COMPLETED" } }),
+      // ADMIN 角色只統計被分配的任務類型
+      let taskTypeFilter: Prisma.AdminTaskWhereInput = {};
+      if (user.role === "ADMIN") {
+        const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
+        if (assignedTaskTypeIds.length === 0) {
+          return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
+        }
+        taskTypeFilter = { taskTypeId: { in: assignedTaskTypeIds } };
+      }
+
+      const [total, pending, processing, pendingDocuments, approved, rejected, completed, overdue] = await Promise.all([
+        prisma.adminTask.count({ where: taskTypeFilter }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING" } }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PROCESSING" } }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING_DOCUMENTS" } }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "APPROVED" } }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "REJECTED" } }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "COMPLETED" } }),
         prisma.adminTask.count({
           where: {
-            status: { in: ["PENDING", "PROCESSING"] },
+            ...taskTypeFilter,
+            status: { in: ["PENDING", "PROCESSING", "PENDING_DOCUMENTS"] },
             deadline: { lt: now },
           },
         }),
       ]);
 
-      return { total, pending, processing, approved, rejected, completed, overdue };
+      return { total, pending, processing, pendingDocuments, approved, rejected, completed, overdue };
     },
 
     // 按類型統計
@@ -389,6 +561,8 @@ export const adminTaskResolvers = {
           approvalRoute?: ApprovalRoute;
           payload: Record<string, unknown>;
           notes?: string;
+          parentTaskId?: number;
+          groupId?: string;
         };
       },
       context: Context
@@ -405,6 +579,25 @@ export const adminTaskResolvers = {
 
       const taskNo = await generateTaskNo();
 
+      // 處理群組 ID：如果有父任務且沒有指定群組 ID，繼承父任務的群組 ID 或創建新群組
+      let groupId = args.input.groupId;
+      if (args.input.parentTaskId && !groupId) {
+        const parentTask = await prisma.adminTask.findUnique({
+          where: { id: args.input.parentTaskId },
+          select: { groupId: true },
+        });
+        if (parentTask?.groupId) {
+          groupId = parentTask.groupId;
+        } else {
+          // 為父任務和當前任務創建新群組
+          groupId = crypto.randomUUID();
+          await prisma.adminTask.update({
+            where: { id: args.input.parentTaskId },
+            data: { groupId },
+          });
+        }
+      }
+
       const task = await prisma.adminTask.create({
         data: {
           taskNo,
@@ -417,6 +610,8 @@ export const adminTaskResolvers = {
           approvalRoute: args.input.approvalRoute || "V_ROUTE",
           payload: args.input.payload as Prisma.InputJsonValue,
           notes: args.input.notes,
+          parentTaskId: args.input.parentTaskId || null,
+          groupId: groupId || null,
         },
         include: taskInclude,
       });
@@ -432,6 +627,8 @@ export const adminTaskResolvers = {
             taskNo: task.taskNo,
             taskTypeId: task.taskTypeId,
             title: task.title,
+            parentTaskId: args.input.parentTaskId,
+            groupId,
           },
         },
       });
@@ -559,13 +756,13 @@ export const adminTaskResolvers = {
       args: {
         input: {
           taskId: number;
-          action: string; // approve, reject, request_revision
+          action: string; // approve, reject, pending_documents, request_revision
           comment?: string;
         };
       },
       context: Context
     ) => {
-      const user = requireSuperAdmin(context);
+      const user = requireAdmin(context);
 
       const task = await prisma.adminTask.findUnique({
         where: { id: args.input.taskId },
@@ -573,6 +770,14 @@ export const adminTaskResolvers = {
 
       if (!task) {
         throw new Error("找不到該行政任務");
+      }
+
+      // ADMIN 角色只能審批被分配的任務類型
+      if (user.role === "ADMIN") {
+        const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
+        if (!assignedTaskTypeIds.includes(task.taskTypeId)) {
+          throw new Error("權限不足：您沒有權限審批此任務類型");
+        }
       }
 
       // 創建審批記錄
@@ -595,6 +800,9 @@ export const adminTaskResolvers = {
       } else if (args.input.action === "reject") {
         newStatus = "REJECTED";
         approvalMark = "-";
+      } else if (args.input.action === "pending_documents") {
+        newStatus = "PENDING_DOCUMENTS";
+        approvalMark = "?";
       } else if (args.input.action === "request_revision") {
         newStatus = "PENDING";
         approvalMark = null;
@@ -787,6 +995,22 @@ export const adminTaskResolvers = {
         },
       });
 
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "upload_attachment",
+          entity: "admin_task",
+          entityId: args.taskId.toString(),
+          details: {
+            attachmentId: attachment.id,
+            filename: args.file.originalName,
+            size: args.file.size,
+            mimeType: args.file.mimeType,
+          },
+        },
+      });
+
       return {
         id: attachment.id,
         filename: attachment.filename,
@@ -806,10 +1030,33 @@ export const adminTaskResolvers = {
       args: { attachmentId: number },
       context: Context
     ) => {
-      requireAuth(context);
+      const user = requireAuth(context);
+
+      // 先獲取附件資訊
+      const attachment = await prisma.adminTaskAttachment.findUnique({
+        where: { id: args.attachmentId },
+      });
+
+      if (!attachment) {
+        throw new Error("找不到該附件");
+      }
 
       await prisma.adminTaskAttachment.delete({
         where: { id: args.attachmentId },
+      });
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "delete_attachment",
+          entity: "admin_task",
+          entityId: attachment.taskId.toString(),
+          details: {
+            attachmentId: args.attachmentId,
+            filename: attachment.originalName,
+          },
+        },
       });
 
       return true;

@@ -1,5 +1,13 @@
 import { prisma } from "../prismaClient";
 
+// Context 介面
+interface Context {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 interface NavigationInput {
   label: string;
   url?: string | null;
@@ -129,7 +137,7 @@ export const navigationResolvers = {
 
   Mutation: {
     // 建立導航項目
-    createNavigation: async (_: unknown, { input }: { input: NavigationInput }) => {
+    createNavigation: async (_: unknown, { input }: { input: NavigationInput }, context: Context) => {
       // 驗證 parentId 是否存在
       if (input.parentId) {
         const parent = await prisma.navigation.findUnique({
@@ -168,11 +176,28 @@ export const navigationResolvers = {
         },
       });
 
+      // 記錄活動日誌
+      if (context.user) {
+        await prisma.activityLog.create({
+          data: {
+            userId: context.user.id,
+            action: "create",
+            entity: "navigation",
+            entityId: nav.id.toString(),
+            details: {
+              label: nav.label,
+              url: nav.url,
+              parentId: nav.parentId,
+            },
+          },
+        });
+      }
+
       return nav;
     },
 
     // 更新導航項目
-    updateNavigation: async (_: unknown, { input }: { input: UpdateNavigationInput }) => {
+    updateNavigation: async (_: unknown, { input }: { input: UpdateNavigationInput }, context: Context) => {
       const { id, ...data } = input;
 
       // 檢查導航是否存在
@@ -221,11 +246,27 @@ export const navigationResolvers = {
         },
       });
 
+      // 記錄活動日誌
+      if (context.user) {
+        await prisma.activityLog.create({
+          data: {
+            userId: context.user.id,
+            action: "update",
+            entity: "navigation",
+            entityId: nav.id.toString(),
+            details: {
+              label: nav.label,
+              changes: Object.keys(updateData),
+            },
+          },
+        });
+      }
+
       return nav;
     },
 
     // 刪除導航項目（Cascade 會自動刪除子項目）
-    deleteNavigation: async (_: unknown, { id }: { id: number }) => {
+    deleteNavigation: async (_: unknown, { id }: { id: number }, context: Context) => {
       const existing = await prisma.navigation.findUnique({
         where: { id },
       });
@@ -238,11 +279,27 @@ export const navigationResolvers = {
         where: { id },
       });
 
+      // 記錄活動日誌
+      if (context.user) {
+        await prisma.activityLog.create({
+          data: {
+            userId: context.user.id,
+            action: "delete",
+            entity: "navigation",
+            entityId: id.toString(),
+            details: {
+              label: existing.label,
+              url: existing.url,
+            },
+          },
+        });
+      }
+
       return true;
     },
 
     // 批次更新排序
-    reorderNavigations: async (_: unknown, { ids }: { ids: number[] }) => {
+    reorderNavigations: async (_: unknown, { ids }: { ids: number[] }, context: Context) => {
       // 使用 transaction 確保原子性
       await prisma.$transaction(
         ids.map((id, index) =>
@@ -252,6 +309,22 @@ export const navigationResolvers = {
           })
         )
       );
+
+      // 記錄活動日誌
+      if (context.user) {
+        await prisma.activityLog.create({
+          data: {
+            userId: context.user.id,
+            action: "reorder",
+            entity: "navigation",
+            entityId: "batch",
+            details: {
+              reorderedIds: ids,
+              count: ids.length,
+            },
+          },
+        });
+      }
 
       return true;
     },

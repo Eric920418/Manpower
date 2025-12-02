@@ -1,5 +1,28 @@
 # ==================== 任務類型管理 ====================
 
+# 問題類型枚舉
+enum QuestionType {
+  TEXT      # 文字回答
+  RADIO     # 單選題
+  CHECKBOX  # 複選題
+}
+
+# 問題觸發條件（當回答特定答案時觸發另一個任務類型）
+type QuestionTrigger {
+  answer: String!       # 觸發答案
+  taskTypeId: Int!      # 觸發的任務類型 ID
+}
+
+# 自訂問題結構
+type TaskTypeQuestion {
+  id: String!           # 問題 ID（uuid）
+  label: String!        # 問題標籤
+  type: QuestionType!   # 問題類型
+  options: [String!]    # 選項（僅 RADIO 和 CHECKBOX 需要）
+  required: Boolean!    # 是否必填
+  trigger: QuestionTrigger  # 觸發條件（可選）
+}
+
 # 任務類型
 type TaskType {
   id: ID!
@@ -8,8 +31,35 @@ type TaskType {
   description: String
   order: Int!
   isActive: Boolean!
+  questions: [TaskTypeQuestion!]!  # 自訂問題列表
+  # 節點位置（用於流程圖顯示）
+  positionX: Float
+  positionY: Float
+  # 流程關聯（取代舊的 nextTaskTypeId）
+  outgoingFlows: [TaskTypeFlow!]!  # 從此類型出發的流程
+  incomingFlows: [TaskTypeFlow!]!  # 到達此類型的流程
+  assignedAdmins: [AdminTaskTypeAssignment!]!  # 被分配的管理員
   createdAt: String!
   updatedAt: String!
+}
+
+# 管理員任務類型分配
+type AdminTaskTypeAssignment {
+  id: ID!
+  adminId: String!
+  taskTypeId: Int!
+  admin: AdminInfo!
+  taskType: TaskType  # 可空，避免循環引用
+  assignedAt: String!
+  assignedBy: String
+}
+
+# 簡化的管理員資訊（用於顯示）
+type AdminInfo {
+  id: ID!
+  name: String
+  email: String!
+  role: String!
 }
 
 # ==================== Queries ====================
@@ -20,15 +70,48 @@ extend type Query {
 
   # 獲取單個任務類型
   taskType(id: Int!): TaskType
+
+  # 獲取所有管理員（ADMIN 角色）及其分配的任務類型（僅 SUPER_ADMIN）
+  adminsWithAssignments: [AdminWithAssignments!]!
+
+  # 獲取當前管理員被分配的任務類型（ADMIN 角色用）
+  myAssignedTaskTypes: [TaskType!]!
+}
+
+# 管理員及其分配的任務類型
+type AdminWithAssignments {
+  id: ID!
+  name: String
+  email: String!
+  assignedTaskTypes: [TaskType!]!
 }
 
 # ==================== Inputs ====================
+
+# 問題觸發條件輸入
+input QuestionTriggerInput {
+  answer: String!       # 觸發答案
+  taskTypeId: Int!      # 觸發的任務類型 ID
+}
+
+# 問題輸入類型
+input TaskTypeQuestionInput {
+  id: String            # 問題 ID（更新時使用，新增時可選）
+  label: String!        # 問題標籤
+  type: QuestionType!   # 問題類型
+  options: [String!]    # 選項（僅 RADIO 和 CHECKBOX 需要）
+  required: Boolean     # 是否必填（預設 false）
+  trigger: QuestionTriggerInput  # 觸發條件（可選）
+}
 
 input CreateTaskTypeInput {
   code: String!
   label: String!
   description: String
   order: Int
+  questions: [TaskTypeQuestionInput!]
+  positionX: Float
+  positionY: Float
 }
 
 input UpdateTaskTypeInput {
@@ -38,6 +121,9 @@ input UpdateTaskTypeInput {
   description: String
   order: Int
   isActive: Boolean
+  questions: [TaskTypeQuestionInput!]
+  positionX: Float
+  positionY: Float
 }
 
 # ==================== Mutations ====================
@@ -54,4 +140,13 @@ extend type Mutation {
 
   # 批量更新排序
   reorderTaskTypes(ids: [Int!]!): [TaskType!]!
+
+  # 分配任務類型給管理員（僅 SUPER_ADMIN）
+  assignTaskTypeToAdmin(adminId: String!, taskTypeId: Int!): AdminTaskTypeAssignment!
+
+  # 移除管理員的任務類型分配（僅 SUPER_ADMIN）
+  removeTaskTypeFromAdmin(adminId: String!, taskTypeId: Int!): Boolean!
+
+  # 批量更新管理員的任務類型分配（僅 SUPER_ADMIN）
+  updateAdminTaskTypes(adminId: String!, taskTypeIds: [Int!]!): [TaskType!]!
 }

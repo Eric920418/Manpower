@@ -201,7 +201,14 @@ const yoga = createYoga({
     // 響應快取 - 優化：根據操作類型調整 TTL
     // eslint-disable-next-line react-hooks/rules-of-hooks -- useResponseCache is not a React hook, it's a GraphQL Yoga plugin factory
     useResponseCache({
-      session: () => null, // 無 session 區分（公開快取）
+      // 根據用戶認證狀態區分快取，避免未授權錯誤被快取給認證用戶
+      session: (request) => {
+        // 檢查是否有 session cookie，有則返回 'authenticated'，否則返回 null
+        const cookie = request.headers.get('cookie') || '';
+        const hasSession = cookie.includes('next-auth.session-token') ||
+                          cookie.includes('__Secure-next-auth.session-token');
+        return hasSession ? 'authenticated' : null;
+      },
       ttl: 30 * 1000, // 預設 30 秒快取
       // 根據操作名稱動態設置 TTL
       ttlPerSchemaCoordinate: {
@@ -218,6 +225,12 @@ const yoga = createYoga({
         'Query.formSubmissions': 30 * 1000,
         'Query.contracts': 30 * 1000,
         'Query.manpowerRequests': 30 * 1000,
+        // 需要認證的管理操作：不快取
+        'Query.taskTypes': 0,
+        'Query.adminsWithAssignments': 0,
+        'Query.myAssignedTaskTypes': 0,
+        'Query.adminTasks': 0,
+        'Query.adminTaskStats': 0,
       },
       includeExtensionMetadata: process.env.NODE_ENV === 'development',
     }),

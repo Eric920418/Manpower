@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,33 @@ interface ApprovalRecord {
   createdAt: string;
 }
 
+// 問題類型
+type QuestionType = "TEXT" | "RADIO" | "CHECKBOX";
+
+// 問題觸發條件
+interface QuestionTrigger {
+  answer: string;
+  taskTypeId: number;
+}
+
+interface Question {
+  id: string;
+  label: string;
+  type: QuestionType;
+  options: string[];
+  required: boolean;
+  trigger?: QuestionTrigger | null;
+}
+
+// 流程關聯
+interface TaskTypeFlow {
+  id: number;
+  fromTaskTypeId: number;
+  toTaskTypeId: number;
+  label: string | null;
+  condition: { questionId?: string; answer?: string } | null;
+}
+
 interface TaskType {
   id: number;
   code: string;
@@ -38,6 +65,18 @@ interface TaskType {
   description: string | null;
   order: number;
   isActive: boolean;
+  questions: Question[];
+  outgoingFlows: TaskTypeFlow[];
+}
+
+// 簡化的任務（用於父子關聯）
+interface SimpleAdminTask {
+  id: number;
+  taskNo: string;
+  title: string;
+  status: string;
+  taskType: TaskType;
+  createdAt: string;
 }
 
 interface AdminTask {
@@ -45,6 +84,12 @@ interface AdminTask {
   taskNo: string;
   taskType: TaskType;
   title: string;
+  // 任務關聯
+  parentTaskId: number | null;
+  parentTask: SimpleAdminTask | null;
+  childTasks: SimpleAdminTask[];
+  groupId: string | null;
+  // 關聯人員
   applicant: TaskUser;
   applicantName: string | null;
   processor: TaskUser | null;
@@ -69,6 +114,7 @@ interface AdminTaskStats {
   total: number;
   pending: number;
   processing: number;
+  pendingDocuments: number;
   approved: number;
   rejected: number;
   completed: number;
@@ -86,19 +132,22 @@ interface PageInfo {
 const statusLabels: Record<string, { label: string; className: string }> = {
   PENDING: { label: "待處理", className: "bg-yellow-100 text-yellow-800" },
   PROCESSING: { label: "處理中", className: "bg-blue-100 text-blue-800" },
+  PENDING_DOCUMENTS: { label: "待補件", className: "bg-orange-100 text-orange-800" },
   APPROVED: { label: "已批准", className: "bg-green-100 text-green-800" },
   REJECTED: { label: "已退回", className: "bg-red-100 text-red-800" },
   COMPLETED: { label: "已完成", className: "bg-gray-100 text-gray-800" },
 };
 
 export default function AdminTasksPage() {
-  const { status } = useSession();
-  const { getRole } = usePermission();
+  const { data: session, status } = useSession();
+  const { getRole, isAdminOrAbove } = usePermission();
   const router = useRouter();
 
   // 使用 useMemo 緩存角色檢查結果，避免每次渲染都重新計算
   const userRole = getRole();
-  const isAdmin = useMemo(() => userRole === 'SUPER_ADMIN', [userRole]);
+  // 允許 ADMIN 或 SUPER_ADMIN 訪問此頁面
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const hasAccess = useMemo(() => isAdminOrAbove(), [userRole]);
 
   // 狀態
   const [tasks, setTasks] = useState<AdminTask[]>([]);
@@ -122,16 +171,29 @@ export default function AdminTasksPage() {
     title: "",
     applicantName: "", // 自訂申請人名稱
     deadline: "",
+    deadlineText: "", // 文字型期限（如：待定、盡快等）
     notes: "",
     payload: {} as Record<string, unknown>,
+    parentTaskId: null as number | null, // 父任務 ID（用於關聯任務）
   });
+  const [deadlineType, setDeadlineType] = useState<"date" | "text">("date");
   const [creating, setCreating] = useState(false);
+  // 自訂問題答案
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string | string[]>>({});
 
   // 審批狀態
   const [approvalAction, setApprovalAction] = useState("");
   const [approvalComment, setApprovalComment] = useState("");
   const [approvalProcessorName, setApprovalProcessorName] = useState(""); // 完成人
   const [approving, setApproving] = useState(false);
+
+  // 觸發任務提示
+  const [showTriggerModal, setShowTriggerModal] = useState(false);
+  const [triggeredTaskTypes, setTriggeredTaskTypes] = useState<TaskType[]>([]);
+  const [lastCreatedTaskId, setLastCreatedTaskId] = useState<number | null>(null);
+
+  // 分組展開狀態
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // 獲取資料
   const fetchData = useCallback(async () => {
@@ -145,6 +207,7 @@ export default function AdminTasksPage() {
             total
             pending
             processing
+            pendingDocuments
             approved
             rejected
             completed
@@ -163,6 +226,27 @@ export default function AdminTasksPage() {
             description
             order
             isActive
+            outgoingFlows {
+              id
+              fromTaskTypeId
+              toTaskTypeId
+              label
+              condition {
+                questionId
+                answer
+              }
+            }
+            questions {
+              id
+              label
+              type
+              options
+              required
+              trigger {
+                answer
+                taskTypeId
+              }
+            }
           }
         }
       `;
@@ -178,8 +262,41 @@ export default function AdminTasksPage() {
                 id
                 code
                 label
+                questions {
+                  id
+                  label
+                  type
+                  options
+                  required
+                }
               }
               title
+              parentTaskId
+              parentTask {
+                id
+                taskNo
+                title
+                status
+                taskType {
+                  id
+                  code
+                  label
+                }
+                createdAt
+              }
+              childTasks {
+                id
+                taskNo
+                title
+                status
+                taskType {
+                  id
+                  code
+                  label
+                }
+                createdAt
+              }
+              groupId
               applicant {
                 id
                 name
@@ -254,16 +371,19 @@ export default function AdminTasksPage() {
         fetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ query: statsQuery }),
         }),
         fetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ query: taskTypesQuery }),
         }),
         fetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ query: tasksQuery, variables }),
         }),
       ]);
@@ -306,10 +426,71 @@ export default function AdminTasksPage() {
 
   // 使用穩定的依賴項避免無限循環
   useEffect(() => {
-    if (status === "authenticated" && isAdmin) {
+    if (status === "authenticated" && hasAccess) {
       fetchData();
     }
-  }, [status, isAdmin, fetchData]);
+  }, [status, hasAccess, fetchData]);
+
+  // 獲取當前選擇類型的問題（注意：GraphQL ID 可能是字符串）
+  const selectedTaskType = taskTypes.find((t) => Number(t.id) === createForm.taskTypeId);
+  const currentQuestions = selectedTaskType?.questions || [];
+
+  // 處理任務分組（將關聯任務分組顯示）
+  const groupedTasks = useMemo(() => {
+    // 先找出所有有群組的任務
+    const groups = new Map<string, AdminTask[]>();
+    const processedIds = new Set<number>();
+
+    // 第一步：找出所有群組
+    for (const task of tasks) {
+      if (task.groupId) {
+        const existing = groups.get(task.groupId) || [];
+        existing.push(task);
+        groups.set(task.groupId, existing);
+        processedIds.add(task.id);
+      }
+    }
+
+    // 第二步：對每個群組按時間排序，最早的作為主任務
+    const result: { type: "single" | "group"; task: AdminTask; children?: AdminTask[] }[] = [];
+
+    for (const [, groupTasks] of groups) {
+      // 按創建時間排序
+      groupTasks.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      const mainTask = groupTasks[0];
+      const childTasks = groupTasks.slice(1);
+      result.push({
+        type: "group",
+        task: mainTask,
+        children: childTasks,
+      });
+    }
+
+    // 第三步：添加獨立任務
+    for (const task of tasks) {
+      if (!processedIds.has(task.id)) {
+        result.push({ type: "single", task });
+      }
+    }
+
+    // 按創建時間倒序排列
+    result.sort((a, b) => new Date(b.task.createdAt).getTime() - new Date(a.task.createdAt).getTime());
+
+    return result;
+  }, [tasks]);
+
+  // 切換群組展開狀態
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
 
   // 創建任務
   const handleCreateTask = async () => {
@@ -322,6 +503,17 @@ export default function AdminTasksPage() {
       return;
     }
 
+    // 驗證必填問題
+    for (const question of currentQuestions) {
+      if (question.required) {
+        const answer = customAnswers[question.id];
+        if (!answer || (Array.isArray(answer) && answer.length === 0) || (typeof answer === "string" && !answer.trim())) {
+          alert(`請填寫必填問題：${question.label}`);
+          return;
+        }
+      }
+    }
+
     setCreating(true);
     try {
       const mutation = `
@@ -329,24 +521,39 @@ export default function AdminTasksPage() {
           createAdminTask(input: $input) {
             id
             taskNo
+            groupId
           }
         }
       `;
+
+      // 根據期限類型決定發送的值
+      const deadlineValue = deadlineType === "date"
+        ? (createForm.deadline || null)
+        : (createForm.deadlineText || null);
+
+      // 合併 payload，包含自訂問題答案
+      const payload = {
+        ...createForm.payload,
+        ...(deadlineType === "text" && createForm.deadlineText && { deadlineText: createForm.deadlineText }),
+        customAnswers: customAnswers,
+      };
 
       const variables = {
         input: {
           taskTypeId: createForm.taskTypeId,
           title: createForm.title,
           applicantName: createForm.applicantName || null,
-          deadline: createForm.deadline || null,
-          payload: createForm.payload,
+          deadline: deadlineType === "date" ? deadlineValue : null,
+          payload: payload,
           notes: createForm.notes || null,
+          parentTaskId: createForm.parentTaskId || null,
         },
       };
 
       const res = await fetch("/api/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ query: mutation, variables }),
       });
 
@@ -356,17 +563,82 @@ export default function AdminTasksPage() {
         throw new Error(data.errors[0].message);
       }
 
-      alert(`任務創建成功！編號：${data.data.createAdminTask.taskNo}`);
+      const createdTaskId = data.data.createAdminTask.id;
+      const taskNo = data.data.createAdminTask.taskNo;
+
+      // 檢查是否有觸發的後續流程
+      const triggeredTypes: TaskType[] = [];
+
+      if (selectedTaskType?.outgoingFlows) {
+        for (const flow of selectedTaskType.outgoingFlows) {
+          const targetType = taskTypes.find(t => Number(t.id) === flow.toTaskTypeId);
+          if (!targetType) continue;
+
+          // 已經添加過的跳過
+          if (triggeredTypes.some(t => t.id === targetType.id)) continue;
+
+          // 無條件流程（固定流程）
+          if (!flow.condition) {
+            triggeredTypes.push(targetType);
+            continue;
+          }
+
+          // 有條件流程：檢查問題答案
+          if (flow.condition.questionId && flow.condition.answer) {
+            const answer = customAnswers[flow.condition.questionId];
+            // 判斷答案是否符合觸發條件
+            if (typeof answer === "string" && answer === flow.condition.answer) {
+              triggeredTypes.push(targetType);
+            } else if (Array.isArray(answer) && answer.includes(flow.condition.answer)) {
+              triggeredTypes.push(targetType);
+            }
+          }
+        }
+      }
+
+      // 也檢查問題內嵌的觸發條件（向後兼容）
+      for (const question of currentQuestions) {
+        if (question.trigger) {
+          const answer = customAnswers[question.id];
+          // 判斷答案是否符合觸發條件
+          if (typeof answer === "string" && answer === question.trigger.answer) {
+            const triggeredType = taskTypes.find(t => Number(t.id) === question.trigger!.taskTypeId);
+            if (triggeredType && !triggeredTypes.some(t => t.id === triggeredType.id)) {
+              triggeredTypes.push(triggeredType);
+            }
+          } else if (Array.isArray(answer) && answer.includes(question.trigger.answer)) {
+            const triggeredType = taskTypes.find(t => Number(t.id) === question.trigger!.taskTypeId);
+            if (triggeredType && !triggeredTypes.some(t => t.id === triggeredType.id)) {
+              triggeredTypes.push(triggeredType);
+            }
+          }
+        }
+      }
+
+      // 關閉創建模態框，重置表單
       setShowCreateModal(false);
       setCreateForm({
         taskTypeId: taskTypes.length > 0 ? taskTypes[0].id : 0,
         title: "",
         applicantName: "",
         deadline: "",
+        deadlineText: "",
         notes: "",
         payload: {},
+        parentTaskId: null,
       });
+      setDeadlineType("date");
+      setCustomAnswers({});
       fetchData();
+
+      // 如果有觸發的任務類型，顯示提示模態框
+      if (triggeredTypes.length > 0) {
+        setLastCreatedTaskId(createdTaskId);
+        setTriggeredTaskTypes(triggeredTypes);
+        setShowTriggerModal(true);
+      } else {
+        alert(`任務創建成功！編號：${taskNo}`);
+      }
     } catch (error) {
       console.error("創建失敗：", error);
       alert(`創建失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
@@ -500,7 +772,7 @@ export default function AdminTasksPage() {
   }
 
   // 權限不足
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -534,7 +806,14 @@ export default function AdminTasksPage() {
             <p className="text-gray-600">管理所有行政申請單與審批流程</p>
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              // 自動帶入當前登入用戶名稱作為申請人
+              setCreateForm((prev) => ({
+                ...prev,
+                applicantName: session?.user?.name || "",
+              }));
+              setShowCreateModal(true);
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <span>+</span>
@@ -544,7 +823,7 @@ export default function AdminTasksPage() {
 
         {/* 統計卡片 */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
             <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500">
               <p className="text-sm text-gray-600 mb-1">總計</p>
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
@@ -559,6 +838,12 @@ export default function AdminTasksPage() {
               <p className="text-sm text-gray-600 mb-1">處理中</p>
               <p className="text-2xl font-bold text-blue-600">
                 {stats.processing}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-orange-400">
+              <p className="text-sm text-gray-600 mb-1">待補件</p>
+              <p className="text-2xl font-bold text-orange-500">
+                {stats.pendingDocuments}
               </p>
             </div>
             <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-green-500">
@@ -579,9 +864,9 @@ export default function AdminTasksPage() {
                 {stats.completed}
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-orange-500">
+            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-purple-500">
               <p className="text-sm text-gray-600 mb-1">逾期</p>
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-2xl font-bold text-purple-600">
                 {stats.overdue}
               </p>
             </div>
@@ -605,6 +890,7 @@ export default function AdminTasksPage() {
                 <option value="all">全部</option>
                 <option value="PENDING">待處理</option>
                 <option value="PROCESSING">處理中</option>
+                <option value="PENDING_DOCUMENTS">待補件</option>
                 <option value="APPROVED">已批准</option>
                 <option value="REJECTED">已退回</option>
                 <option value="COMPLETED">已完成</option>
@@ -673,14 +959,12 @@ export default function AdminTasksPage() {
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      編號
+                      標題
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       類型
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      標題
-                    </th>
+
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       申請人
                     </th>
@@ -696,49 +980,128 @@ export default function AdminTasksPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {tasks.map((task) => (
-                    <tr key={task.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-mono text-gray-900">
-                          {task.taskNo}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                          {task.taskType?.label || "未知類型"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
-                          {task.title}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {task.applicantName || task.applicant?.name || task.applicant?.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(task.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">
-                          {formatDate(task.applicationDate)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setApprovalProcessorName(task.processorName || "");
-                            setShowDetailModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                        >
-                          查看詳情
-                        </button>
-                      </td>
-                    </tr>
+                  {groupedTasks.map((item) => (
+                    <React.Fragment key={`group-${item.task.id}`}>
+                      {/* 主任務行 */}
+                      <tr
+                        className={`hover:bg-gray-50 ${item.type === "group" ? "bg-blue-50/50" : ""}`}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            {/* 展開/收起按鈕（僅群組顯示） */}
+                            {item.type === "group" && item.children && item.children.length > 0 && (
+                              <button
+                                onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
+                                className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500"
+                              >
+                                {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
+                              </button>
+                            )}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                                {item.task.title}
+                              </div>
+                              {/* 群組標記 */}
+                              {item.type === "group" && item.children && item.children.length > 0 && (
+                                <span className="text-xs text-blue-600 font-medium">
+                                  📎 {item.children.length + 1} 個關聯任務
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                            {item.task.taskType?.label || "未知類型"}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {item.task.applicantName ||
+                              item.task.applicant?.name ||
+                              item.task.applicant?.email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(item.task.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-600">
+                            {formatDate(item.task.applicationDate)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              setSelectedTask(item.task);
+                              setApprovalProcessorName(item.task.processorName || "");
+                              setShowDetailModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                          >
+                            查看詳情
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* 子任務行（展開時顯示） */}
+                      {item.type === "group" &&
+                        item.task.groupId &&
+                        expandedGroups.has(item.task.groupId) &&
+                        item.children?.map((childTask) => (
+                          <tr
+                            key={childTask.id}
+                            className="bg-gray-50 hover:bg-gray-100"
+                          >
+                            <td className="px-6 py-3 pl-14">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400">└</span>
+                                <div className="text-sm text-gray-700 max-w-xs truncate">
+                                  {childTask.title}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-3 whitespace-nowrap">
+                              <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded">
+                                {childTask.taskType?.label || "未知類型"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-3 whitespace-nowrap">
+                              <div className="text-sm text-gray-600">
+                                {(childTask as AdminTask).applicantName ||
+                                  (childTask as AdminTask).applicant?.name ||
+                                  (childTask as AdminTask).applicant?.email ||
+                                  "-"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-3 whitespace-nowrap">
+                              {getStatusBadge(childTask.status)}
+                            </td>
+                            <td className="px-6 py-3 whitespace-nowrap">
+                              <div className="text-sm text-gray-500">
+                                {formatDate(childTask.createdAt)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-3 whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  // 找到完整的 task 資料
+                                  const fullTask = tasks.find(t => t.id === childTask.id);
+                                  if (fullTask) {
+                                    setSelectedTask(fullTask);
+                                    setApprovalProcessorName(fullTask.processorName || "");
+                                    setShowDetailModal(true);
+                                  }
+                                }}
+                                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                              >
+                                查看詳情
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
@@ -779,8 +1142,12 @@ export default function AdminTasksPage() {
         {/* 創建任務模態框 */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+            <div
+              className={`bg-white rounded-xl shadow-2xl ${
+                currentQuestions.length > 0 ? "max-w-5xl" : "max-w-2xl"
+              } w-full max-h-[90vh] overflow-y-auto`}
+            >
+              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
                 <h2 className="text-xl font-bold text-gray-900">
                   新增行政申請
                 </h2>
@@ -792,107 +1159,314 @@ export default function AdminTasksPage() {
                 </button>
               </div>
 
-              <div className="p-6 space-y-4">
-                {/* 任務類型 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    申請類型 *
-                  </label>
-                  <select
-                    value={createForm.taskTypeId}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, taskTypeId: parseInt(e.target.value, 10) })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value={0}>請選擇類型</option>
-                    {taskTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
+              <div
+                className={`p-6 ${
+                  currentQuestions.length > 0 ? "grid grid-cols-2 gap-6" : ""
+                }`}
+              >
+                {/* 左側：基本資訊 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                    基本資訊
+                  </h3>
+
+                  {/* 任務類型 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      申請類型 *
+                    </label>
+                    <select
+                      value={createForm.taskTypeId}
+                      onChange={(e) => {
+                        const newTypeId = parseInt(e.target.value, 10);
+                        setCreateForm({
+                          ...createForm,
+                          taskTypeId: newTypeId,
+                        });
+                        // 切換類型時清空答案
+                        setCustomAnswers({});
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={0}>請選擇類型</option>
+                      {taskTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.label}
+                          {type.questions?.length > 0 &&
+                            ` (${type.questions.length} 題)`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 標題 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      任務標題 *
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.title}
+                      onChange={(e) =>
+                        setCreateForm({ ...createForm, title: e.target.value })
+                      }
+                      placeholder="請輸入任務標題"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* 申請人 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      申請人
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.applicantName}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          applicantName: e.target.value,
+                        })
+                      }
+                      placeholder="申請人名稱（已自動帶入當前登入用戶）"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* 完成限期 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      完成限期
+                    </label>
+                    {/* 類型切換 */}
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setDeadlineType("date")}
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                          deadlineType === "date"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        選擇日期
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeadlineType("text")}
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                          deadlineType === "text"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        輸入文字
+                      </button>
+                    </div>
+                    {/* 根據類型顯示不同輸入框 */}
+                    {deadlineType === "date" ? (
+                      <input
+                        type="datetime-local"
+                        value={createForm.deadline}
+                        onChange={(e) =>
+                          setCreateForm({
+                            ...createForm,
+                            deadline: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={createForm.deadlineText}
+                        onChange={(e) =>
+                          setCreateForm({
+                            ...createForm,
+                            deadlineText: e.target.value,
+                          })
+                        }
+                        placeholder="例如：待定、盡快、下週前..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    )}
+                  </div>
+
+                  {/* 備註 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      細節
+                    </label>
+                    <textarea
+                      value={createForm.notes}
+                      onChange={(e) =>
+                        setCreateForm({ ...createForm, notes: e.target.value })
+                      }
+                      rows={3}
+                      placeholder="請輸入細節..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                  </div>
+
+                  {/* 如果沒有問題，提交按鈕在這裡 */}
+                  {currentQuestions.length === 0 && (
+                    <div className="flex gap-3 pt-4 border-t">
+                      <button
+                        onClick={() => setShowCreateModal(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={handleCreateTask}
+                        disabled={creating}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {creating ? "創建中..." : "確認創建"}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* 標題 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    任務標題 *
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.title}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, title: e.target.value })
-                    }
-                    placeholder="請輸入任務標題"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                {/* 右側：自訂問題 */}
+                {currentQuestions.length > 0 && (
+                  <div className="space-y-4 border-l pl-6">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      類型問題
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ({currentQuestions.length} 題)
+                      </span>
+                    </h3>
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                      {currentQuestions.map((question, index) => (
+                        <div
+                          key={question.id}
+                          className="space-y-2 bg-gray-50 p-3 rounded-lg"
+                        >
+                          <label className="block text-sm font-medium text-gray-700">
+                            {index + 1}. {question.label}
+                            {question.required && (
+                              <span className="text-red-500 ml-1">*</span>
+                            )}
+                          </label>
 
-                {/* 申請人 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    申請人
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.applicantName}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, applicantName: e.target.value })
-                    }
-                    placeholder="請輸入申請人名稱（留空則使用當前登入用戶）"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                          {/* 文字回答 */}
+                          {question.type === "TEXT" && (
+                            <input
+                              type="text"
+                              value={
+                                (customAnswers[question.id] as string) || ""
+                              }
+                              onChange={(e) =>
+                                setCustomAnswers({
+                                  ...customAnswers,
+                                  [question.id]: e.target.value,
+                                })
+                              }
+                              placeholder="請輸入..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            />
+                          )}
 
-                {/* 完成限期 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    完成限期
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={createForm.deadline}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, deadline: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                          {/* 單選題 */}
+                          {question.type === "RADIO" && (
+                            <div className="space-y-2">
+                              {question.options.map((option, optIndex) => (
+                                <label
+                                  key={optIndex}
+                                  className="flex items-center gap-2 cursor-pointer"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`question_${question.id}`}
+                                    value={option}
+                                    checked={
+                                      customAnswers[question.id] === option
+                                    }
+                                    onChange={(e) =>
+                                      setCustomAnswers({
+                                        ...customAnswers,
+                                        [question.id]: e.target.value,
+                                      })
+                                    }
+                                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm text-gray-700">
+                                    {option}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
 
-                {/* 備註 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    備註
-                  </label>
-                  <textarea
-                    value={createForm.notes}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, notes: e.target.value })
-                    }
-                    rows={4}
-                    placeholder="請輸入備註..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
-                </div>
+                          {/* 複選題 */}
+                          {question.type === "CHECKBOX" && (
+                            <div className="space-y-2">
+                              {question.options.map((option, optIndex) => {
+                                const currentValues =
+                                  (customAnswers[question.id] as string[]) ||
+                                  [];
+                                const isChecked =
+                                  currentValues.includes(option);
+                                return (
+                                  <label
+                                    key={optIndex}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      value={option}
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        let newValues: string[];
+                                        if (e.target.checked) {
+                                          newValues = [
+                                            ...currentValues,
+                                            option,
+                                          ];
+                                        } else {
+                                          newValues = currentValues.filter(
+                                            (v) => v !== option
+                                          );
+                                        }
+                                        setCustomAnswers({
+                                          ...customAnswers,
+                                          [question.id]: newValues,
+                                        });
+                                      }}
+                                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm text-gray-700">
+                                      {option}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
 
-                {/* 提交按鈕 */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={handleCreateTask}
-                    disabled={creating}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {creating ? "創建中..." : "確認創建"}
-                  </button>
-                </div>
+                    {/* 提交按鈕 */}
+                    <div className="flex gap-3 pt-4 border-t">
+                      <button
+                        onClick={() => setShowCreateModal(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={handleCreateTask}
+                        disabled={creating}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {creating ? "創建中..." : "確認創建"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -904,9 +1478,7 @@ export default function AdminTasksPage() {
             <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    任務詳情
-                  </h2>
+                  <h2 className="text-xl font-bold text-gray-900">任務詳情</h2>
                   <p className="text-sm text-gray-600 font-mono">
                     {selectedTask.taskNo}
                   </p>
@@ -968,18 +1540,20 @@ export default function AdminTasksPage() {
                     <div>
                       <p className="text-xs text-gray-600 mb-1">完成限期</p>
                       <p className="text-sm text-gray-900">
-                        {formatDate(selectedTask.deadline)}
+                        {selectedTask.deadline
+                          ? formatDate(selectedTask.deadline)
+                          : (selectedTask.payload?.deadlineText as string) ||
+                            "-"}
                       </p>
                     </div>
                   </div>
                 </div>
 
-
-                {/* 備註 */}
+                {/* 細節 */}
                 {selectedTask.notes && (
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      備註
+                      細節
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">
@@ -988,6 +1562,59 @@ export default function AdminTasksPage() {
                     </div>
                   </div>
                 )}
+
+                {/* 自訂問題答案 */}
+                {(() => {
+                  const answers = selectedTask.payload?.customAnswers as
+                    | Record<string, string | string[]>
+                    | undefined;
+                  const taskTypeQuestions =
+                    selectedTask.taskType?.questions || [];
+                  if (
+                    !answers ||
+                    Object.keys(answers).length === 0 ||
+                    taskTypeQuestions.length === 0
+                  ) {
+                    return null;
+                  }
+                  return (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        類型問題回答
+                      </h3>
+                      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                        {taskTypeQuestions.map(
+                          (question: Question, index: number) => {
+                            const answer = answers[question.id];
+                            if (
+                              answer === undefined ||
+                              answer === null ||
+                              (Array.isArray(answer) && answer.length === 0) ||
+                              answer === ""
+                            ) {
+                              return null;
+                            }
+                            return (
+                              <div
+                                key={question.id}
+                                className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0"
+                              >
+                                <p className="text-xs text-gray-600 mb-1">
+                                  {index + 1}. {question.label}
+                                </p>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {Array.isArray(answer)
+                                    ? answer.join("、")
+                                    : answer}
+                                </p>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* 審批記錄 */}
                 {selectedTask.approvalRecords.length > 0 && (
@@ -1009,6 +1636,8 @@ export default function AdminTasksPage() {
                                     ? "bg-green-100 text-green-800"
                                     : record.action === "reject"
                                     ? "bg-red-100 text-red-800"
+                                    : record.action === "pending_documents"
+                                    ? "bg-orange-100 text-orange-800"
                                     : "bg-yellow-100 text-yellow-800"
                                 }`}
                               >
@@ -1016,6 +1645,8 @@ export default function AdminTasksPage() {
                                   ? "批准"
                                   : record.action === "reject"
                                   ? "退回"
+                                  : record.action === "pending_documents"
+                                  ? "待補件"
                                   : "要求修改"}
                               </span>
                               <span className="ml-2 text-sm text-gray-600">
@@ -1040,7 +1671,8 @@ export default function AdminTasksPage() {
 
                 {/* 審批操作（僅待處理/處理中狀態顯示） */}
                 {(selectedTask.status === "PENDING" ||
-                  selectedTask.status === "PROCESSING") && (
+                  selectedTask.status === "PROCESSING" ||
+                  selectedTask.status === "PENDING_DOCUMENTS") && (
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-4">
                       審批操作
@@ -1050,7 +1682,7 @@ export default function AdminTasksPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           操作
                         </label>
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-3">
                           <button
                             onClick={() => setApprovalAction("approve")}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -1073,6 +1705,18 @@ export default function AdminTasksPage() {
                           </button>
                           <button
                             onClick={() =>
+                              setApprovalAction("pending_documents")
+                            }
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              approvalAction === "pending_documents"
+                                ? "bg-orange-600 text-white"
+                                : "bg-white border border-orange-600 text-orange-600 hover:bg-orange-50"
+                            }`}
+                          >
+                            待補件
+                          </button>
+                          <button
+                            onClick={() =>
                               setApprovalAction("request_revision")
                             }
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -1092,7 +1736,9 @@ export default function AdminTasksPage() {
                         <input
                           type="text"
                           value={approvalProcessorName}
-                          onChange={(e) => setApprovalProcessorName(e.target.value)}
+                          onChange={(e) =>
+                            setApprovalProcessorName(e.target.value)
+                          }
                           placeholder="請輸入完成人名稱"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -1119,6 +1765,69 @@ export default function AdminTasksPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 觸發任務提示模態框 */}
+        {showTriggerModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+              <div className="border-b px-6 py-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-2xl">⚡</span>
+                  任務創建成功
+                </h2>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-gray-700">
+                  根據您的選擇，系統建議您繼續創建以下關聯任務：
+                </p>
+                <div className="space-y-2">
+                  {triggeredTaskTypes.map((type) => (
+                    <div
+                      key={type.id}
+                      className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{type.label}</p>
+                        {type.description && (
+                          <p className="text-sm text-gray-600">{type.description}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          // 關閉提示模態框
+                          setShowTriggerModal(false);
+                          // 預填選類型和父任務 ID，並打開創建模態框
+                          setCreateForm((prev) => ({
+                            ...prev,
+                            taskTypeId: type.id,
+                            applicantName: session?.user?.name || "",
+                            parentTaskId: lastCreatedTaskId,
+                          }));
+                          setShowCreateModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        創建
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 pt-4 border-t">
+                  <button
+                    onClick={() => {
+                      setShowTriggerModal(false);
+                      setTriggeredTaskTypes([]);
+                      setLastCreatedTaskId(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    稍後處理
+                  </button>
+                </div>
               </div>
             </div>
           </div>

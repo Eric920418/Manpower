@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(curl:*)",
+      "Bash(pnpm prisma db push:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

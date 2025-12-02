@@ -270,6 +270,20 @@ export const manpowerRequestResolvers = {
           data: updateData,
         });
 
+        // 記錄活動日誌
+        await prisma.activityLog.create({
+          data: {
+            userId: context.user.id,
+            action: "update",
+            entity: "manpower_request",
+            entityId: request.id.toString(),
+            details: {
+              requestNo: request.requestNo,
+              changes: updateData,
+            },
+          },
+        });
+
         return {
           ...request,
           expectedStartDate: request.expectedStartDate?.toISOString() || null,
@@ -300,9 +314,30 @@ export const manpowerRequestResolvers = {
       }
 
       try {
+        // 先獲取需求資訊以記錄日誌
+        const request = await prisma.manpowerRequest.findUnique({
+          where: { id },
+        });
+
         await prisma.manpowerRequest.delete({
           where: { id },
         });
+
+        // 記錄活動日誌
+        if (request) {
+          await prisma.activityLog.create({
+            data: {
+              userId: context.user.id,
+              action: "delete",
+              entity: "manpower_request",
+              entityId: id.toString(),
+              details: {
+                requestNo: request.requestNo,
+                contactPerson: request.contactPerson,
+              },
+            },
+          });
+        }
 
         return true;
       } catch (error) {

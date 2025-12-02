@@ -7,7 +7,9 @@ import { navigationResolvers } from "./resolvers/navigationResolvers";
 import { manpowerRequestResolvers } from "./resolvers/manpowerRequestResolvers";
 import { adminTaskResolvers } from "./resolvers/adminTaskResolvers";
 import { taskTypeResolvers } from "./resolvers/taskTypeResolvers";
+import { taskTypeFlowResolvers } from "./resolvers/taskTypeFlowResolvers";
 import { dashboardResolvers } from "./resolvers/dashboardResolvers";
+import { activityLogResolvers } from "./resolvers/activityLogResolvers";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -55,9 +57,28 @@ const createQueryResolver = (key: BlockKey) => async () => {
   return [toResponse(key, block)];
 };
 
+// 頁面名稱對照表
+const pageLabels: Record<BlockKey, string> = {
+  homePage: "首頁",
+  applicationProcessPage: "申請流程頁",
+  workersPage: "移工列表頁",
+  faqPage: "常見問題頁",
+  newsPage: "最新消息頁",
+  staffPage: "業務人員頁",
+  franchisePage: "創業加盟頁",
+};
+
+interface MutationContext {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 const createMutationResolver = (key: BlockKey) => async (
   _: unknown,
-  { input }: { input?: Record<string, unknown> | null }
+  { input }: { input?: Record<string, unknown> | null },
+  context: MutationContext
 ) => {
   if (!input || typeof input !== "object") {
     throw new Error("Invalid input payload");
@@ -71,6 +92,22 @@ const createMutationResolver = (key: BlockKey) => async (
     where: { id: block.id },
     data: { payload: nextPayload as Prisma.InputJsonValue },
   });
+
+  // 記錄活動日誌
+  if (context.user) {
+    await prisma.activityLog.create({
+      data: {
+        userId: context.user.id,
+        action: "update",
+        entity: "page",
+        entityId: key,
+        details: {
+          pageName: pageLabels[key] || key,
+          changedFields: Object.keys(input),
+        },
+      },
+    });
+  }
 
   return toResponse(key, updated);
 };
@@ -91,10 +128,14 @@ const Query = {
   ...manpowerRequestResolvers.Query,
   // 任務類型 queries
   ...taskTypeResolvers.Query,
+  // 任務類型流程 queries
+  ...taskTypeFlowResolvers.Query,
   // 行政事務簽核 queries
   ...adminTaskResolvers.Query,
   // Dashboard 統計 queries
   ...dashboardResolvers.Query,
+  // 活動日誌 queries
+  ...activityLogResolvers.Query,
 };
 
 const Mutation = {
@@ -113,6 +154,8 @@ const Mutation = {
   ...manpowerRequestResolvers.Mutation,
   // 任務類型 mutations
   ...taskTypeResolvers.Mutation,
+  // 任務類型流程 mutations
+  ...taskTypeFlowResolvers.Mutation,
   // 行政事務簽核 mutations
   ...adminTaskResolvers.Mutation,
 };

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/graphql/prismaClient';
 
 // Next.js App Router 設定
 export const runtime = 'nodejs';
@@ -133,6 +136,27 @@ export async function POST(request: Request) {
 
     // 寫入壓縮後的檔案
     await fs.writeFile(filePath, compressedBuffer);
+
+    // 記錄活動日誌（如果用戶已登入）
+    const session = await getServerSession(authOptions);
+    if (session?.user?.id) {
+      await prisma.activityLog.create({
+        data: {
+          userId: session.user.id,
+          action: 'upload',
+          entity: 'image',
+          entityId: fileName,
+          details: {
+            originalName: fileField.name,
+            originalSize: fileField.size,
+            compressedSize: compressedBuffer.length,
+            savedBytes,
+            mimeType: fileField.type,
+            url: `/api/images/${fileName}`,
+          },
+        },
+      });
+    }
 
     // 計算壓縮資訊
     const compressionRatio = ((savedBytes / fileField.size) * 100).toFixed(1);

@@ -32,14 +32,46 @@ const formatDate = (date: Date | null | undefined): string | null => {
   return date.toISOString();
 };
 
-// 格式化任務類型
-const formatTaskType = (taskType: {
+// 問題觸發條件定義
+interface QuestionTrigger {
+  answer: string;
+  taskTypeId: number;
+}
+
+// 問題類型定義
+interface Question {
+  id: string;
+  label: string;
+  type: "TEXT" | "RADIO" | "CHECKBOX";
+  options?: string[];
+  required?: boolean;
+  trigger?: QuestionTrigger;
+}
+
+// 格式化問題列表
+const formatQuestions = (questions: unknown): Question[] => {
+  if (!questions || !Array.isArray(questions)) return [];
+  return questions.map((q: Question) => ({
+    id: q.id || crypto.randomUUID(),
+    label: q.label || "",
+    type: q.type || "TEXT",
+    options: q.options || [],
+    required: q.required || false,
+    trigger: q.trigger || undefined,
+  }));
+};
+
+// 格式化任務類型（基本）
+const formatTaskTypeBasic = (taskType: {
   id: number;
   code: string;
   label: string;
   description: string | null;
   order: number;
   isActive: boolean;
+  questions?: unknown;
+  positionX?: number | null;
+  positionY?: number | null;
   createdAt: Date;
   updatedAt: Date;
 }) => ({
@@ -49,6 +81,108 @@ const formatTaskType = (taskType: {
   description: taskType.description,
   order: taskType.order,
   isActive: taskType.isActive,
+  questions: formatQuestions(taskType.questions),
+  positionX: taskType.positionX ?? null,
+  positionY: taskType.positionY ?? null,
+  outgoingFlows: [],
+  incomingFlows: [],
+  assignedAdmins: [],
+  createdAt: formatDate(taskType.createdAt),
+  updatedAt: formatDate(taskType.updatedAt),
+});
+
+// 流程關聯類型
+interface FlowRelation {
+  id: number;
+  fromTaskTypeId: number;
+  toTaskTypeId: number;
+  label: string | null;
+  condition: unknown;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+  fromTaskType?: { id: number; code: string; label: string };
+  toTaskType?: { id: number; code: string; label: string };
+}
+
+// 格式化任務類型（含分配資訊和流程）
+interface TaskTypeWithAssignments {
+  id: number;
+  code: string;
+  label: string;
+  description: string | null;
+  order: number;
+  isActive: boolean;
+  questions?: unknown;
+  positionX?: number | null;
+  positionY?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  outgoingFlows?: FlowRelation[];
+  incomingFlows?: FlowRelation[];
+  assignedAdmins?: Array<{
+    id: number;
+    adminId: string;
+    taskTypeId: number;
+    assignedAt: Date;
+    assignedBy: string | null;
+    admin: {
+      id: string;
+      name: string | null;
+      email: string;
+      role: string;
+    };
+  }>;
+}
+
+// 格式化流程
+const formatFlow = (flow: FlowRelation) => ({
+  id: flow.id,
+  fromTaskTypeId: flow.fromTaskTypeId,
+  toTaskTypeId: flow.toTaskTypeId,
+  label: flow.label,
+  condition: flow.condition,
+  order: flow.order,
+  createdAt: formatDate(flow.createdAt),
+  updatedAt: formatDate(flow.updatedAt),
+  fromTaskType: flow.fromTaskType ? {
+    id: flow.fromTaskType.id,
+    code: flow.fromTaskType.code,
+    label: flow.fromTaskType.label,
+  } : undefined,
+  toTaskType: flow.toTaskType ? {
+    id: flow.toTaskType.id,
+    code: flow.toTaskType.code,
+    label: flow.toTaskType.label,
+  } : undefined,
+});
+
+const formatTaskType = (taskType: TaskTypeWithAssignments) => ({
+  id: taskType.id,
+  code: taskType.code,
+  label: taskType.label,
+  description: taskType.description,
+  order: taskType.order,
+  isActive: taskType.isActive,
+  questions: formatQuestions(taskType.questions),
+  positionX: taskType.positionX ?? null,
+  positionY: taskType.positionY ?? null,
+  outgoingFlows: (taskType.outgoingFlows || []).map(formatFlow),
+  incomingFlows: (taskType.incomingFlows || []).map(formatFlow),
+  assignedAdmins: (taskType.assignedAdmins || []).map((assignment) => ({
+    id: assignment.id,
+    adminId: assignment.adminId,
+    taskTypeId: assignment.taskTypeId,
+    admin: {
+      id: assignment.admin.id,
+      name: assignment.admin.name,
+      email: assignment.admin.email,
+      role: assignment.admin.role,
+    },
+    taskType: null, // 避免循環引用，在需要時再填充
+    assignedAt: formatDate(assignment.assignedAt),
+    assignedBy: assignment.assignedBy,
+  })),
   createdAt: formatDate(taskType.createdAt),
   updatedAt: formatDate(taskType.updatedAt),
 });
@@ -68,6 +202,36 @@ export const taskTypeResolvers = {
       const taskTypes = await prisma.taskType.findMany({
         where,
         orderBy: { order: "asc" },
+        include: {
+          assignedAdmins: {
+            include: {
+              admin: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true,
+                },
+              },
+            },
+          },
+          outgoingFlows: {
+            include: {
+              toTaskType: {
+                select: { id: true, code: true, label: true },
+              },
+            },
+            orderBy: { order: "asc" },
+          },
+          incomingFlows: {
+            include: {
+              fromTaskType: {
+                select: { id: true, code: true, label: true },
+              },
+            },
+            orderBy: { order: "asc" },
+          },
+        },
       });
 
       return taskTypes.map(formatTaskType);
@@ -79,10 +243,89 @@ export const taskTypeResolvers = {
 
       const taskType = await prisma.taskType.findUnique({
         where: { id: args.id },
+        include: {
+          assignedAdmins: {
+            include: {
+              admin: true,
+            },
+          },
+          outgoingFlows: {
+            include: {
+              toTaskType: {
+                select: { id: true, code: true, label: true },
+              },
+            },
+            orderBy: { order: "asc" },
+          },
+          incomingFlows: {
+            include: {
+              fromTaskType: {
+                select: { id: true, code: true, label: true },
+              },
+            },
+            orderBy: { order: "asc" },
+          },
+        },
       });
 
       if (!taskType) return null;
       return formatTaskType(taskType);
+    },
+
+    // 獲取所有管理員及其分配的任務類型（僅 SUPER_ADMIN）
+    adminsWithAssignments: async (_: unknown, __: unknown, context: Context) => {
+      requireSuperAdmin(context);
+
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN", isActive: true },
+        include: {
+          assignedTaskTypes: {
+            include: {
+              taskType: true,
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      });
+
+      return admins.map((admin) => ({
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        assignedTaskTypes: admin.assignedTaskTypes.map((assignment) =>
+          formatTaskTypeBasic(assignment.taskType)
+        ),
+      }));
+    },
+
+    // 獲取當前管理員被分配的任務類型（ADMIN 角色用）
+    myAssignedTaskTypes: async (_: unknown, __: unknown, context: Context) => {
+      const user = requireAuth(context);
+
+      // SUPER_ADMIN 可以看到所有任務類型
+      if (user.role === "SUPER_ADMIN") {
+        const taskTypes = await prisma.taskType.findMany({
+          where: { isActive: true },
+          orderBy: { order: "asc" },
+        });
+        return taskTypes.map(formatTaskTypeBasic);
+      }
+
+      // ADMIN 只能看到被分配的任務類型
+      if (user.role === "ADMIN") {
+        const assignments = await prisma.adminTaskTypeAssignment.findMany({
+          where: { adminId: user.id },
+          include: {
+            taskType: true,
+          },
+        });
+
+        return assignments
+          .filter((a) => a.taskType.isActive)
+          .map((a) => formatTaskTypeBasic(a.taskType));
+      }
+
+      return [];
     },
   },
 
@@ -96,6 +339,16 @@ export const taskTypeResolvers = {
           label: string;
           description?: string;
           order?: number;
+          questions?: Array<{
+            id?: string;
+            label: string;
+            type: "TEXT" | "RADIO" | "CHECKBOX";
+            options?: string[];
+            required?: boolean;
+            trigger?: { answer: string; taskTypeId: number };
+          }>;
+          positionX?: number;
+          positionY?: number;
         };
       },
       context: Context
@@ -120,16 +373,44 @@ export const taskTypeResolvers = {
         order = (maxOrder._max.order || 0) + 1;
       }
 
+      // 處理問題列表，確保每個問題都有 id
+      const questions = (args.input.questions || []).map((q) => ({
+        id: q.id || crypto.randomUUID(),
+        label: q.label,
+        type: q.type,
+        options: q.options || [],
+        required: q.required || false,
+        trigger: q.trigger || null,
+      }));
+
       const taskType = await prisma.taskType.create({
         data: {
           code: args.input.code,
           label: args.input.label,
           description: args.input.description,
           order,
+          questions,
+          positionX: args.input.positionX,
+          positionY: args.input.positionY,
         },
       });
 
-      return formatTaskType(taskType);
+      // 記錄活動日誌
+      const user = requireSuperAdmin(context);
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "create",
+          entity: "task_type",
+          entityId: taskType.id.toString(),
+          details: {
+            code: taskType.code,
+            label: taskType.label,
+          },
+        },
+      });
+
+      return formatTaskTypeBasic(taskType);
     },
 
     // 更新任務類型
@@ -143,6 +424,16 @@ export const taskTypeResolvers = {
           description?: string;
           order?: number;
           isActive?: boolean;
+          questions?: Array<{
+            id?: string;
+            label: string;
+            type: "TEXT" | "RADIO" | "CHECKBOX";
+            options?: string[];
+            required?: boolean;
+            trigger?: { answer: string; taskTypeId: number };
+          }>;
+          positionX?: number;
+          positionY?: number;
         };
       },
       context: Context
@@ -167,6 +458,19 @@ export const taskTypeResolvers = {
         }
       }
 
+      // 處理問題列表
+      let questions;
+      if (args.input.questions !== undefined) {
+        questions = args.input.questions.map((q) => ({
+          id: q.id || crypto.randomUUID(),
+          label: q.label,
+          type: q.type,
+          options: q.options || [],
+          required: q.required || false,
+          trigger: q.trigger || null,
+        }));
+      }
+
       const taskType = await prisma.taskType.update({
         where: { id: args.input.id },
         data: {
@@ -175,10 +479,34 @@ export const taskTypeResolvers = {
           description: args.input.description,
           order: args.input.order,
           isActive: args.input.isActive,
+          ...(questions !== undefined && { questions }),
+          ...(args.input.positionX !== undefined && { positionX: args.input.positionX }),
+          ...(args.input.positionY !== undefined && { positionY: args.input.positionY }),
         },
       });
 
-      return formatTaskType(taskType);
+      // 記錄活動日誌
+      const user = requireSuperAdmin(context);
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "update",
+          entity: "task_type",
+          entityId: taskType.id.toString(),
+          details: {
+            code: taskType.code,
+            label: taskType.label,
+            changes: {
+              ...(args.input.code && { code: args.input.code }),
+              ...(args.input.label && { label: args.input.label }),
+              ...(args.input.isActive !== undefined && { isActive: args.input.isActive }),
+              ...(args.input.questions && { questionsUpdated: true }),
+            },
+          },
+        },
+      });
+
+      return formatTaskTypeBasic(taskType);
     },
 
     // 刪除任務類型（軟刪除）
@@ -211,6 +539,22 @@ export const taskTypeResolvers = {
         });
       }
 
+      // 記錄活動日誌
+      const user = requireSuperAdmin(context);
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "delete",
+          entity: "task_type",
+          entityId: args.id.toString(),
+          details: {
+            code: existing.code,
+            label: existing.label,
+            softDelete: existing.tasks.length > 0,
+          },
+        },
+      });
+
       return true;
     },
 
@@ -237,7 +581,155 @@ export const taskTypeResolvers = {
         orderBy: { order: "asc" },
       });
 
-      return taskTypes.map(formatTaskType);
+      return taskTypes.map(formatTaskTypeBasic);
+    },
+
+    // 分配任務類型給管理員（僅 SUPER_ADMIN）
+    assignTaskTypeToAdmin: async (
+      _: unknown,
+      args: { adminId: string; taskTypeId: number },
+      context: Context
+    ) => {
+      const user = requireSuperAdmin(context);
+
+      // 驗證管理員存在且為 ADMIN 角色
+      const admin = await prisma.user.findUnique({
+        where: { id: args.adminId },
+      });
+
+      if (!admin) {
+        throw new Error("找不到該用戶");
+      }
+
+      if (admin.role !== "ADMIN") {
+        throw new Error("只能分配任務類型給管理員角色");
+      }
+
+      // 驗證任務類型存在
+      const taskType = await prisma.taskType.findUnique({
+        where: { id: args.taskTypeId },
+      });
+
+      if (!taskType) {
+        throw new Error("找不到該任務類型");
+      }
+
+      // 創建分配關聯
+      const assignment = await prisma.adminTaskTypeAssignment.create({
+        data: {
+          adminId: args.adminId,
+          taskTypeId: args.taskTypeId,
+          assignedBy: user.id,
+        },
+        include: {
+          admin: true,
+          taskType: true,
+        },
+      });
+
+      return {
+        id: assignment.id,
+        adminId: assignment.adminId,
+        taskTypeId: assignment.taskTypeId,
+        admin: {
+          id: assignment.admin.id,
+          name: assignment.admin.name,
+          email: assignment.admin.email,
+          role: assignment.admin.role,
+        },
+        taskType: formatTaskTypeBasic(assignment.taskType),
+        assignedAt: formatDate(assignment.assignedAt),
+        assignedBy: assignment.assignedBy,
+      };
+    },
+
+    // 移除管理員的任務類型分配（僅 SUPER_ADMIN）
+    removeTaskTypeFromAdmin: async (
+      _: unknown,
+      args: { adminId: string; taskTypeId: number },
+      context: Context
+    ) => {
+      requireSuperAdmin(context);
+
+      const assignment = await prisma.adminTaskTypeAssignment.findUnique({
+        where: {
+          adminId_taskTypeId: {
+            adminId: args.adminId,
+            taskTypeId: args.taskTypeId,
+          },
+        },
+      });
+
+      if (!assignment) {
+        throw new Error("找不到該分配記錄");
+      }
+
+      await prisma.adminTaskTypeAssignment.delete({
+        where: { id: assignment.id },
+      });
+
+      return true;
+    },
+
+    // 批量更新管理員的任務類型分配（僅 SUPER_ADMIN）
+    updateAdminTaskTypes: async (
+      _: unknown,
+      args: { adminId: string; taskTypeIds: number[] },
+      context: Context
+    ) => {
+      const user = requireSuperAdmin(context);
+
+      // 驗證管理員存在且為 ADMIN 角色
+      const admin = await prisma.user.findUnique({
+        where: { id: args.adminId },
+      });
+
+      if (!admin) {
+        throw new Error("找不到該用戶");
+      }
+
+      if (admin.role !== "ADMIN") {
+        throw new Error("只能分配任務類型給管理員角色");
+      }
+
+      // 刪除現有的所有分配
+      await prisma.adminTaskTypeAssignment.deleteMany({
+        where: { adminId: args.adminId },
+      });
+
+      // 創建新的分配
+      if (args.taskTypeIds.length > 0) {
+        await prisma.adminTaskTypeAssignment.createMany({
+          data: args.taskTypeIds.map((taskTypeId) => ({
+            adminId: args.adminId,
+            taskTypeId,
+            assignedBy: user.id,
+          })),
+        });
+      }
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "update",
+          entity: "admin_assignment",
+          entityId: args.adminId,
+          details: {
+            adminEmail: admin.email,
+            adminName: admin.name,
+            taskTypeIds: args.taskTypeIds,
+          },
+        },
+      });
+
+      // 返回更新後的任務類型列表
+      const taskTypes = await prisma.taskType.findMany({
+        where: { id: { in: args.taskTypeIds } },
+        orderBy: { order: "asc" },
+      });
+
+      return taskTypes.map(formatTaskTypeBasic);
     },
   },
 };

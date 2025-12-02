@@ -1,8 +1,9 @@
 # 用戶角色枚舉
 enum Role {
-  SUPER_ADMIN
-  OWNER
-  STAFF
+  SUPER_ADMIN  # 超級管理員 - 系統最高權限
+  ADMIN        # 管理員 - 可處理被分配的任務類型
+  OWNER        # 業主
+  STAFF        # 業務人員
 }
 
 # 用戶類型
@@ -24,8 +25,31 @@ type User {
   specialties: JSON
   lineId: String
   isPublic: Boolean!
+  # 自訂權限設定
+  customPermissions: UserCustomPermissions
   createdAt: String!
   updatedAt: String!
+}
+
+# 用戶自訂權限
+type UserCustomPermissions {
+  granted: [String!]!   # 額外授予的權限
+  denied: [String!]!    # 禁止的權限
+}
+
+# 權限定義（用於前端顯示）
+type PermissionDefinition {
+  key: String!          # 權限代碼
+  label: String!        # 顯示名稱
+  description: String!  # 權限說明
+  category: String!     # 分類
+}
+
+# 權限分類
+type PermissionCategory {
+  key: String!
+  label: String!
+  permissions: [PermissionDefinition!]!
 }
 
 # 用戶列表返回類型
@@ -121,6 +145,18 @@ extend type Query {
 
   # 獲取所有公開業務人員完整資訊（公開展示頁面用）
   staffMembers: [StaffMember!]!
+
+  # 獲取所有可用權限列表（僅 SUPER_ADMIN）
+  availablePermissions: [PermissionCategory!]!
+
+  # 獲取用戶的有效權限（考慮角色權限 + 自訂權限）
+  userEffectivePermissions(userId: ID!): [String!]!
+}
+
+# 自訂權限輸入
+input UpdateUserPermissionsInput {
+  granted: [String!]!   # 額外授予的權限
+  denied: [String!]!    # 禁止的權限
 }
 
 # 用戶操作
@@ -139,4 +175,7 @@ extend type Mutation {
 
   # 重置密碼
   resetUserPassword(id: ID!, newPassword: String!): Boolean!
+
+  # 更新用戶權限（僅 SUPER_ADMIN）
+  updateUserPermissions(userId: ID!, input: UpdateUserPermissionsInput!): User!
 }

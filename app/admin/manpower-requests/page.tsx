@@ -755,14 +755,14 @@ export default function ManpowerRequestsPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-text-primary mb-2">
-                          處理備註
+                          處理細節
                         </label>
                         <textarea
                           value={updateNotes}
                           onChange={(e) => setUpdateNotes(e.target.value)}
                           rows={4}
                           className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 resize-none"
-                          placeholder="輸入處理備註..."
+                          placeholder="輸入處理細節..."
                         />
                       </div>
                       <button
