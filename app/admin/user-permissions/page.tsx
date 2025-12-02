@@ -268,9 +268,9 @@ export default function UserPermissionsPage() {
                         </div>
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.role === "ADMIN"
+                            user.role === Role.ADMIN
                               ? "bg-orange-100 text-orange-800"
-                              : user.role === "OWNER"
+                              : user.role === Role.OWNER
                               ? "bg-blue-100 text-blue-800"
                               : "bg-green-100 text-green-800"
                           }`}
