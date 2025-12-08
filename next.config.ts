@@ -1,10 +1,13 @@
 import type { Configuration } from "webpack";
+import type { NextConfig } from "next";
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false, // ✅ 啟用 TypeScript 型別檢查
   },
   reactStrictMode: true, // ✅ 啟用 React Strict Mode 以提早發現問題
+  // Next.js 16: skipProxyUrlNormalize (原 skipMiddlewareUrlNormalize)
+  skipProxyUrlNormalize: true,
   // 添加 images 配置
   images: {
     remotePatterns: [
@@ -34,9 +37,17 @@ const nextConfig = {
   },
   // 添加 CORS 設定（生產環境需要配置 ALLOWED_ORIGINS）
   async headers() {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000', 'http://localhost:3001'];
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // 🔒 安全：生產環境必須設置 ALLOWED_ORIGINS
+    if (isProduction && !process.env.ALLOWED_ORIGINS) {
+      console.warn('⚠️ 警告：生產環境未設置 ALLOWED_ORIGINS，CORS 將使用預設值');
+    }
+
+    // 獲取允許的來源
+    const allowedOrigin = isProduction
+      ? (process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() || 'https://your-domain.com')
+      : 'http://localhost:3000';
 
     return [
       {
@@ -44,9 +55,7 @@ const nextConfig = {
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: process.env.NODE_ENV === 'production'
-              ? (process.env.ALLOWED_ORIGINS || '')
-              : '*' // 僅開發環境允許所有來源
+            value: allowedOrigin,
           },
           {
             key: "Access-Control-Allow-Methods",

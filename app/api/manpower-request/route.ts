@@ -170,12 +170,17 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("❌ 人力需求提交失敗：", error);
 
-    // 返回錯誤訊息
+    // 🔒 安全：生產環境不返回詳細錯誤訊息和堆棧跟踪
+    const isProduction = process.env.NODE_ENV === 'production';
+
     return NextResponse.json(
       {
         error: true,
-        message: error instanceof Error ? error.message : "提交失敗，請稍後再試",
-        stack: error instanceof Error ? error.stack : undefined,
+        message: isProduction
+          ? "提交失敗，請稍後再試"
+          : (error instanceof Error ? error.message : "提交失敗，請稍後再試"),
+        // 僅在開發環境返回堆棧跟踪
+        ...(isProduction ? {} : { stack: error instanceof Error ? error.stack : undefined }),
       },
       { status: 500 }
     );

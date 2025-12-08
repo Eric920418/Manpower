@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import DOMPurify from "isomorphic-dompurify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -213,7 +214,7 @@ export default function NewsDetailPage() {
           <article className="prose prose-lg max-w-none">
             <div
               className="news-content"
-              dangerouslySetInnerHTML={{ __html: news.content }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
             />
           </article>
 

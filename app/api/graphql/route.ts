@@ -186,6 +186,19 @@ const rateLimitPlugin = {
   },
 };
 
+// 🔒 Introspection 防護 Plugin（生產環境禁用 schema 查詢）
+const introspectionPlugin = {
+  onParse({ params }: { params: { source?: string } }) {
+    // 在生產環境禁用 introspection 查詢
+    if (process.env.NODE_ENV === 'production') {
+      const query = params.source || '';
+      if (query.includes('__schema') || query.includes('__type')) {
+        throw new Error('Introspection 查詢在生產環境已被禁用');
+      }
+    }
+  },
+};
+
 // 創建 Yoga 實例
 const yoga = createYoga({
   schema: createSchema({
@@ -198,6 +211,7 @@ const yoga = createYoga({
   plugins: [
     performancePlugin,
     rateLimitPlugin,
+    introspectionPlugin,
     // 響應快取 - 優化：根據操作類型調整 TTL
     // eslint-disable-next-line react-hooks/rules-of-hooks -- useResponseCache is not a React hook, it's a GraphQL Yoga plugin factory
     useResponseCache({

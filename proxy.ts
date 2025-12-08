@@ -5,7 +5,8 @@ import { Role } from '@prisma/client';
 import { hasPermission, PermissionEnum } from '@/lib/permissions';
 
 /**
- * Next.js Middleware - 路由級別的權限保護
+ * Next.js 16 Proxy - 路由級別的權限保護
+ * (從 middleware 遷移至 proxy 以符合 Next.js 16 標準)
  *
  * 保護規則：
  * 1. /admin/* - 所有後台路由都需要登入
@@ -42,7 +43,7 @@ function getBaseUrl(req: NextRequest): string {
   return new URL(req.url).origin;
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const baseUrl = getBaseUrl(req);
 

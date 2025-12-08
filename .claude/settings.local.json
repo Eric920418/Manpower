@@ -18,7 +18,11 @@
       "Bash(sudo nginx:*)",
       "Bash(sudo systemctl reload:*)",
       "Bash(crontab:*)",
-      "Bash(sudo crontab:*)"
+      "Bash(sudo crontab:*)",
+      "Bash(sudo systemctl status:*)",
+      "Bash(sudo -u postgres psql:*)",
+      "Bash(openssl rand:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

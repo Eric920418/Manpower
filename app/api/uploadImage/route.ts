@@ -93,6 +93,15 @@ async function compressImage(
 
 export async function POST(request: Request) {
   try {
+    // 🔒 認證檢查：必須登入才能上傳圖片
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "未授權：請先登入才能上傳圖片" },
+        { status: 401 }
+      );
+    }
+
     // 確保上傳目錄存在
     const uploadDir = path.join(UPLOAD_DIR, "images");
     await fs.mkdir(uploadDir, { recursive: true });
@@ -137,8 +146,7 @@ export async function POST(request: Request) {
     // 寫入壓縮後的檔案
     await fs.writeFile(filePath, compressedBuffer);
 
-    // 記錄活動日誌（如果用戶已登入）
-    const session = await getServerSession(authOptions);
+    // 記錄活動日誌
     if (session?.user?.id) {
       await prisma.activityLog.create({
         data: {
