@@ -4,7 +4,21 @@
       "Bash(pnpm build:*)",
       "Bash(curl:*)",
       "Bash(pnpm prisma db push:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(cat:*)",
+      "Bash(pm2 list:*)",
+      "Bash(systemctl status:*)",
+      "Bash(pm2 restart:*)",
+      "Bash(pm2 logs:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(source:*)",
+      "Bash(psql:*)",
+      "Bash(sudo cat:*)",
+      "Bash(find:*)",
+      "Bash(sudo nginx:*)",
+      "Bash(sudo systemctl reload:*)",
+      "Bash(crontab:*)",
+      "Bash(sudo crontab:*)"
     ],
     "deny": [],
     "ask": []

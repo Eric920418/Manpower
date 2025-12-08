@@ -231,6 +231,9 @@ const yoga = createYoga({
         'Query.myAssignedTaskTypes': 0,
         'Query.adminTasks': 0,
         'Query.adminTaskStats': 0,
+        // 待處理任務提醒：不快取
+        'Query.myPendingTaskReminders': 0,
+        'Query.checkPendingReminders': 0,
       },
       includeExtensionMetadata: process.env.NODE_ENV === 'development',
     }),

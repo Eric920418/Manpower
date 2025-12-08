@@ -579,6 +579,11 @@ export const userResolvers = {
         throw new Error('您無法刪除此用戶');
       }
 
+      // 禁止刪除超級管理員
+      if (targetUser.role === 'SUPER_ADMIN') {
+        throw new Error('無法刪除超級管理員帳號');
+      }
+
       // 記錄操作日誌（在刪除前）
       await prisma.activityLog.create({
         data: {

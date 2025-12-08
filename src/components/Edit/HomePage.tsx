@@ -308,37 +308,6 @@ export const HomePage = () => {
     }));
   };
 
-  const updateNavigation = (index: number, field: "label" | "link", value: string) => {
-    setPageData((prev) => {
-      const newNav = [...prev.header.navigation];
-      newNav[index] = { ...newNav[index], [field]: value };
-      return {
-        ...prev,
-        header: { ...prev.header, navigation: newNav },
-      };
-    });
-  };
-
-  const addNavItem = () => {
-    setPageData((prev) => ({
-      ...prev,
-      header: {
-        ...prev.header,
-        navigation: [...prev.header.navigation, { label: "", link: "#" }],
-      },
-    }));
-  };
-
-  const deleteNavItem = (index: number) => {
-    setPageData((prev) => ({
-      ...prev,
-      header: {
-        ...prev.header,
-        navigation: prev.header.navigation.filter((_, i) => i !== index),
-      },
-    }));
-  };
-
   const updateContactButton = (field: "text" | "link", value: string) => {
     setPageData((prev) => ({
       ...prev,
@@ -548,44 +517,12 @@ export const HomePage = () => {
         <div className="mb-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-xl font-semibold">導航選單</h3>
-            <button
-              onClick={addNavItem}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              新增導航項目
-            </button>
           </div>
-          <div className="space-y-3">
-            {pageData.header.navigation.map((item, index) => (
-              <div key={index} className="bg-white p-4 rounded-md border border-gray-300">
-                <div className="flex gap-3 mb-2">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">標籤</label>
-                    <input
-                      type="text"
-                      value={item.label}
-                      onChange={(e) => updateNavigation(index, "label", e.target.value)}
-                      className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">連結</label>
-                    <input
-                      type="text"
-                      value={item.link}
-                      onChange={(e) => updateNavigation(index, "link", e.target.value)}
-                      className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={() => deleteNavItem(index)}
-                  className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-                >
-                  刪除
-                </button>
-              </div>
-            ))}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-blue-800">
+              導航選單已移至獨立的「導航管理」功能進行編輯。
+              請使用側邊欄的「導航管理」來新增、編輯或排序導航項目。
+            </p>
           </div>
         </div>
 

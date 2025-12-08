@@ -1,0 +1,56 @@
+# 待處理任務提醒
+type PendingTaskReminder {
+  id: Int!
+  userId: String!
+  sourceTaskId: Int!
+  taskTypeId: Int!
+  taskTypeLabel: String!
+  isCompleted: Boolean!
+  completedTaskId: Int
+  lastRemindedAt: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+# 創建提醒的輸入
+input CreatePendingTaskReminderInput {
+  sourceTaskId: Int!
+  taskTypeId: Int!
+  taskTypeLabel: String!
+}
+
+# 批量創建提醒的輸入
+input CreatePendingTaskRemindersInput {
+  sourceTaskId: Int!
+  reminders: [TaskReminderItem!]!
+}
+
+input TaskReminderItem {
+  taskTypeId: Int!
+  taskTypeLabel: String!
+}
+
+extend type Query {
+  # 獲取當前用戶的待處理提醒
+  myPendingTaskReminders: [PendingTaskReminder!]!
+
+  # 檢查是否有需要顯示的提醒（用於 Toast）
+  checkPendingReminders: [PendingTaskReminder!]!
+}
+
+extend type Mutation {
+  # 創建單個待處理提醒
+  createPendingTaskReminder(input: CreatePendingTaskReminderInput!): PendingTaskReminder!
+
+  # 批量創建待處理提醒（用於「稍後處理」時）
+  createPendingTaskReminders(input: CreatePendingTaskRemindersInput!): [PendingTaskReminder!]!
+
+  # 標記提醒為已完成
+  completePendingTaskReminder(id: Int!, completedTaskId: Int!): PendingTaskReminder!
+
+  # 更新提醒時間（每次顯示 Toast 後調用）
+  updateReminderLastShown(ids: [Int!]!): Boolean!
+
+  # 刪除提醒（用戶主動忽略）
+  dismissPendingTaskReminder(id: Int!): Boolean!
+}

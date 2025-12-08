@@ -5,7 +5,7 @@ type ManpowerRequest {
   companyName: String
   contactPerson: String!
   contactPhone: String!
-  contactEmail: String!
+  contactEmail: String
   positionTitle: String
   jobDescription: String
   quantity: Int!

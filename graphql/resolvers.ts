@@ -10,6 +10,7 @@ import { taskTypeResolvers } from "./resolvers/taskTypeResolvers";
 import { taskTypeFlowResolvers } from "./resolvers/taskTypeFlowResolvers";
 import { dashboardResolvers } from "./resolvers/dashboardResolvers";
 import { activityLogResolvers } from "./resolvers/activityLogResolvers";
+import { pendingTaskReminderResolvers } from "./resolvers/pendingTaskReminderResolvers";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -136,6 +137,8 @@ const Query = {
   ...dashboardResolvers.Query,
   // 活動日誌 queries
   ...activityLogResolvers.Query,
+  // 待處理任務提醒 queries
+  ...pendingTaskReminderResolvers.Query,
 };
 
 const Mutation = {
@@ -158,6 +161,8 @@ const Mutation = {
   ...taskTypeFlowResolvers.Mutation,
   // 行政事務簽核 mutations
   ...adminTaskResolvers.Mutation,
+  // 待處理任務提醒 mutations
+  ...pendingTaskReminderResolvers.Mutation,
 };
 
 const resolvers = {

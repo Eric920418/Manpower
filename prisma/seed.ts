@@ -15,7 +15,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@youshi-hr.com',
-      name: '系統管理員',
+      name: '超級管理員',
       password: adminPassword,
       role: Role.SUPER_ADMIN,
       department: '資訊部',

@@ -7,6 +7,12 @@ function hasPermission(userRole: string, requiredPermission: string): boolean {
     return true;
   }
 
+  // 管理員權限（ADMIN 可以讀取和處理表單）
+  const adminPermissions = [
+    "form:read",
+    "form:process",
+  ];
+
   // 業主權限
   const ownerPermissions = [
     "form:read",
@@ -20,7 +26,9 @@ function hasPermission(userRole: string, requiredPermission: string): boolean {
   const staffPermissions = ["form:read", "form:process"];
 
   const permissions =
-    userRole === "OWNER"
+    userRole === "ADMIN"
+      ? adminPermissions
+      : userRole === "OWNER"
       ? ownerPermissions
       : userRole === "STAFF"
       ? staffPermissions

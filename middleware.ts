@@ -15,8 +15,36 @@ import { hasPermission, PermissionEnum } from '@/lib/permissions';
  * 5. /admin/login - 已登入用戶自動跳轉到 dashboard
  */
 
+/**
+ * 獲取正確的基礎 URL（處理反向代理）
+ */
+function getBaseUrl(req: NextRequest): string {
+  // 優先使用 X-Forwarded-Host（來自反向代理）
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  const forwardedProto = req.headers.get('x-forwarded-proto') || 'http';
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  // 次之使用 Host header
+  const host = req.headers.get('host');
+  if (host) {
+    return `${forwardedProto}://${host}`;
+  }
+
+  // 最後使用 NEXTAUTH_URL 環境變數
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL;
+  }
+
+  // 回退到 req.url
+  return new URL(req.url).origin;
+}
+
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+  const baseUrl = getBaseUrl(req);
 
   // 獲取 NextAuth token
   const token = await getToken({
@@ -26,20 +54,20 @@ export async function middleware(req: NextRequest) {
 
   // 開發環境才記錄
   if (process.env.NODE_ENV === 'development') {
-    console.log(`🔍 ${pathname} | ${token ? '✅ 已登入' : '❌ 未登入'}`);
+    console.log(`🔍 ${pathname} | ${token ? '✅ 已登入' : '❌ 未登入'} | baseUrl: ${baseUrl}`);
   }
 
   // 處理登入頁面的訪問邏輯
   if (pathname === '/admin/login') {
     if (token) {
-      return NextResponse.redirect(new URL('/admin/dashboard', req.url));
+      return NextResponse.redirect(new URL('/admin/dashboard', baseUrl));
     }
     return NextResponse.next();
   }
 
   // 其他 /admin/* 路由需要登入
   if (!token) {
-    return NextResponse.redirect(new URL('/admin/login', req.url));
+    return NextResponse.redirect(new URL('/admin/login', baseUrl));
   }
 
   const userRole = token.role as Role;
@@ -52,7 +80,7 @@ export async function middleware(req: NextRequest) {
     // 系統核心設定 - 僅超級管理員
     if (pathname.startsWith('/admin/system')) {
       return NextResponse.redirect(
-        new URL('/admin/dashboard?error=forbidden&reason=system_only', req.url)
+        new URL('/admin/dashboard?error=forbidden&reason=system_only', baseUrl)
       );
     }
 
@@ -60,7 +88,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith('/admin/users')) {
       if (!hasPermission(userRole, PermissionEnum.USER_READ)) {
         return NextResponse.redirect(
-          new URL('/admin/dashboard?error=forbidden&reason=no_user_permission', req.url)
+          new URL('/admin/dashboard?error=forbidden&reason=no_user_permission', baseUrl)
         );
       }
     }
@@ -69,7 +97,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith('/admin/content') || pathname.startsWith('/admin/pages')) {
       if (!hasPermission(userRole, PermissionEnum.CONTENT_READ)) {
         return NextResponse.redirect(
-          new URL('/admin/dashboard?error=forbidden&reason=no_content_permission', req.url)
+          new URL('/admin/dashboard?error=forbidden&reason=no_content_permission', baseUrl)
         );
       }
     }
@@ -78,7 +106,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith('/admin/settings')) {
       if (!hasPermission(userRole, PermissionEnum.SYSTEM_CONFIG)) {
         return NextResponse.redirect(
-          new URL('/admin/dashboard?error=forbidden&reason=no_settings_permission', req.url)
+          new URL('/admin/dashboard?error=forbidden&reason=no_settings_permission', baseUrl)
         );
       }
     }
@@ -87,7 +115,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith('/admin/forms')) {
       if (!hasPermission(userRole, PermissionEnum.FORM_READ)) {
         return NextResponse.redirect(
-          new URL('/admin/dashboard?error=forbidden&reason=no_form_permission', req.url)
+          new URL('/admin/dashboard?error=forbidden&reason=no_form_permission', baseUrl)
         );
       }
     }
@@ -96,7 +124,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith('/admin/admin-tasks')) {
       if (!hasPermission(userRole, PermissionEnum.ADMIN_TASK_READ)) {
         return NextResponse.redirect(
-          new URL('/admin/dashboard?error=forbidden&reason=no_admin_task_permission', req.url)
+          new URL('/admin/dashboard?error=forbidden&reason=no_admin_task_permission', baseUrl)
         );
       }
     }

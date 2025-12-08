@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { usePermission } from "@/hooks/usePermission";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
+import { useTaskReminder } from "@/components/Admin/TaskReminderProvider";
 
 // 類型定義
 interface TaskUser {
@@ -138,16 +139,23 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   COMPLETED: { label: "已完成", className: "bg-gray-100 text-gray-800" },
 };
 
-export default function AdminTasksPage() {
+function AdminTasksContent() {
   const { data: session, status } = useSession();
   const { getRole, isAdminOrAbove } = usePermission();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { createReminders, completeReminder } = useTaskReminder();
 
   // 使用 useMemo 緩存角色檢查結果，避免每次渲染都重新計算
   const userRole = getRole();
   // 允許 ADMIN 或 SUPER_ADMIN 訪問此頁面
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const hasAccess = useMemo(() => isAdminOrAbove(), [userRole]);
+
+  // URL 參數（從提醒跳轉過來時使用）
+  const urlCreateTaskType = searchParams.get("createTask");
+  const urlSourceTask = searchParams.get("sourceTask");
+  const urlReminderId = searchParams.get("reminderId");
 
   // 狀態
   const [tasks, setTasks] = useState<AdminTask[]>([]);
@@ -194,6 +202,9 @@ export default function AdminTasksPage() {
 
   // 分組展開狀態
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // 刪除確認狀態
+  const [deleting, setDeleting] = useState(false);
 
   // 獲取資料
   const fetchData = useCallback(async () => {
@@ -431,6 +442,25 @@ export default function AdminTasksPage() {
     }
   }, [status, hasAccess, fetchData]);
 
+  // 處理 URL 參數（從提醒跳轉過來時自動打開創建對話框）
+  useEffect(() => {
+    if (urlCreateTaskType && taskTypes.length > 0 && !showCreateModal) {
+      const taskTypeId = parseInt(urlCreateTaskType, 10);
+      const taskType = taskTypes.find((t) => Number(t.id) === taskTypeId);
+      if (taskType) {
+        setCreateForm((prev) => ({
+          ...prev,
+          taskTypeId,
+          applicantName: session?.user?.name || "",
+          parentTaskId: urlSourceTask ? parseInt(urlSourceTask, 10) : null,
+        }));
+        setShowCreateModal(true);
+        // 清除 URL 參數
+        router.replace("/admin/admin-tasks", { scroll: false });
+      }
+    }
+  }, [urlCreateTaskType, urlSourceTask, taskTypes, showCreateModal, session?.user?.name, router]);
+
   // 獲取當前選擇類型的問題（注意：GraphQL ID 可能是字符串）
   const selectedTaskType = taskTypes.find((t) => Number(t.id) === createForm.taskTypeId);
   const currentQuestions = selectedTaskType?.questions || [];
@@ -540,13 +570,13 @@ export default function AdminTasksPage() {
 
       const variables = {
         input: {
-          taskTypeId: createForm.taskTypeId,
+          taskTypeId: Number(createForm.taskTypeId),
           title: createForm.title,
           applicantName: createForm.applicantName || null,
           deadline: deadlineType === "date" ? deadlineValue : null,
           payload: payload,
           notes: createForm.notes || null,
-          parentTaskId: createForm.parentTaskId || null,
+          parentTaskId: createForm.parentTaskId ? Number(createForm.parentTaskId) : null,
         },
       };
 
@@ -563,7 +593,7 @@ export default function AdminTasksPage() {
         throw new Error(data.errors[0].message);
       }
 
-      const createdTaskId = data.data.createAdminTask.id;
+      const createdTaskId = Number(data.data.createAdminTask.id);
       const taskNo = data.data.createAdminTask.taskNo;
 
       // 檢查是否有觸發的後續流程
@@ -615,10 +645,22 @@ export default function AdminTasksPage() {
         }
       }
 
+      // 如果是從提醒跳轉過來創建的任務，標記提醒為已完成
+      if (urlReminderId) {
+        const reminderId = parseInt(urlReminderId, 10);
+        if (!isNaN(reminderId)) {
+          try {
+            await completeReminder(reminderId, createdTaskId);
+          } catch (e) {
+            console.error("標記提醒完成失敗:", e);
+          }
+        }
+      }
+
       // 關閉創建模態框，重置表單
       setShowCreateModal(false);
       setCreateForm({
-        taskTypeId: taskTypes.length > 0 ? taskTypes[0].id : 0,
+        taskTypeId: taskTypes.length > 0 ? Number(taskTypes[0].id) : 0,
         title: "",
         applicantName: "",
         deadline: "",
@@ -729,6 +771,43 @@ export default function AdminTasksPage() {
       alert(`審批失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
     } finally {
       setApproving(false);
+    }
+  };
+
+  // 刪除任務
+  const handleDeleteTask = async (taskId: number) => {
+    if (!confirm("確定要刪除此任務嗎？此操作無法復原。")) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const mutation = `
+        mutation DeleteAdminTask($id: Int!) {
+          deleteAdminTask(id: $id)
+        }
+      `;
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: mutation, variables: { id: Number(taskId) } }),
+      });
+
+      const data = await res.json();
+
+      if (data.errors) {
+        throw new Error(data.errors[0].message);
+      }
+
+      alert("任務已刪除");
+      fetchData();
+    } catch (error) {
+      console.error("刪除失敗：", error);
+      alert(`刪除失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1032,16 +1111,27 @@ export default function AdminTasksPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => {
-                              setSelectedTask(item.task);
-                              setApprovalProcessorName(item.task.processorName || "");
-                              setShowDetailModal(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                          >
-                            查看詳情
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedTask(item.task);
+                                setApprovalProcessorName(item.task.processorName || "");
+                                setShowDetailModal(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                            >
+                              查看詳情
+                            </button>
+                            {userRole === "SUPER_ADMIN" && (
+                              <button
+                                onClick={() => handleDeleteTask(item.task.id)}
+                                disabled={deleting}
+                                className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                              >
+                                刪除
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
 
@@ -1084,20 +1174,31 @@ export default function AdminTasksPage() {
                               </div>
                             </td>
                             <td className="px-6 py-3 whitespace-nowrap">
-                              <button
-                                onClick={() => {
-                                  // 找到完整的 task 資料
-                                  const fullTask = tasks.find(t => t.id === childTask.id);
-                                  if (fullTask) {
-                                    setSelectedTask(fullTask);
-                                    setApprovalProcessorName(fullTask.processorName || "");
-                                    setShowDetailModal(true);
-                                  }
-                                }}
-                                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                              >
-                                查看詳情
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    // 找到完整的 task 資料
+                                    const fullTask = tasks.find(t => t.id === childTask.id);
+                                    if (fullTask) {
+                                      setSelectedTask(fullTask);
+                                      setApprovalProcessorName(fullTask.processorName || "");
+                                      setShowDetailModal(true);
+                                    }
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                >
+                                  查看詳情
+                                </button>
+                                {userRole === "SUPER_ADMIN" && (
+                                  <button
+                                    onClick={() => handleDeleteTask(childTask.id)}
+                                    disabled={deleting}
+                                    className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                                  >
+                                    刪除
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1803,7 +1904,7 @@ export default function AdminTasksPage() {
                           // 預填選類型和父任務 ID，並打開創建模態框
                           setCreateForm((prev) => ({
                             ...prev,
-                            taskTypeId: type.id,
+                            taskTypeId: Number(type.id),
                             applicantName: session?.user?.name || "",
                             parentTaskId: lastCreatedTaskId,
                           }));
@@ -1818,7 +1919,24 @@ export default function AdminTasksPage() {
                 </div>
                 <div className="flex gap-3 pt-4 border-t">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                      console.log("[稍後處理] 點擊，lastCreatedTaskId:", lastCreatedTaskId, "triggeredTaskTypes:", triggeredTaskTypes);
+                      // 創建待處理提醒
+                      if (lastCreatedTaskId && triggeredTaskTypes.length > 0) {
+                        try {
+                          const remindersData = triggeredTaskTypes.map((t) => ({
+                            taskTypeId: Number(t.id),
+                            taskTypeLabel: t.label,
+                          }));
+                          console.log("[稍後處理] 準備創建提醒:", remindersData);
+                          await createReminders(lastCreatedTaskId, remindersData);
+                          console.log("[稍後處理] 提醒創建成功");
+                        } catch (e) {
+                          console.error("[稍後處理] 創建提醒失敗:", e);
+                        }
+                      } else {
+                        console.log("[稍後處理] 條件不符，跳過創建提醒");
+                      }
                       setShowTriggerModal(false);
                       setTriggeredTaskTypes([]);
                       setLastCreatedTaskId(null);
@@ -1834,5 +1952,28 @@ export default function AdminTasksPage() {
         )}
       </div>
     </AdminLayout>
+  );
+}
+
+// 載入中的佔位組件
+function AdminTasksLoading() {
+  return (
+    <AdminLayout>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">載入中...</p>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}
+
+// 使用 Suspense 包裹主組件以支援 useSearchParams
+export default function AdminTasksPage() {
+  return (
+    <Suspense fallback={<AdminTasksLoading />}>
+      <AdminTasksContent />
+    </Suspense>
   );
 }

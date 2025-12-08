@@ -78,7 +78,7 @@ function TaskTypeNode({ data, selected }: NodeProps<Node<TaskTypeNodeData>>) {
       <Handle
         type="target"
         position={Position.Top}
-        className="w-3 h-3 !bg-blue-400"
+        className="!w-5 !h-5 !bg-blue-400 !border-2 !border-blue-600 hover:!scale-125 transition-transform cursor-crosshair"
       />
       <div className="font-medium text-gray-900">{data.label}</div>
       <div className="text-xs text-gray-500 mt-1">{data.code}</div>
@@ -93,7 +93,7 @@ function TaskTypeNode({ data, selected }: NodeProps<Node<TaskTypeNodeData>>) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-3 h-3 !bg-green-400"
+        className="!w-5 !h-5 !bg-green-400 !border-2 !border-green-600 hover:!scale-125 transition-transform cursor-crosshair"
       />
     </div>
   );

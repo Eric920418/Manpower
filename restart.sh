@@ -9,10 +9,12 @@ echo "=========================================="
 echo "開始重啟流程..."
 echo "=========================================="
 
+cd /var/www/Manpower
+
 # 1. 停止 PM2 管理的程序
 echo ""
 echo "[1/5] 停止 PM2 程序..."
-pm2 stop all 2>/dev/null || echo "沒有正在運行的 PM2 程序"
+pm2 stop manpower 2>/dev/null || echo "manpower 程序未運行"
 
 # 2. 刪除舊的建置檔案
 echo ""
@@ -32,15 +34,14 @@ pnpm build
 
 # 5. 使用 PM2 啟動
 echo ""
-echo "[5/5] 使用 PM2 啟動服務..."
-pm2 start pnpm --name "manpower" -- start
+echo "[5/5] 啟動服務..."
+pm2 start manpower 2>/dev/null || pm2 start pnpm --name "manpower" -- start
 pm2 save
 
 echo ""
 echo "=========================================="
 echo "重啟完成！"
 echo "=========================================="
+pm2 status
 echo ""
-echo "查看狀態: pm2 list"
 echo "查看日誌: pm2 logs manpower"
-echo ""

@@ -520,7 +520,7 @@ export default function UsersPage() {
                                 </button>
                               </>
                             )}
-                            {can(PermissionEnum.USER_DELETE) && (
+                            {can(PermissionEnum.USER_DELETE) && user.role !== Role.SUPER_ADMIN && (
                               <button
                                 onClick={() => {
                                   setSelectedUser(user);

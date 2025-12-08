@@ -383,6 +383,25 @@ model AdminTaskAttachment {
   @@index([taskId, createdAt(sort: Desc)])
 }
 
+// ==================== 待處理任務提醒 ====================
+// 用於追蹤用戶選擇「稍後處理」的關聯任務提醒
+model PendingTaskReminder {
+  id              Int       @id @default(autoincrement())
+  userId          String    // 需要被提醒的用戶 ID
+  sourceTaskId    Int       // 觸發提醒的原始任務 ID
+  taskTypeId      Int       // 建議創建的任務類型 ID
+  taskTypeLabel   String    // 任務類型名稱（快取，避免查詢）
+  isCompleted     Boolean   @default(false) // 是否已完成（創建了對應任務）
+  completedTaskId Int?      // 完成時創建的任務 ID
+  lastRemindedAt  DateTime? // 上次提醒時間
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId, isCompleted])
+  @@index([userId, isCompleted, lastRemindedAt])
+  @@index([sourceTaskId])
+}
+
 // ==================== 分析與報表 ====================
 model Analytics {
   id          Int      @id @default(autoincrement())
