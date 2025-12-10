@@ -1444,7 +1444,7 @@ export default function TaskTypesPage() {
         {/* 問題編輯模態框 */}
         {showQuestionModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="bg-white max-w-6xl w-full max-h-[90vh] flex flex-col">
               {/* 頭部 */}
               <div className="shrink-0 border-b px-6 py-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">

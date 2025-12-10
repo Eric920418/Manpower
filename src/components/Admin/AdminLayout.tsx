@@ -144,7 +144,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* 側邊欄 - 桌面版 */}
       <aside
         className={`${
-          sidebarOpen ? "w-64" : "w-16"
+          sidebarOpen ? "w-48" : "w-12"
         } bg-gray-900 text-white transition-all duration-300 hidden lg:block fixed h-full z-30`}
       >
         <div className="flex flex-col h-full">
@@ -351,7 +351,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* 主要內容區域 */}
       <main
         className={`flex-1 transition-all duration-300 ${
-          sidebarOpen ? "lg:ml-64" : "lg:ml-20"
+          sidebarOpen ? "lg:ml-48" : "lg:ml-12"
         }`}
       >
         {/* 頂部導航欄（移動版） */}
