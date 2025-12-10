@@ -778,7 +778,9 @@ export default function TaskTypesPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               申請類型管理
             </h1>
-            <p className="text-gray-600">管理行政任務的申請類型、自訂問題與工作流程</p>
+            <p className="text-gray-600">
+              管理行政任務的申請類型、自訂問題與工作流程
+            </p>
           </div>
           {activeTab === "list" && (
             <button
@@ -878,17 +880,23 @@ export default function TaskTypesPage() {
               <div className="grid gap-4">
                 {taskTypes.map((type) => {
                   // 分析流程類型
-                  const hasConditions = type.outgoingFlows?.some(f => f.condition);
-                  const branchQuestionId = type.outgoingFlows?.find(f => f.condition?.questionId)?.condition?.questionId;
+                  const hasConditions = type.outgoingFlows?.some(
+                    (f) => f.condition
+                  );
+                  const branchQuestionId = type.outgoingFlows?.find(
+                    (f) => f.condition?.questionId
+                  )?.condition?.questionId;
                   const branchQuestion = branchQuestionId
-                    ? type.questions?.find(q => q.id === branchQuestionId)
+                    ? type.questions?.find((q) => q.id === branchQuestionId)
                     : null;
 
                   return (
                     <div
                       key={type.id}
                       className={`bg-white rounded-xl shadow-md overflow-hidden border ${
-                        !type.isActive ? "opacity-60 border-gray-200" : "border-transparent"
+                        !type.isActive
+                          ? "opacity-60 border-gray-200"
+                          : "border-transparent"
                       }`}
                     >
                       {/* 卡片頭部 */}
@@ -922,8 +930,18 @@ export default function TaskTypesPage() {
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="編輯"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
                             </svg>
                           </button>
                           <button
@@ -936,12 +954,32 @@ export default function TaskTypesPage() {
                             title={type.isActive ? "停用" : "啟用"}
                           >
                             {type.isActive ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                                />
                               </svg>
                             ) : (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
                               </svg>
                             )}
                           </button>
@@ -950,8 +988,18 @@ export default function TaskTypesPage() {
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="刪除"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </div>
@@ -970,7 +1018,8 @@ export default function TaskTypesPage() {
                         {/* 後續流程 */}
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-gray-500">後續：</span>
-                          {type.outgoingFlows && type.outgoingFlows.length > 0 ? (
+                          {type.outgoingFlows &&
+                          type.outgoingFlows.length > 0 ? (
                             <button
                               onClick={() => {
                                 const newExpanded = new Set(expandedFlows);
@@ -987,7 +1036,11 @@ export default function TaskTypesPage() {
                                   : "bg-blue-100 text-blue-700 hover:bg-blue-200"
                               }`}
                             >
-                              <span className={`transform transition-transform text-xs ${expandedFlows.has(type.id) ? "rotate-90" : ""}`}>
+                              <span
+                                className={`transform transition-transform text-xs ${
+                                  expandedFlows.has(type.id) ? "rotate-90" : ""
+                                }`}
+                              >
                                 ▶
                               </span>
                               {hasConditions ? (
@@ -1005,50 +1058,60 @@ export default function TaskTypesPage() {
                       </div>
 
                       {/* 展開的流程詳情 */}
-                      {expandedFlows.has(type.id) && type.outgoingFlows && type.outgoingFlows.length > 0 && (
-                        <div className="border-t bg-gray-50 p-4">
-                          {/* 分支問題標題 */}
-                          {hasConditions && branchQuestion && (
-                            <div className="mb-3 text-sm">
-                              <span className="text-gray-500">分支問題：</span>
-                              <span className="font-medium text-amber-700">{branchQuestion.label}</span>
-                            </div>
-                          )}
+                      {expandedFlows.has(type.id) &&
+                        type.outgoingFlows &&
+                        type.outgoingFlows.length > 0 && (
+                          <div className="border-t bg-gray-50 p-4">
+                            {/* 分支問題標題 */}
+                            {hasConditions && branchQuestion && (
+                              <div className="mb-3 text-sm">
+                                <span className="text-gray-500">
+                                  分支問題：
+                                </span>
+                                <span className="font-medium text-amber-700">
+                                  {branchQuestion.label}
+                                </span>
+                              </div>
+                            )}
 
-                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                            {type.outgoingFlows.map((flow) => {
-                              const targetType = taskTypes.find((t) => Number(t.id) === flow.toTaskTypeId);
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                              {type.outgoingFlows.map((flow) => {
+                                const targetType = taskTypes.find(
+                                  (t) => Number(t.id) === flow.toTaskTypeId
+                                );
 
-                              return (
-                                <div
-                                  key={flow.id}
-                                  className={`p-3 rounded-lg border ${
-                                    flow.condition
-                                      ? "bg-amber-50 border-amber-200"
-                                      : "bg-blue-50 border-blue-200"
-                                  }`}
-                                >
-                                  {flow.condition ? (
-                                    <>
-                                      <div className="text-xs text-amber-600 mb-1">當回答為</div>
-                                      <div className="font-medium text-amber-800">
-                                        「{flow.condition.answer}」
+                                return (
+                                  <div
+                                    key={flow.id}
+                                    className={`p-3 rounded-lg border ${
+                                      flow.condition
+                                        ? "bg-amber-50 border-amber-200"
+                                        : "bg-blue-50 border-blue-200"
+                                    }`}
+                                  >
+                                    {flow.condition ? (
+                                      <>
+                                        <div className="text-xs text-amber-600 mb-1">
+                                          當回答為
+                                        </div>
+                                        <div className="font-medium text-amber-800">
+                                          「{flow.condition.answer}」
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="text-blue-700 font-medium">
+                                        ✓ 自動觸發
                                       </div>
-                                    </>
-                                  ) : (
-                                    <div className="text-blue-700 font-medium">
-                                      ✓ 自動觸發
+                                    )}
+                                    <div className="mt-2 pt-2 border-t border-gray-200 text-sm text-gray-600">
+                                      → {targetType?.label || "未知類型"}
                                     </div>
-                                  )}
-                                  <div className="mt-2 pt-2 border-t border-gray-200 text-sm text-gray-600">
-                                    → {targetType?.label || "未知類型"}
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   );
                 })}
@@ -1104,7 +1167,10 @@ export default function TaskTypesPage() {
                       <textarea
                         value={formData.description}
                         onChange={(e) =>
-                          setFormData({ ...formData, description: e.target.value })
+                          setFormData({
+                            ...formData,
+                            description: e.target.value,
+                          })
                         }
                         rows={3}
                         placeholder="選填"
@@ -1112,20 +1178,26 @@ export default function TaskTypesPage() {
                       />
                     </div>
 
-                    {editingType && editingType.outgoingFlows && editingType.outgoingFlows.length > 0 && (
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                          <span className="font-medium">後續流程：</span>{" "}
-                          {editingType.outgoingFlows.map((flow) => {
-                            const target = taskTypes.find((t) => Number(t.id) === flow.toTaskTypeId);
-                            return target?.label || "未知";
-                          }).join("、")}
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          使用「流程編輯器」頁籤來管理後續流程關係
-                        </p>
-                      </div>
-                    )}
+                    {editingType &&
+                      editingType.outgoingFlows &&
+                      editingType.outgoingFlows.length > 0 && (
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                            <span className="font-medium">後續流程：</span>{" "}
+                            {editingType.outgoingFlows
+                              .map((flow) => {
+                                const target = taskTypes.find(
+                                  (t) => Number(t.id) === flow.toTaskTypeId
+                                );
+                                return target?.label || "未知";
+                              })
+                              .join("、")}
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1">
+                            使用「流程編輯器」頁籤來管理後續流程關係
+                          </p>
+                        </div>
+                      )}
                   </div>
                 </div>
 
@@ -1134,7 +1206,10 @@ export default function TaskTypesPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-gray-200 pb-2">
                       <h3 className="text-lg font-semibold text-gray-900">
-                        自訂問題 <span className="text-sm font-normal text-gray-500">({questions.length})</span>
+                        自訂問題{" "}
+                        <span className="text-sm font-normal text-gray-500">
+                          ({questions.length})
+                        </span>
                       </h3>
                       <button
                         onClick={handleAddQuestion}
@@ -1163,7 +1238,9 @@ export default function TaskTypesPage() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs text-gray-400 font-mono">#{index + 1}</span>
+                                  <span className="text-xs text-gray-400 font-mono">
+                                    #{index + 1}
+                                  </span>
                                   <span className="text-sm font-medium text-gray-900 truncate">
                                     {question.label}
                                   </span>
@@ -1185,14 +1262,16 @@ export default function TaskTypesPage() {
                                 </div>
                                 {question.options.length > 0 && (
                                   <div className="mt-2 flex flex-wrap gap-1">
-                                    {question.options.slice(0, 4).map((opt, i) => (
-                                      <span
-                                        key={i}
-                                        className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
-                                      >
-                                        {opt}
-                                      </span>
-                                    ))}
+                                    {question.options
+                                      .slice(0, 4)
+                                      .map((opt, i) => (
+                                        <span
+                                          key={i}
+                                          className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
+                                        >
+                                          {opt}
+                                        </span>
+                                      ))}
                                     {question.options.length > 4 && (
                                       <span className="px-1.5 py-0.5 text-gray-400 text-xs">
                                         +{question.options.length - 4} 更多
@@ -1200,33 +1279,56 @@ export default function TaskTypesPage() {
                                     )}
                                   </div>
                                 )}
-                                {question.triggers && question.triggers.length > 0 && (
-                                  <div className="mt-2 space-y-1">
-                                    {question.triggers.map((trigger, idx) => (
-                                      <div key={idx} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                                        ⚡ 「{trigger.answer}」→ {taskTypes.find(t => Number(t.id) === trigger.taskTypeId)?.label || '未知'}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                {question.reminders && question.reminders.length > 0 && (
-                                  <div className="mt-2 space-y-1">
-                                    {question.reminders.map((reminder, idx) => (
-                                      <div key={idx} className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
-                                        🔔 「{reminder.answer}」→ {reminder.message}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                {question.explanations && question.explanations.length > 0 && (
-                                  <div className="mt-2 space-y-1">
-                                    {question.explanations.map((explanation, idx) => (
-                                      <div key={idx} className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                                        📝 「{explanation.answer}」→ {explanation.prompt}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                {question.triggers &&
+                                  question.triggers.length > 0 && (
+                                    <div className="mt-2 space-y-1">
+                                      {question.triggers.map((trigger, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded"
+                                        >
+                                          ⚡ 「{trigger.answer}」→{" "}
+                                          {taskTypes.find(
+                                            (t) =>
+                                              Number(t.id) ===
+                                              trigger.taskTypeId
+                                          )?.label || "未知"}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                {question.reminders &&
+                                  question.reminders.length > 0 && (
+                                    <div className="mt-2 space-y-1">
+                                      {question.reminders.map(
+                                        (reminder, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded"
+                                          >
+                                            🔔 「{reminder.answer}」→{" "}
+                                            {reminder.message}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
+                                {question.explanations &&
+                                  question.explanations.length > 0 && (
+                                    <div className="mt-2 space-y-1">
+                                      {question.explanations.map(
+                                        (explanation, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded"
+                                          >
+                                            📝 「{explanation.answer}」→{" "}
+                                            {explanation.prompt}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
                               </div>
                               <div className="flex items-center gap-0.5 shrink-0">
                                 <button
@@ -1235,8 +1337,18 @@ export default function TaskTypesPage() {
                                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:hover:bg-transparent"
                                   title="上移"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 15l7-7 7 7"
+                                    />
                                   </svg>
                                 </button>
                                 <button
@@ -1245,8 +1357,18 @@ export default function TaskTypesPage() {
                                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:hover:bg-transparent"
                                   title="下移"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 9l-7 7-7-7"
+                                    />
                                   </svg>
                                 </button>
                                 <button
@@ -1254,17 +1376,39 @@ export default function TaskTypesPage() {
                                   className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
                                   title="編輯"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                    />
                                   </svg>
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteQuestion(question.id)}
+                                  onClick={() =>
+                                    handleDeleteQuestion(question.id)
+                                  }
                                   className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
                                   title="刪除"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
                                   </svg>
                                 </button>
                               </div>
@@ -1331,7 +1475,10 @@ export default function TaskTypesPage() {
                         type="text"
                         value={questionForm.label}
                         onChange={(e) =>
-                          setQuestionForm({ ...questionForm, label: e.target.value })
+                          setQuestionForm({
+                            ...questionForm,
+                            label: e.target.value,
+                          })
                         }
                         placeholder="例如：雇主名稱"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1354,7 +1501,10 @@ export default function TaskTypesPage() {
                               setQuestionForm({
                                 ...questionForm,
                                 type: type.value as QuestionType,
-                                options: type.value === "TEXT" ? [] : questionForm.options,
+                                options:
+                                  type.value === "TEXT"
+                                    ? []
+                                    : questionForm.options,
                               })
                             }
                             className={`p-3 rounded-lg border-2 text-center transition-all ${
@@ -1364,9 +1514,13 @@ export default function TaskTypesPage() {
                             }`}
                           >
                             <div className="text-xl mb-1">{type.icon}</div>
-                            <div className={`text-sm font-medium ${
-                              questionForm.type === type.value ? "text-blue-700" : "text-gray-700"
-                            }`}>
+                            <div
+                              className={`text-sm font-medium ${
+                                questionForm.type === type.value
+                                  ? "text-blue-700"
+                                  : "text-gray-700"
+                              }`}
+                            >
                               {type.label}
                             </div>
                           </button>
@@ -1380,134 +1534,229 @@ export default function TaskTypesPage() {
                         id="required"
                         checked={questionForm.required}
                         onChange={(e) =>
-                          setQuestionForm({ ...questionForm, required: e.target.checked })
+                          setQuestionForm({
+                            ...questionForm,
+                            required: e.target.checked,
+                          })
                         }
                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                       />
-                      <label htmlFor="required" className="text-sm text-gray-700">
+                      <label
+                        htmlFor="required"
+                        className="text-sm text-gray-700"
+                      >
                         此問題為必填
                       </label>
                     </div>
 
                     {/* 各選項進階設定 - 使用 Grid 3 欄顯示 */}
-                    {questionForm.type === "RADIO" && questionForm.options.length > 0 && (
-                      <div className="border-t pt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                          各選項進階設定
-                        </label>
+                    {questionForm.type === "RADIO" &&
+                      questionForm.options.length > 0 && (
+                        <div className="border-t pt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-3">
+                            各選項進階設定
+                          </label>
 
-                        {/* 標題列 */}
-                        <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 mb-2 px-2">
-                          <div className="text-xs font-medium text-gray-500">選項</div>
-                          <div className="text-xs font-medium text-amber-600">⚡ 觸發任務</div>
-                          <div className="text-xs font-medium text-red-600">🔔 補件提醒</div>
-                          <div className="text-xs font-medium text-blue-600">📝 補充說明</div>
-                        </div>
+                          {/* 標題列 */}
+                          <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 mb-2 px-2">
+                            <div className="text-xs font-medium text-gray-500">
+                              選項
+                            </div>
+                            <div className="text-xs font-medium text-amber-600">
+                              ⚡ 觸發任務
+                            </div>
+                            <div className="text-xs font-medium text-red-600">
+                              🔔 補件提醒
+                            </div>
+                            <div className="text-xs font-medium text-blue-600">
+                              📝 補充說明
+                            </div>
+                          </div>
 
-                        {/* 選項列表 */}
-                        <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                          {questionForm.options.map((option, index) => {
-                            const existingTrigger = questionForm.triggers.find(t => t.answer === option);
-                            const existingReminder = questionForm.reminders.find(r => r.answer === option);
-                            const existingExplanation = questionForm.explanations.find(e => e.answer === option);
+                          {/* 選項列表 */}
+                          <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            {questionForm.options.map((option, index) => {
+                              const existingTrigger =
+                                questionForm.triggers.find(
+                                  (t) => t.answer === option
+                                );
+                              const existingReminder =
+                                questionForm.reminders.find(
+                                  (r) => r.answer === option
+                                );
+                              const existingExplanation =
+                                questionForm.explanations.find(
+                                  (e) => e.answer === option
+                                );
 
-                            return (
-                              <div key={index} className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 bg-white p-2 rounded-lg border border-gray-200">
-                                {/* 選項名稱 */}
-                                <div className="flex items-center">
-                                  <span className="text-sm text-gray-700 truncate font-medium" title={option}>
-                                    {option}
-                                  </span>
-                                </div>
-
-                                {/* 觸發任務 */}
-                                <select
-                                  value={existingTrigger?.taskTypeId || ""}
-                                  onChange={(e) => {
-                                    const newTaskTypeId = Number(e.target.value);
-                                    let newTriggers = [...questionForm.triggers];
-                                    if (newTaskTypeId) {
-                                      const existingIndex = newTriggers.findIndex(t => t.answer === option);
-                                      if (existingIndex >= 0) {
-                                        newTriggers[existingIndex] = { answer: option, taskTypeId: newTaskTypeId };
-                                      } else {
-                                        newTriggers.push({ answer: option, taskTypeId: newTaskTypeId });
-                                      }
-                                    } else {
-                                      newTriggers = newTriggers.filter(t => t.answer !== option);
-                                    }
-                                    setQuestionForm({ ...questionForm, triggers: newTriggers });
-                                  }}
-                                  className="w-full px-2 py-1.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs bg-amber-50"
+                              return (
+                                <div
+                                  key={index}
+                                  className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 bg-white p-2 rounded-lg border border-gray-200"
                                 >
-                                  <option value="">不觸發</option>
-                                  {taskTypes
-                                    .filter((t) => t.isActive && t.id !== editingType?.id)
-                                    .map((t) => (
-                                      <option key={t.id} value={t.id}>
-                                        {t.label}
-                                      </option>
-                                    ))}
-                                </select>
+                                  {/* 選項名稱 */}
+                                  <div className="flex items-center">
+                                    <span
+                                      className="text-sm text-gray-700 truncate font-medium"
+                                      title={option}
+                                    >
+                                      {option}
+                                    </span>
+                                  </div>
 
-                                {/* 補件提醒 */}
-                                <input
-                                  type="text"
-                                  value={existingReminder?.message || ""}
-                                  onChange={(e) => {
-                                    const newMessage = e.target.value;
-                                    let newReminders = [...questionForm.reminders];
-                                    if (newMessage) {
-                                      const existingIndex = newReminders.findIndex(r => r.answer === option);
-                                      if (existingIndex >= 0) {
-                                        newReminders[existingIndex] = { answer: option, message: newMessage };
+                                  {/* 觸發任務 */}
+                                  <select
+                                    value={existingTrigger?.taskTypeId || ""}
+                                    onChange={(e) => {
+                                      const newTaskTypeId = Number(
+                                        e.target.value
+                                      );
+                                      let newTriggers = [
+                                        ...questionForm.triggers,
+                                      ];
+                                      if (newTaskTypeId) {
+                                        const existingIndex =
+                                          newTriggers.findIndex(
+                                            (t) => t.answer === option
+                                          );
+                                        if (existingIndex >= 0) {
+                                          newTriggers[existingIndex] = {
+                                            answer: option,
+                                            taskTypeId: newTaskTypeId,
+                                          };
+                                        } else {
+                                          newTriggers.push({
+                                            answer: option,
+                                            taskTypeId: newTaskTypeId,
+                                          });
+                                        }
                                       } else {
-                                        newReminders.push({ answer: option, message: newMessage });
+                                        newTriggers = newTriggers.filter(
+                                          (t) => t.answer !== option
+                                        );
                                       }
-                                    } else {
-                                      newReminders = newReminders.filter(r => r.answer !== option);
-                                    }
-                                    setQuestionForm({ ...questionForm, reminders: newReminders });
-                                  }}
-                                  placeholder="提醒訊息"
-                                  className="w-full px-2 py-1.5 border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-xs bg-red-50"
-                                />
+                                      setQuestionForm({
+                                        ...questionForm,
+                                        triggers: newTriggers,
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs bg-amber-50"
+                                  >
+                                    <option value="">不觸發</option>
+                                    {taskTypes
+                                      .filter(
+                                        (t) =>
+                                          t.isActive && t.id !== editingType?.id
+                                      )
+                                      .map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                          {t.label}
+                                        </option>
+                                      ))}
+                                  </select>
 
-                                {/* 補充說明 */}
-                                <input
-                                  type="text"
-                                  value={existingExplanation?.prompt || ""}
-                                  onChange={(e) => {
-                                    const newPrompt = e.target.value;
-                                    let newExplanations = [...questionForm.explanations];
-                                    if (newPrompt) {
-                                      const existingIndex = newExplanations.findIndex(ex => ex.answer === option);
-                                      if (existingIndex >= 0) {
-                                        newExplanations[existingIndex] = { answer: option, prompt: newPrompt };
+                                  {/* 補件提醒 */}
+                                  <input
+                                    type="text"
+                                    value={existingReminder?.message || ""}
+                                    onChange={(e) => {
+                                      const newMessage = e.target.value;
+                                      let newReminders = [
+                                        ...questionForm.reminders,
+                                      ];
+                                      if (newMessage) {
+                                        const existingIndex =
+                                          newReminders.findIndex(
+                                            (r) => r.answer === option
+                                          );
+                                        if (existingIndex >= 0) {
+                                          newReminders[existingIndex] = {
+                                            answer: option,
+                                            message: newMessage,
+                                          };
+                                        } else {
+                                          newReminders.push({
+                                            answer: option,
+                                            message: newMessage,
+                                          });
+                                        }
                                       } else {
-                                        newExplanations.push({ answer: option, prompt: newPrompt });
+                                        newReminders = newReminders.filter(
+                                          (r) => r.answer !== option
+                                        );
                                       }
-                                    } else {
-                                      newExplanations = newExplanations.filter(ex => ex.answer !== option);
-                                    }
-                                    setQuestionForm({ ...questionForm, explanations: newExplanations });
-                                  }}
-                                  placeholder="提示文字"
-                                  className="w-full px-2 py-1.5 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs bg-blue-50"
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
+                                      setQuestionForm({
+                                        ...questionForm,
+                                        reminders: newReminders,
+                                      });
+                                    }}
+                                    placeholder="提醒訊息"
+                                    className="w-full px-2 py-1.5 border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-xs bg-red-50"
+                                  />
 
-                        {/* 說明文字 */}
-                        <div className="mt-2 text-xs text-gray-500 space-y-1">
-                          <p><span className="text-amber-600">⚡ 觸發任務</span>：選擇該答案時自動建立後續任務</p>
-                          <p><span className="text-red-600">🔔 補件提醒</span>：選擇該答案時顯示提醒訊息</p>
-                          <p><span className="text-blue-600">📝 補充說明</span>：選擇該答案時要求用戶輸入補充說明</p>
+                                  {/* 補充說明 */}
+                                  <input
+                                    type="text"
+                                    value={existingExplanation?.prompt || ""}
+                                    onChange={(e) => {
+                                      const newPrompt = e.target.value;
+                                      let newExplanations = [
+                                        ...questionForm.explanations,
+                                      ];
+                                      if (newPrompt) {
+                                        const existingIndex =
+                                          newExplanations.findIndex(
+                                            (ex) => ex.answer === option
+                                          );
+                                        if (existingIndex >= 0) {
+                                          newExplanations[existingIndex] = {
+                                            answer: option,
+                                            prompt: newPrompt,
+                                          };
+                                        } else {
+                                          newExplanations.push({
+                                            answer: option,
+                                            prompt: newPrompt,
+                                          });
+                                        }
+                                      } else {
+                                        newExplanations =
+                                          newExplanations.filter(
+                                            (ex) => ex.answer !== option
+                                          );
+                                      }
+                                      setQuestionForm({
+                                        ...questionForm,
+                                        explanations: newExplanations,
+                                      });
+                                    }}
+                                    placeholder="提示文字"
+                                    className="w-full px-2 py-1.5 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs bg-blue-50"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* 說明文字 */}
+                          <div className="mt-2 text-xs text-gray-500 space-y-1">
+                            <p>
+                              <span className="text-amber-600">
+                                ⚡ 觸發任務
+                              </span>
+                              ：選擇該答案時自動建立後續任務
+                            </p>
+                            <p>
+                              <span className="text-red-600">🔔 補件提醒</span>
+                              ：選擇該答案時顯示提醒訊息
+                            </p>
+                            <p>
+                              <span className="text-blue-600">📝 補充說明</span>
+                              ：選擇該答案時要求用戶輸入補充說明
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </div>
 
@@ -1552,8 +1801,18 @@ export default function TaskTypesPage() {
                                   onClick={() => handleRemoveOption(index)}
                                   className="p-1.5 text-red-600 hover:bg-red-50 rounded"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
                                   </svg>
                                 </button>
                               </div>
@@ -1561,20 +1820,34 @@ export default function TaskTypesPage() {
                           )}
                         </div>
 
+                        <input
+                          type="text"
+                          value={newOption}
+                          onChange={(e) => setNewOption(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddOption();
+                            }
+                          }}
+                          placeholder="輸入選項後按 Enter..."
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                         <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={newOption}
-                            onChange={(e) => setNewOption(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleAddOption();
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <span
+                              className={
+                                questionForm.options.length >= 2
+                                  ? "text-green-600"
+                                  : "text-amber-600"
                               }
-                            }}
-                            placeholder="輸入選項後按 Enter..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                            >
+                              {questionForm.options.length >= 2 ? "✓" : "!"}
+                            </span>
+                            {questionForm.options.length >= 2
+                              ? `已設定 ${questionForm.options.length} 個選項`
+                              : `至少需要 2 個選項（目前 ${questionForm.options.length} 個）`}
+                          </p>
                           <button
                             onClick={handleAddOption}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -1582,15 +1855,6 @@ export default function TaskTypesPage() {
                             新增
                           </button>
                         </div>
-
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <span className={questionForm.options.length >= 2 ? "text-green-600" : "text-amber-600"}>
-                            {questionForm.options.length >= 2 ? "✓" : "!"}
-                          </span>
-                          {questionForm.options.length >= 2
-                            ? `已設定 ${questionForm.options.length} 個選項`
-                            : `至少需要 2 個選項（目前 ${questionForm.options.length} 個）`}
-                        </p>
                       </>
                     )}
                   </div>
