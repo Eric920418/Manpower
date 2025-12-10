@@ -1397,7 +1397,7 @@ export default function TaskTypesPage() {
                         </label>
 
                         {/* 標題列 */}
-                        <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-2 mb-2 px-2">
+                        <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 mb-2 px-2">
                           <div className="text-xs font-medium text-gray-500">選項</div>
                           <div className="text-xs font-medium text-amber-600">⚡ 觸發任務</div>
                           <div className="text-xs font-medium text-red-600">🔔 補件提醒</div>
@@ -1412,7 +1412,7 @@ export default function TaskTypesPage() {
                             const existingExplanation = questionForm.explanations.find(e => e.answer === option);
 
                             return (
-                              <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-2 bg-white p-2 rounded-lg border border-gray-200">
+                              <div key={index} className="grid grid-cols-[100px_1fr_1fr_1fr] gap-2 bg-white p-2 rounded-lg border border-gray-200">
                                 {/* 選項名稱 */}
                                 <div className="flex items-center">
                                   <span className="text-sm text-gray-700 truncate font-medium" title={option}>
