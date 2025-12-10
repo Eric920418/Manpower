@@ -1315,7 +1315,7 @@ export default function TaskTypesPage() {
               </div>
 
               {/* 內容區 - 左右分欄 */}
-              <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+              <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr_350px]">
                 {/* 左欄 - 基本設定 */}
                 <div className="p-6 overflow-y-auto border-r border-gray-100">
                   <div className="space-y-4">
