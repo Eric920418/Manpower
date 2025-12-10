@@ -249,6 +249,145 @@ export const taskTypeFlowResolvers = {
             })),
           });
         }
+
+        // === 雙向同步：流程連線 → 問題 triggers ===
+        // 將流程的 condition 同步回問題的 triggers 設定（現在支援多個觸發）
+        const flowsBySource = new Map<number, typeof flows>();
+        for (const flow of flows) {
+          if (!flowsBySource.has(flow.fromTaskTypeId)) {
+            flowsBySource.set(flow.fromTaskTypeId, []);
+          }
+          flowsBySource.get(flow.fromTaskTypeId)!.push(flow);
+        }
+
+        for (const [fromId, sourceFlows] of flowsBySource.entries()) {
+          // 獲取該 TaskType 的 questions
+          const taskType = await tx.taskType.findUnique({
+            where: { id: fromId },
+            select: { questions: true },
+          });
+
+          if (!taskType || !taskType.questions) continue;
+
+          const questions = Array.isArray(taskType.questions)
+            ? taskType.questions as Array<{
+                id: string;
+                label: string;
+                type: string;
+                options?: string[];
+                required?: boolean;
+                triggers?: Array<{ answer: string; taskTypeId: number }>;
+              }>
+            : [];
+
+          let questionsUpdated = false;
+
+          // 更新每個問題的 triggers（現在支援多個觸發）
+          const updatedQuestions = questions.map((q) => {
+            // 查找所有使用這個問題作為條件的流程
+            const matchingFlows = sourceFlows.filter(
+              (f) => f.condition?.questionId === q.id && f.condition?.answer
+            );
+
+            if (matchingFlows.length > 0) {
+              // 從匹配的流程建立 triggers 陣列
+              const newTriggers = matchingFlows.map((f) => ({
+                answer: f.condition!.answer!,
+                taskTypeId: f.toTaskTypeId,
+              }));
+
+              // 檢查是否需要更新
+              const currentTriggers = q.triggers || [];
+              const triggersChanged =
+                currentTriggers.length !== newTriggers.length ||
+                newTriggers.some(
+                  (nt) =>
+                    !currentTriggers.some(
+                      (ct) => ct.answer === nt.answer && ct.taskTypeId === nt.taskTypeId
+                    )
+                );
+
+              if (triggersChanged) {
+                questionsUpdated = true;
+                return { ...q, triggers: newTriggers };
+              }
+            } else {
+              // 沒有流程使用此問題，檢查是否需要清除 triggers
+              if (q.triggers && q.triggers.length > 0) {
+                // 檢查是否有任何 trigger 的目標還存在於流程中
+                const validTriggers = q.triggers.filter((t) =>
+                  sourceFlows.some((f) => f.toTaskTypeId === t.taskTypeId)
+                );
+                if (validTriggers.length !== q.triggers.length) {
+                  questionsUpdated = true;
+                  return { ...q, triggers: validTriggers };
+                }
+              }
+            }
+            return q;
+          });
+
+          // 只在有變更時更新
+          if (questionsUpdated) {
+            await tx.taskType.update({
+              where: { id: fromId },
+              data: { questions: updatedQuestions },
+            });
+          }
+        }
+
+        // 處理被刪除流程的來源節點 - 清除對應的 triggers
+        if (deletedFlowIds && deletedFlowIds.length > 0) {
+          // 獲取被刪除流程的來源節點（在刪除前需要先查詢）
+          // 注意：由於流程已經被刪除，這裡改用檢查哪些節點的 triggers 指向不存在的流程
+          const allTaskTypes = await tx.taskType.findMany({
+            select: { id: true, questions: true },
+          });
+
+          for (const taskType of allTaskTypes) {
+            if (!taskType.questions) continue;
+
+            const questions = Array.isArray(taskType.questions)
+              ? taskType.questions as Array<{
+                  id: string;
+                  label: string;
+                  type: string;
+                  options?: string[];
+                  required?: boolean;
+                  triggers?: Array<{ answer: string; taskTypeId: number }>;
+                }>
+              : [];
+
+            // 獲取該節點現有的所有流程
+            const existingFlows = await tx.taskTypeFlow.findMany({
+              where: { fromTaskTypeId: taskType.id },
+              select: { toTaskTypeId: true, condition: true },
+            });
+            const validTargetIds = new Set(existingFlows.map((f) => f.toTaskTypeId));
+
+            let needsUpdate = false;
+            const updatedQuestions = questions.map((q) => {
+              if (q.triggers && q.triggers.length > 0) {
+                // 過濾掉不再有效的 triggers
+                const validTriggers = q.triggers.filter((t) =>
+                  validTargetIds.has(t.taskTypeId)
+                );
+                if (validTriggers.length !== q.triggers.length) {
+                  needsUpdate = true;
+                  return { ...q, triggers: validTriggers };
+                }
+              }
+              return q;
+            });
+
+            if (needsUpdate) {
+              await tx.taskType.update({
+                where: { id: taskType.id },
+                data: { questions: updatedQuestions },
+              });
+            }
+          }
+        }
       });
 
       // 記錄活動日誌

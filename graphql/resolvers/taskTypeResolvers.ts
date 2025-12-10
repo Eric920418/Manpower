@@ -38,6 +38,18 @@ interface QuestionTrigger {
   taskTypeId: number;
 }
 
+// 提醒設定定義
+interface ReminderSetting {
+  answer: string;
+  message: string;
+}
+
+// 補充說明設定定義
+interface ExplanationSetting {
+  answer: string;
+  prompt: string;
+}
+
 // 問題類型定義
 interface Question {
   id: string;
@@ -45,7 +57,9 @@ interface Question {
   type: "TEXT" | "RADIO" | "CHECKBOX";
   options?: string[];
   required?: boolean;
-  trigger?: QuestionTrigger;
+  triggers?: QuestionTrigger[];  // 改為陣列，每個選項可設定不同的後續任務
+  reminders?: ReminderSetting[];  // 改為陣列，每個選項可設定不同的提醒
+  explanations?: ExplanationSetting[];  // 改為陣列，每個選項可要求補充說明
 }
 
 // 格式化問題列表
@@ -57,7 +71,9 @@ const formatQuestions = (questions: unknown): Question[] => {
     type: q.type || "TEXT",
     options: q.options || [],
     required: q.required || false,
-    trigger: q.trigger || undefined,
+    triggers: q.triggers || [],
+    reminders: q.reminders || [],
+    explanations: q.explanations || [],
   }));
 };
 
@@ -345,7 +361,9 @@ export const taskTypeResolvers = {
             type: "TEXT" | "RADIO" | "CHECKBOX";
             options?: string[];
             required?: boolean;
-            trigger?: { answer: string; taskTypeId: number };
+            triggers?: Array<{ answer: string; taskTypeId: number }>;
+            reminders?: Array<{ answer: string; message: string }>;
+            explanations?: Array<{ answer: string; prompt: string }>;
           }>;
           positionX?: number;
           positionY?: number;
@@ -380,7 +398,9 @@ export const taskTypeResolvers = {
         type: q.type,
         options: q.options || [],
         required: q.required || false,
-        trigger: q.trigger || null,
+        triggers: q.triggers || [],
+        reminders: q.reminders || [],
+        explanations: q.explanations || [],
       }));
 
       const taskType = await prisma.taskType.create({
@@ -430,7 +450,9 @@ export const taskTypeResolvers = {
             type: "TEXT" | "RADIO" | "CHECKBOX";
             options?: string[];
             required?: boolean;
-            trigger?: { answer: string; taskTypeId: number };
+            triggers?: Array<{ answer: string; taskTypeId: number }>;
+            reminders?: Array<{ answer: string; message: string }>;
+            explanations?: Array<{ answer: string; prompt: string }>;
           }>;
           positionX?: number;
           positionY?: number;
@@ -467,7 +489,9 @@ export const taskTypeResolvers = {
           type: q.type,
           options: q.options || [],
           required: q.required || false,
-          trigger: q.trigger || null,
+          triggers: q.triggers || [],
+          reminders: q.reminders || [],
+          explanations: q.explanations || [],
         }));
       }
 
@@ -484,6 +508,91 @@ export const taskTypeResolvers = {
           ...(args.input.positionY !== undefined && { positionY: args.input.positionY }),
         },
       });
+
+      // === 雙向同步：問題 triggers → 流程連線 ===
+      if (questions !== undefined) {
+        // 獲取現有的流程連線
+        const existingFlows = await prisma.taskTypeFlow.findMany({
+          where: { fromTaskTypeId: args.input.id },
+        });
+
+        // 收集問題中所有的 triggers 設定
+        const triggersFromQuestions: Array<{
+          questionId: string;
+          answer: string;
+          targetTaskTypeId: number;
+        }> = [];
+
+        for (const q of questions) {
+          // 現在支援多個 triggers
+          if (q.triggers && q.triggers.length > 0) {
+            for (const trigger of q.triggers) {
+              if (trigger.taskTypeId) {
+                triggersFromQuestions.push({
+                  questionId: q.id,
+                  answer: trigger.answer,
+                  targetTaskTypeId: trigger.taskTypeId,
+                });
+              }
+            }
+          }
+        }
+
+        // 為每個 trigger 創建或更新流程連線
+        for (const trigger of triggersFromQuestions) {
+          // 檢查是否已存在相同目標和答案的流程
+          const existingFlow = existingFlows.find(
+            (f) => {
+              const condition = f.condition as { questionId?: string; answer?: string } | null;
+              return f.toTaskTypeId === trigger.targetTaskTypeId &&
+                     condition?.questionId === trigger.questionId &&
+                     condition?.answer === trigger.answer;
+            }
+          );
+
+          if (existingFlow) {
+            // 流程已存在，無需更新
+          } else {
+            // 檢查是否有相同目標但不同條件的流程
+            const sameTargetFlow = existingFlows.find(
+              (f) => f.toTaskTypeId === trigger.targetTaskTypeId
+            );
+
+            if (sameTargetFlow) {
+              // 更新現有流程的條件
+              await prisma.taskTypeFlow.update({
+                where: { id: sameTargetFlow.id },
+                data: {
+                  condition: {
+                    questionId: trigger.questionId,
+                    answer: trigger.answer,
+                  },
+                },
+              });
+            } else {
+              // 創建新的流程連線
+              const maxOrder = await prisma.taskTypeFlow.aggregate({
+                where: { fromTaskTypeId: args.input.id },
+                _max: { order: true },
+              });
+
+              await prisma.taskTypeFlow.create({
+                data: {
+                  fromTaskTypeId: args.input.id,
+                  toTaskTypeId: trigger.targetTaskTypeId,
+                  condition: {
+                    questionId: trigger.questionId,
+                    answer: trigger.answer,
+                  },
+                  order: (maxOrder._max.order || 0) + 1,
+                },
+              });
+            }
+          }
+        }
+
+        // 注意：不自動刪除沒有 trigger 對應的流程，因為可能是在流程編輯器中手動創建的
+      }
 
       // 記錄活動日誌
       const user = requireSuperAdmin(context);

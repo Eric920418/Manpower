@@ -732,6 +732,16 @@ export const adminTaskResolvers = {
         throw new Error("找不到該行政任務");
       }
 
+      // 刪除相關的待處理提醒（sourceTaskId 或 completedTaskId 指向此任務）
+      await prisma.pendingTaskReminder.deleteMany({
+        where: {
+          OR: [
+            { sourceTaskId: args.id },
+            { completedTaskId: args.id },
+          ],
+        },
+      });
+
       await prisma.adminTask.delete({
         where: { id: args.id },
       });

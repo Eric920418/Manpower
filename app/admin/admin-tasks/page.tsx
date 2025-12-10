@@ -41,13 +41,25 @@ interface QuestionTrigger {
   taskTypeId: number;
 }
 
+interface ReminderSetting {
+  answer: string;
+  message: string;
+}
+
+interface ExplanationSetting {
+  answer: string;
+  prompt: string;
+}
+
 interface Question {
   id: string;
   label: string;
   type: QuestionType;
   options: string[];
   required: boolean;
-  trigger?: QuestionTrigger | null;
+  triggers?: QuestionTrigger[];
+  reminders?: ReminderSetting[];
+  explanations?: ExplanationSetting[];
 }
 
 // 流程關聯
@@ -188,6 +200,8 @@ function AdminTasksContent() {
   const [creating, setCreating] = useState(false);
   // 自訂問題答案
   const [customAnswers, setCustomAnswers] = useState<Record<string, string | string[]>>({});
+  // 補充說明文字（key 格式：questionId_answer）
+  const [explanationTexts, setExplanationTexts] = useState<Record<string, string>>({});
 
   // 審批狀態
   const [approvalAction, setApprovalAction] = useState("");
@@ -253,9 +267,17 @@ function AdminTasksContent() {
               type
               options
               required
-              trigger {
+              triggers {
                 answer
                 taskTypeId
+              }
+              reminders {
+                answer
+                message
+              }
+              explanations {
+                answer
+                prompt
               }
             }
           }
@@ -561,11 +583,12 @@ function AdminTasksContent() {
         ? (createForm.deadline || null)
         : (createForm.deadlineText || null);
 
-      // 合併 payload，包含自訂問題答案
+      // 合併 payload，包含自訂問題答案和補充說明
       const payload = {
         ...createForm.payload,
         ...(deadlineType === "text" && createForm.deadlineText && { deadlineText: createForm.deadlineText }),
         customAnswers: customAnswers,
+        explanationTexts: explanationTexts,
       };
 
       const variables = {
@@ -626,20 +649,23 @@ function AdminTasksContent() {
         }
       }
 
-      // 也檢查問題內嵌的觸發條件（向後兼容）
+      // 也檢查問題內嵌的觸發條件（現在支援多個觸發）
       for (const question of currentQuestions) {
-        if (question.trigger) {
+        if (question.triggers && question.triggers.length > 0) {
           const answer = customAnswers[question.id];
-          // 判斷答案是否符合觸發條件
-          if (typeof answer === "string" && answer === question.trigger.answer) {
-            const triggeredType = taskTypes.find(t => Number(t.id) === question.trigger!.taskTypeId);
-            if (triggeredType && !triggeredTypes.some(t => t.id === triggeredType.id)) {
-              triggeredTypes.push(triggeredType);
-            }
-          } else if (Array.isArray(answer) && answer.includes(question.trigger.answer)) {
-            const triggeredType = taskTypes.find(t => Number(t.id) === question.trigger!.taskTypeId);
-            if (triggeredType && !triggeredTypes.some(t => t.id === triggeredType.id)) {
-              triggeredTypes.push(triggeredType);
+          // 檢查每個觸發條件
+          for (const trigger of question.triggers) {
+            // 判斷答案是否符合觸發條件
+            if (typeof answer === "string" && answer === trigger.answer) {
+              const triggeredType = taskTypes.find(t => Number(t.id) === trigger.taskTypeId);
+              if (triggeredType && !triggeredTypes.some(t => t.id === triggeredType.id)) {
+                triggeredTypes.push(triggeredType);
+              }
+            } else if (Array.isArray(answer) && answer.includes(trigger.answer)) {
+              const triggeredType = taskTypes.find(t => Number(t.id) === trigger.taskTypeId);
+              if (triggeredType && !triggeredTypes.some(t => t.id === triggeredType.id)) {
+                triggeredTypes.push(triggeredType);
+              }
             }
           }
         }
@@ -671,6 +697,7 @@ function AdminTasksContent() {
       });
       setDeadlineType("date");
       setCustomAnswers({});
+      setExplanationTexts({});
       fetchData();
 
       // 如果有觸發的任務類型，顯示提示模態框
@@ -1284,8 +1311,9 @@ function AdminTasksContent() {
                           ...createForm,
                           taskTypeId: newTypeId,
                         });
-                        // 切換類型時清空答案
+                        // 切換類型時清空答案和補充說明
                         setCustomAnswers({});
+                        setExplanationTexts({});
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
@@ -1500,6 +1528,33 @@ function AdminTasksContent() {
                               ))}
                             </div>
                           )}
+
+                          {/* 補充說明輸入（當選擇的答案需要補充說明時顯示） */}
+                          {question.type === "RADIO" && customAnswers[question.id] && (() => {
+                            const selectedAnswer = customAnswers[question.id] as string;
+                            const explanation = question.explanations?.find(e => e.answer === selectedAnswer);
+                            if (!explanation) return null;
+                            const explanationKey = `${question.id}_${selectedAnswer}`;
+                            return (
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <label className="block text-sm font-medium text-blue-800 mb-2">
+                                  📝 {explanation.prompt}
+                                </label>
+                                <textarea
+                                  value={explanationTexts[explanationKey] || ""}
+                                  onChange={(e) =>
+                                    setExplanationTexts({
+                                      ...explanationTexts,
+                                      [explanationKey]: e.target.value,
+                                    })
+                                  }
+                                  placeholder="請輸入補充說明..."
+                                  rows={3}
+                                  className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                />
+                              </div>
+                            );
+                          })()}
 
                           {/* 複選題 */}
                           {question.type === "CHECKBOX" && (

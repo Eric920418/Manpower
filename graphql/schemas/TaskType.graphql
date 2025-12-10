@@ -13,6 +13,18 @@ type QuestionTrigger {
   taskTypeId: Int!      # 觸發的任務類型 ID
 }
 
+# 提醒通知設定（當回答特定答案時顯示提醒）
+type ReminderSetting {
+  answer: String!           # 觸發提醒的答案
+  message: String!          # 提醒訊息內容
+}
+
+# 補充說明設定（當回答特定答案時要求用戶補充文字說明）
+type ExplanationSetting {
+  answer: String!           # 觸發的答案
+  prompt: String!           # 提示文字（例如「請說明原因」）
+}
+
 # 自訂問題結構
 type TaskTypeQuestion {
   id: String!           # 問題 ID（uuid）
@@ -20,7 +32,9 @@ type TaskTypeQuestion {
   type: QuestionType!   # 問題類型
   options: [String!]    # 選項（僅 RADIO 和 CHECKBOX 需要）
   required: Boolean!    # 是否必填
-  trigger: QuestionTrigger  # 觸發條件（可選）
+  triggers: [QuestionTrigger!]  # 觸發條件列表（每個選項可設定不同的後續任務）
+  reminders: [ReminderSetting!]  # 提醒設定列表（每個選項可設定不同的提醒）
+  explanations: [ExplanationSetting!]  # 補充說明設定列表（每個選項可要求補充說明）
 }
 
 # 任務類型
@@ -94,6 +108,18 @@ input QuestionTriggerInput {
   taskTypeId: Int!      # 觸發的任務類型 ID
 }
 
+# 提醒設定輸入
+input ReminderSettingInput {
+  answer: String!           # 觸發提醒的答案
+  message: String!          # 提醒訊息內容
+}
+
+# 補充說明設定輸入
+input ExplanationSettingInput {
+  answer: String!           # 觸發的答案
+  prompt: String!           # 提示文字（例如「請說明原因」）
+}
+
 # 問題輸入類型
 input TaskTypeQuestionInput {
   id: String            # 問題 ID（更新時使用，新增時可選）
@@ -101,7 +127,9 @@ input TaskTypeQuestionInput {
   type: QuestionType!   # 問題類型
   options: [String!]    # 選項（僅 RADIO 和 CHECKBOX 需要）
   required: Boolean     # 是否必填（預設 false）
-  trigger: QuestionTriggerInput  # 觸發條件（可選）
+  triggers: [QuestionTriggerInput!]  # 觸發條件列表（每個選項可設定不同的後續任務）
+  reminders: [ReminderSettingInput!]  # 提醒設定列表（每個選項可設定不同的提醒）
+  explanations: [ExplanationSettingInput!]  # 補充說明設定列表（每個選項可要求補充說明）
 }
 
 input CreateTaskTypeInput {
