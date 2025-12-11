@@ -1286,56 +1286,65 @@ export default function TaskTypesPage() {
                                     )}
                                   </div>
                                 )}
-                                {question.triggers &&
-                                  question.triggers.length > 0 && (
-                                    <div className="mt-2 space-y-1">
-                                      {question.triggers.map((trigger, idx) => (
-                                        <div
-                                          key={idx}
-                                          className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded"
-                                        >
-                                          ⚡ 「{trigger.answer}」→{" "}
-                                          {taskTypes.find(
-                                            (t) =>
-                                              Number(t.id) ===
-                                              trigger.taskTypeId
-                                          )?.label || "未知"}
+                                {(() => {
+                                  // 過濾掉不存在選項的設定
+                                  const validOptions = new Set(question.options);
+                                  const validTriggers = (question.triggers || []).filter(t => validOptions.has(t.answer));
+                                  const validReminders = (question.reminders || []).filter(r => validOptions.has(r.answer));
+                                  const validExplanations = (question.explanations || []).filter(e => validOptions.has(e.answer));
+
+                                  return (
+                                    <>
+                                      {validTriggers.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                          {validTriggers.map((trigger, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded"
+                                            >
+                                              ⚡ 「{trigger.answer}」→{" "}
+                                              {taskTypes.find(
+                                                (t) =>
+                                                  Number(t.id) ===
+                                                  trigger.taskTypeId
+                                              )?.label || "未知"}
+                                            </div>
+                                          ))}
                                         </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                {question.reminders &&
-                                  question.reminders.length > 0 && (
-                                    <div className="mt-2 space-y-1">
-                                      {question.reminders.map(
-                                        (reminder, idx) => (
-                                          <div
-                                            key={idx}
-                                            className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded"
-                                          >
-                                            🔔 「{reminder.answer}」→{" "}
-                                            {reminder.message}
-                                          </div>
-                                        )
                                       )}
-                                    </div>
-                                  )}
-                                {question.explanations &&
-                                  question.explanations.length > 0 && (
-                                    <div className="mt-2 space-y-1">
-                                      {question.explanations.map(
-                                        (explanation, idx) => (
-                                          <div
-                                            key={idx}
-                                            className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded"
-                                          >
-                                            📝 「{explanation.answer}」→{" "}
-                                            {explanation.prompt}
-                                          </div>
-                                        )
+                                      {validReminders.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                          {validReminders.map(
+                                            (reminder, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded"
+                                              >
+                                                🔔 「{reminder.answer}」→{" "}
+                                                {reminder.message}
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
                                       )}
-                                    </div>
-                                  )}
+                                      {validExplanations.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                          {validExplanations.map(
+                                            (explanation, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded"
+                                              >
+                                                📝 「{explanation.answer}」→{" "}
+                                                {explanation.prompt}
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center gap-0.5 shrink-0">
                                 <button

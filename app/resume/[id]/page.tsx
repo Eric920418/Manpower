@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AvatarZoom from "@/components/Resume/AvatarZoom";
 
 // 強制動態渲染
 export const dynamic = "force-dynamic";
@@ -209,22 +210,12 @@ export default async function ResumeDetailPage({
               <div className="bg-gradient-to-r from-brand-primary to-brand-accent p-8 text-white rounded-t-2xl overflow-visible">
                 <div className="flex flex-col md:flex-row items-center gap-6 overflow-visible">
                   {/* 照片 */}
-                  <div className="relative z-20">
-                    <div className="w-32 h-32 relative">
-                      <div className="w-full h-full rounded-full ring-4 ring-white/30 shadow-lg overflow-hidden pointer-events-none absolute inset-0"></div>
-                      <Image
-                        src={worker.photo || "/placeholder-avatar.png"}
-                        alt={`${worker.name} 的照片`}
-                        width={128}
-                        height={128}
-                        className="w-32 h-32 rounded-full object-cover transition-all duration-300 cursor-pointer hover:scale-[2.5] hover:rounded-lg hover:shadow-2xl hover:z-50"
-                        unoptimized
-                      />
-                    </div>
-                    <div className="absolute -bottom-2 -right-2 bg-white text-brand-primary px-3 py-1 rounded-full text-sm font-bold shadow-md">
-                      {worker.id}
-                    </div>
-                  </div>
+                  <AvatarZoom
+                    src={worker.photo || "/placeholder-avatar.png"}
+                    alt={`${worker.name} 的照片`}
+                    size={128}
+                    badge={worker.id}
+                  />
 
                   {/* 基本資訊 */}
                   <div className="text-center md:text-left flex-1">
