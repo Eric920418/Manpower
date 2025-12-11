@@ -248,7 +248,7 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
   updatedAt: formatDate(task.updatedAt),
 });
 
-// 包含關聯的查詢選項
+// 包含關聯的查詢選項（完整版 - 用於單一任務詳情）
 const taskInclude = {
   taskType: {
     include: {
@@ -282,6 +282,40 @@ const taskInclude = {
       applicant: true,
     },
     orderBy: { createdAt: "asc" as const },
+  },
+};
+
+// 簡化版包含選項（用於列表查詢 - 減少資料傳輸量）
+const taskListInclude = {
+  taskType: {
+    select: {
+      id: true,
+      code: true,
+      label: true,
+      description: true,
+      order: true,
+      isActive: true,
+      questions: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  applicant: {
+    select: { id: true, name: true, email: true, role: true },
+  },
+  processor: {
+    select: { id: true, name: true, email: true, role: true },
+  },
+  approver: {
+    select: { id: true, name: true, email: true, role: true },
+  },
+  // 列表不需要載入附件和審批記錄的完整資料
+  _count: {
+    select: {
+      attachments: true,
+      approvalRecords: true,
+      childTasks: true,
+    },
   },
 };
 
@@ -425,28 +459,50 @@ export const adminTaskResolvers = {
       return { total, pending, processing, pendingDocuments, approved, rejected, completed, overdue };
     },
 
-    // 按類型統計
+    // 按類型統計（優化：使用 groupBy 替代 N+1 查詢）
     adminTaskStatsByType: async (_: unknown, __: unknown, context: Context) => {
       requireSuperAdmin(context);
 
-      // 獲取所有啟用的任務類型
-      const taskTypes = await prisma.taskType.findMany({
-        where: { isActive: true },
-        orderBy: { order: "asc" },
-      });
+      // 並行查詢：任務類型 + 統計資料
+      const [taskTypes, grouped] = await Promise.all([
+        prisma.taskType.findMany({
+          where: { isActive: true },
+          orderBy: { order: "asc" },
+        }),
+        prisma.adminTask.groupBy({
+          by: ["taskTypeId", "status"],
+          _count: { id: true },
+        }),
+      ]);
 
-      const stats = await Promise.all(
-        taskTypes.map(async (taskType) => {
-          const [count, completed, pending] = await Promise.all([
-            prisma.adminTask.count({ where: { taskTypeId: taskType.id } }),
-            prisma.adminTask.count({ where: { taskTypeId: taskType.id, status: "COMPLETED" } }),
-            prisma.adminTask.count({ where: { taskTypeId: taskType.id, status: "PENDING" } }),
-          ]);
-          return { taskType: formatTaskType(taskType), count, completed, pending };
+      // 建立統計映射表
+      const statsMap = new Map<number, { count: number; completed: number; pending: number }>();
+
+      for (const item of grouped) {
+        const existing = statsMap.get(item.taskTypeId) || { count: 0, completed: 0, pending: 0 };
+        existing.count += item._count.id;
+        if (item.status === "COMPLETED") {
+          existing.completed += item._count.id;
+        } else if (item.status === "PENDING") {
+          existing.pending += item._count.id;
+        }
+        statsMap.set(item.taskTypeId, existing);
+      }
+
+      // 組合結果
+      const stats = taskTypes
+        .map((taskType) => {
+          const stat = statsMap.get(taskType.id) || { count: 0, completed: 0, pending: 0 };
+          return {
+            taskType: formatTaskType(taskType),
+            count: stat.count,
+            completed: stat.completed,
+            pending: stat.pending,
+          };
         })
-      );
+        .filter((s) => s.count > 0);
 
-      return stats.filter((s) => s.count > 0);
+      return stats;
     },
 
     // 獲取待審批的任務

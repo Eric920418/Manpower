@@ -439,6 +439,7 @@ const workersPageDefaults = {
     categories: ["製造業", "營建業", "服務業", "農業", "漁業"],
     countries: ["菲律賓", "越南", "印尼", "泰國"],
     genders: ["男", "女", "不限"],
+    sourceTypes: ["國內轉出工", "國外引進工"],
   },
   workers: [
     {
@@ -453,6 +454,7 @@ const workersPageDefaults = {
       languages: ["中文", "英文", "他加祿語"],
       availability: "即時可上工",
       category: "製造業",
+      sourceType: "國外引進工",
       description: "具備豐富的工廠生產線經驗，熟悉品質管理流程。",
     },
     {
@@ -467,6 +469,7 @@ const workersPageDefaults = {
       languages: ["中文", "越南語"],
       availability: "一個月內",
       category: "營建業",
+      sourceType: "國內轉出工",
       description: "擁有多項營建證照，工作態度認真負責。",
     },
   ],

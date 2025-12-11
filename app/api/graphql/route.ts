@@ -232,20 +232,23 @@ const yoga = createYoga({
         'Query.staffList': 5 * 60 * 1000,
         'Query.contractTemplates': 3 * 60 * 1000,
         'Query.formTemplates': 3 * 60 * 1000,
+        // 任務類型：中長快取（5 分鐘）- 變動不頻繁
+        'Query.taskTypes': 5 * 60 * 1000,
         // 統計資料：中等快取（1 分鐘）
         'Query.formStats': 60 * 1000,
+        'Query.dashboardData': 60 * 1000,
+        'Query.adminTaskStats': 0, // 不快取，需要即時更新
+        'Query.adminTaskStatsByType': 60 * 1000,
         // 動態列表：短快取（30 秒）
         'Query.users': 30 * 1000,
         'Query.formSubmissions': 30 * 1000,
         'Query.contracts': 30 * 1000,
         'Query.manpowerRequests': 30 * 1000,
-        // 需要認證的管理操作：不快取
-        'Query.taskTypes': 0,
-        'Query.adminsWithAssignments': 0,
-        'Query.myAssignedTaskTypes': 0,
-        'Query.adminTasks': 0,
-        'Query.adminTaskStats': 0,
-        // 待處理任務提醒：不快取
+        'Query.adminTasks': 0, // 不快取，需要即時更新
+        // 需要認證的管理操作：短快取
+        'Query.adminsWithAssignments': 60 * 1000,
+        'Query.myAssignedTaskTypes': 60 * 1000,
+        // 待處理任務提醒：不快取（需要即時）
         'Query.myPendingTaskReminders': 0,
         'Query.checkPendingReminders': 0,
       },

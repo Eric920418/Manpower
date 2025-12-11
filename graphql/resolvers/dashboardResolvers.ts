@@ -10,6 +10,27 @@ interface Context {
   isIPAllowed?: boolean;
 }
 
+// =====================================================
+// Dashboard 快取機制 - 減少資料庫查詢負擔
+// =====================================================
+interface CacheEntry {
+  data: unknown;
+  expiry: number;
+}
+
+const dashboardCache = new Map<string, CacheEntry>();
+const DASHBOARD_CACHE_TTL = 5 * 60 * 1000; // 5 分鐘
+
+// 定期清理過期快取（每 10 分鐘）
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of dashboardCache.entries()) {
+    if (entry.expiry < now) {
+      dashboardCache.delete(key);
+    }
+  }
+}, 10 * 60 * 1000);
+
 // 權限檢查
 const requireAuth = (context: Context) => {
   if (!context.user) {
@@ -25,6 +46,13 @@ export const dashboardResolvers = {
   Query: {
     dashboardData: async (_: unknown, __: unknown, context: Context) => {
       const user = requireAuth(context);
+
+      // 檢查快取
+      const cacheKey = `dashboard:${user.id}:${user.role}`;
+      const cached = dashboardCache.get(cacheKey);
+      if (cached && cached.expiry > Date.now()) {
+        return cached.data;
+      }
 
       // 取得當月起始日
       const now = new Date();
@@ -189,7 +217,7 @@ export const dashboardResolvers = {
             }),
       ]);
 
-      return {
+      const result = {
         stats: {
           totalUsers,
           activeUsers,
@@ -237,6 +265,14 @@ export const dashboardResolvers = {
           createdAt: formatDate(task.createdAt),
         })),
       };
+
+      // 存入快取
+      dashboardCache.set(cacheKey, {
+        data: result,
+        expiry: Date.now() + DASHBOARD_CACHE_TTL,
+      });
+
+      return result;
     },
   },
 };

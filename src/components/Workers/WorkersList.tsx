@@ -15,6 +15,7 @@ interface Worker {
   languages: string[];
   availability: string;
   category: string;
+  sourceType: string;
   description: string;
   position?: string;
 }
@@ -23,6 +24,7 @@ interface FilterOptions {
   categories: string[];
   countries: string[];
   genders: string[];
+  sourceTypes: string[];
 }
 
 interface Props {
@@ -33,11 +35,13 @@ interface Props {
 export default function WorkersList({ workers, filterOptions }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string>("全部");
   const [selectedCountry, setSelectedCountry] = useState<string>("全部");
+  const [selectedSourceType, setSelectedSourceType] = useState<string>("全部");
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
 
   const filteredWorkers = workers.filter((worker) => {
     if (selectedCategory !== "全部" && worker.category !== selectedCategory) return false;
     if (selectedCountry !== "全部" && worker.country !== selectedCountry) return false;
+    if (selectedSourceType !== "全部" && worker.sourceType !== selectedSourceType) return false;
     return true;
   });
 
@@ -54,7 +58,7 @@ export default function WorkersList({ workers, filterOptions }: Props) {
       <div className="container mx-auto px-6">
         {/* 篩選器 */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 職業類別
@@ -89,11 +93,29 @@ export default function WorkersList({ workers, filterOptions }: Props) {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                來源類型
+              </label>
+              <select
+                value={selectedSourceType}
+                onChange={(e) => setSelectedSourceType(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+              >
+                <option value="全部">全部</option>
+                {(filterOptions.sourceTypes || []).map((sourceType) => (
+                  <option key={sourceType} value={sourceType}>
+                    {sourceType}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex items-end">
               <button
                 onClick={() => {
                   setSelectedCategory("全部");
                   setSelectedCountry("全部");
+                  setSelectedSourceType("全部");
                 }}
                 className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
               >
@@ -145,6 +167,16 @@ export default function WorkersList({ workers, filterOptions }: Props) {
                     fill
                     className="object-cover"
                   />
+                  {/* 來源類型標籤 */}
+                  {worker.sourceType && (
+                    <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-medium ${
+                      worker.sourceType === "國內轉出工"
+                        ? "bg-amber-500 text-white"
+                        : "bg-emerald-500 text-white"
+                    }`}>
+                      {worker.sourceType}
+                    </div>
+                  )}
                   {isSelected && (
                     <div className="absolute top-4 right-4 bg-brand-primary text-white w-8 h-8 rounded-full flex items-center justify-center">
                       <span className="material-symbols-outlined text-sm">check</span>

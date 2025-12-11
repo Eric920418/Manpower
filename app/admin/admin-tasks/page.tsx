@@ -5,6 +5,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { useTaskReminder } from "@/components/Admin/TaskReminderProvider";
+import { useToast } from "@/components/UI/Toast";
 
 // 類型定義
 interface TaskUser {
@@ -157,6 +158,7 @@ function AdminTasksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { createReminders, completeReminder } = useTaskReminder();
+  const { addToast } = useToast();
 
   // 使用 useMemo 緩存角色檢查結果，避免每次渲染都重新計算
   const userRole = getRole();
@@ -400,23 +402,40 @@ function AdminTasksContent() {
       if (statusFilter !== "all") variables.status = statusFilter;
       if (typeFilter !== "all") variables.taskTypeId = parseInt(typeFilter, 10);
 
+      // 添加時間戳防止緩存
+      const timestamp = Date.now();
       const [statsRes, taskTypesRes, tasksRes] = await Promise.all([
-        fetch("/api/graphql", {
+        fetch(`/api/graphql?_t=${timestamp}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+          },
           credentials: "include",
+          cache: "no-store",
           body: JSON.stringify({ query: statsQuery }),
         }),
-        fetch("/api/graphql", {
+        fetch(`/api/graphql?_t=${timestamp}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+          },
           credentials: "include",
+          cache: "no-store",
           body: JSON.stringify({ query: taskTypesQuery }),
         }),
-        fetch("/api/graphql", {
+        fetch(`/api/graphql?_t=${timestamp}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+          },
           credentials: "include",
+          cache: "no-store",
           body: JSON.stringify({ query: tasksQuery, variables }),
         }),
       ]);
@@ -619,6 +638,52 @@ function AdminTasksContent() {
       const createdTaskId = Number(data.data.createAdminTask.id);
       const taskNo = data.data.createAdminTask.taskNo;
 
+      // 檢查是否有觸發補件提醒
+      const triggeredReminders: string[] = [];
+      for (const question of currentQuestions) {
+        if (question.reminders && question.reminders.length > 0) {
+          const answer = customAnswers[question.id];
+          for (const reminder of question.reminders) {
+            if (typeof answer === "string" && answer === reminder.answer) {
+              triggeredReminders.push(reminder.message);
+            } else if (Array.isArray(answer) && answer.includes(reminder.answer)) {
+              triggeredReminders.push(reminder.message);
+            }
+          }
+        }
+      }
+
+      // 如果有觸發補件提醒，更新任務狀態為待補件
+      if (triggeredReminders.length > 0) {
+        try {
+          const updateStatusMutation = `
+            mutation ApproveTask($input: ApprovalInput!) {
+              approveTask(input: $input) {
+                id
+                status
+              }
+            }
+          `;
+          await fetch("/api/graphql", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              query: updateStatusMutation,
+              variables: {
+                input: {
+                  taskId: createdTaskId,
+                  action: "pending_documents",
+                  comment: `補件提醒：${triggeredReminders.join("；")}`,
+                },
+              },
+            }),
+          });
+        } catch (e) {
+          console.error("更新任務狀態失敗:", e);
+        }
+      }
+
       // 檢查是否有觸發的後續流程
       const triggeredTypes: TaskType[] = [];
 
@@ -700,12 +765,32 @@ function AdminTasksContent() {
       setExplanationTexts({});
       fetchData();
 
+      // 顯示補件提醒 Toast（如果有）
+      if (triggeredReminders.length > 0) {
+        triggeredReminders.forEach((message) => {
+          addToast({
+            type: "documentReminder",
+            title: "補件提醒",
+            message: message,
+            duration: 8000, // 8 秒後自動關閉
+          });
+        });
+        // 額外顯示一個狀態更新的提示
+        addToast({
+          type: "warning",
+          title: "任務狀態已更新",
+          message: "任務已自動設為「待補件」狀態",
+          duration: 5000,
+        });
+      }
+
       // 如果有觸發的任務類型，顯示提示模態框
       if (triggeredTypes.length > 0) {
         setLastCreatedTaskId(createdTaskId);
         setTriggeredTaskTypes(triggeredTypes);
         setShowTriggerModal(true);
       } else {
+        // 沒有觸發任務時才顯示成功 alert
         alert(`任務創建成功！編號：${taskNo}`);
       }
     } catch (error) {
@@ -828,8 +913,9 @@ function AdminTasksContent() {
         throw new Error(data.errors[0].message);
       }
 
+      // 先刷新數據再顯示提示
+      await fetchData();
       alert("任務已刪除");
-      fetchData();
     } catch (error) {
       console.error("刪除失敗：", error);
       alert(`刪除失敗：${error instanceof Error ? error.message : "未知錯誤"}`);

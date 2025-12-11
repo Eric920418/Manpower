@@ -204,19 +204,20 @@ export default async function ResumeDetailPage({
             </Link>
 
             {/* 履歷卡片 */}
-            <div className="bg-white rounded-2xl shadow-xl border border-border overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-xl border border-border overflow-visible">
               {/* 頭部區域 */}
-              <div className="bg-gradient-to-r from-brand-primary to-brand-accent p-8 text-white">
-                <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="bg-gradient-to-r from-brand-primary to-brand-accent p-8 text-white rounded-t-2xl overflow-visible">
+                <div className="flex flex-col md:flex-row items-center gap-6 overflow-visible">
                   {/* 照片 */}
-                  <div className="relative">
-                    <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white/30 shadow-lg">
+                  <div className="relative z-20">
+                    <div className="w-32 h-32 relative">
+                      <div className="w-full h-full rounded-full ring-4 ring-white/30 shadow-lg overflow-hidden pointer-events-none absolute inset-0"></div>
                       <Image
                         src={worker.photo || "/placeholder-avatar.png"}
                         alt={`${worker.name} 的照片`}
                         width={128}
                         height={128}
-                        className="w-full h-full object-cover"
+                        className="w-32 h-32 rounded-full object-cover transition-all duration-300 cursor-pointer hover:scale-[2.5] hover:rounded-lg hover:shadow-2xl hover:z-50"
                         unoptimized
                       />
                     </div>

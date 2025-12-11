@@ -40,6 +40,7 @@ interface Worker {
   languages: string[];
   availability: string;
   category: string;
+  sourceType: string;
   description: string;
 }
 
@@ -53,6 +54,7 @@ interface PageData {
     categories: string[];
     countries: string[];
     genders: string[];
+    sourceTypes: string[];
   };
   workers: Worker[];
   ctaSection: {
@@ -68,7 +70,7 @@ export const WorkersPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pageData, setPageData] = useState<PageData>({
     hero: { title: "", description: "", image: "" },
-    filterOptions: { categories: [], countries: [], genders: [] },
+    filterOptions: { categories: [], countries: [], genders: [], sourceTypes: [] },
     workers: [],
     ctaSection: { title: "", description: "", buttonText: "", buttonLink: "" },
   });
@@ -238,6 +240,24 @@ export const WorkersPage = () => {
               placeholder="男, 女, 不限"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">來源類型 (逗號分隔)</label>
+            <input
+              type="text"
+              value={(pageData.filterOptions.sourceTypes || []).join(", ")}
+              onChange={(e) =>
+                setPageData((prev) => ({
+                  ...prev,
+                  filterOptions: {
+                    ...prev.filterOptions,
+                    sourceTypes: e.target.value.split(",").map((s) => s.trim()),
+                  },
+                }))
+              }
+              className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
+              placeholder="國內轉出工, 國外引進工"
+            />
+          </div>
         </div>
       </div>
 
@@ -263,6 +283,7 @@ export const WorkersPage = () => {
                     languages: [],
                     availability: "",
                     category: "",
+                    sourceType: "國外引進工",
                     description: "",
                   },
                 ],
@@ -377,6 +398,21 @@ export const WorkersPage = () => {
                     className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
                     placeholder="例: 即時可上工"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">來源類型</label>
+                  <select
+                    value={worker.sourceType || "國外引進工"}
+                    onChange={(e) => {
+                      const newWorkers = [...pageData.workers];
+                      newWorkers[index] = { ...newWorkers[index], sourceType: e.target.value };
+                      setPageData((prev) => ({ ...prev, workers: newWorkers }));
+                    }}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                  >
+                    <option value="國內轉出工">國內轉出工</option>
+                    <option value="國外引進工">國外引進工</option>
+                  </select>
                 </div>
               </div>
 

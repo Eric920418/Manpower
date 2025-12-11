@@ -50,6 +50,7 @@ const nextConfig: NextConfig = {
       : 'http://localhost:3000';
 
     return [
+      // API 路由 CORS 設定
       {
         source: "/api/:path*",
         headers: [
@@ -68,6 +69,40 @@ const nextConfig: NextConfig = {
           {
             key: "Access-Control-Allow-Credentials",
             value: "true",
+          },
+        ],
+      },
+      // 靜態圖片快取（1 年）- 減少重複請求
+      {
+        source: "/api/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
+      // 靜態資源快取（JS、CSS、字體等）
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      // 上傳檔案快取
+      {
+        source: "/uploads/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
           },
         ],
       },

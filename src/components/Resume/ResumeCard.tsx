@@ -50,17 +50,20 @@ const ResumeCard = memo(function ResumeCard({ resume, isSelected = false, onSele
       )}
 
       {/* 照片 */}
-      <div className="relative mb-4">
-        <div className="absolute -inset-1 bg-gradient-to-r from-brand-primary to-brand-accent rounded-full opacity-0 group-hover:opacity-100 blur transition-opacity duration-300"></div>
-        <Image
-          className="relative w-24 h-24 rounded-full object-cover ring-4 ring-brand-primary/20 group-hover:ring-brand-primary/50 transition-all"
-          src={imgSrc}
-          alt={`${resume.name} 的專業照片`}
-          width={96}
-          height={96}
-          unoptimized
-          onError={() => setImgSrc("/placeholder-avatar.png")}
-        />
+      <div className="relative mb-4 z-20">
+        <div className="absolute -inset-1 bg-gradient-to-r from-brand-primary to-brand-accent rounded-full opacity-0 group-hover:opacity-100 blur transition-opacity duration-300 pointer-events-none"></div>
+        <div className="relative w-24 h-24">
+          <div className="w-full h-full rounded-full ring-4 ring-brand-primary/20 group-hover:ring-brand-primary/50 transition-all overflow-hidden pointer-events-none absolute inset-0"></div>
+          <Image
+            className="w-24 h-24 rounded-full object-cover transition-all duration-300 cursor-pointer hover:scale-[2.5] hover:rounded-lg hover:shadow-2xl hover:z-50"
+            src={imgSrc}
+            alt={`${resume.name} 的專業照片`}
+            width={96}
+            height={96}
+            unoptimized
+            onError={() => setImgSrc("/placeholder-avatar.png")}
+          />
+        </div>
       </div>
 
       {/* 姓名 */}

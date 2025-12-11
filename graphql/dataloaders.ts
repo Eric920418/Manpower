@@ -5,7 +5,7 @@
  */
 
 import DataLoader from 'dataloader';
-import { PrismaClient, User, AdminTask, ApprovalRecord } from '@prisma/client';
+import { PrismaClient, User, AdminTask, ApprovalRecord, TaskType, AdminTaskAttachment } from '@prisma/client';
 
 /**
  * 創建 User DataLoader
@@ -80,6 +80,56 @@ export function createApprovalRecordsByTaskLoader(prisma: PrismaClient) {
 }
 
 /**
+ * 創建 TaskType DataLoader
+ * 批量載入任務類型（通過 ID）
+ */
+export function createTaskTypeLoader(prisma: PrismaClient) {
+  return new DataLoader<number, TaskType | null>(async (taskTypeIds) => {
+    const taskTypes = await prisma.taskType.findMany({
+      where: {
+        id: {
+          in: [...taskTypeIds],
+        },
+      },
+    });
+
+    const taskTypeMap = new Map(taskTypes.map((t) => [t.id, t]));
+    return taskTypeIds.map((id) => taskTypeMap.get(id) || null);
+  });
+}
+
+/**
+ * 創建 Attachments DataLoader
+ * 批量載入附件（通過任務 ID）
+ * 注意：這是一對多關係，返回陣列
+ */
+export function createAttachmentsByTaskLoader(prisma: PrismaClient) {
+  return new DataLoader<number, AdminTaskAttachment[]>(async (taskIds) => {
+    const attachments = await prisma.adminTaskAttachment.findMany({
+      where: {
+        taskId: {
+          in: [...taskIds],
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // 按 taskId 分組
+    const attachmentMap = new Map<number, AdminTaskAttachment[]>();
+    taskIds.forEach((id) => attachmentMap.set(id, []));
+    attachments.forEach((attachment) => {
+      const existing = attachmentMap.get(attachment.taskId) || [];
+      existing.push(attachment);
+      attachmentMap.set(attachment.taskId, existing);
+    });
+
+    return taskIds.map((id) => attachmentMap.get(id) || []);
+  });
+}
+
+/**
  * 創建所有 DataLoaders
  * 每個請求都應該創建新的 DataLoader 實例（避免跨請求快取）
  */
@@ -88,6 +138,8 @@ export function createDataLoaders(prisma: PrismaClient) {
     userLoader: createUserLoader(prisma),
     adminTaskLoader: createAdminTaskLoader(prisma),
     approvalRecordsByTaskLoader: createApprovalRecordsByTaskLoader(prisma),
+    taskTypeLoader: createTaskTypeLoader(prisma),
+    attachmentsByTaskLoader: createAttachmentsByTaskLoader(prisma),
   };
 }
 

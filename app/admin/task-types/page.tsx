@@ -470,14 +470,16 @@ export default function TaskTypesPage() {
 
   const handleEditQuestion = (question: Question) => {
     setEditingQuestion(question);
+    // 過濾掉不存在選項的相關設定（清理髒資料）
+    const validOptions = new Set(question.options);
     setQuestionForm({
       label: question.label,
       type: question.type,
       options: [...question.options],
       required: question.required,
-      triggers: question.triggers || [],
-      reminders: question.reminders || [],
-      explanations: question.explanations || [],
+      triggers: (question.triggers || []).filter((t) => validOptions.has(t.answer)),
+      reminders: (question.reminders || []).filter((r) => validOptions.has(r.answer)),
+      explanations: (question.explanations || []).filter((e) => validOptions.has(e.answer)),
     });
     setNewOption("");
     setShowQuestionModal(true);
@@ -567,9 +569,14 @@ export default function TaskTypesPage() {
   };
 
   const handleRemoveOption = (index: number) => {
+    const removedOption = questionForm.options[index];
     setQuestionForm({
       ...questionForm,
       options: questionForm.options.filter((_, i) => i !== index),
+      // 同時清理相關的 triggers、reminders、explanations
+      triggers: questionForm.triggers.filter((t) => t.answer !== removedOption),
+      reminders: questionForm.reminders.filter((r) => r.answer !== removedOption),
+      explanations: questionForm.explanations.filter((e) => e.answer !== removedOption),
     });
   };
 
