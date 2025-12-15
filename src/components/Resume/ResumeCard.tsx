@@ -1,7 +1,8 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export interface Resume {
   id: string;
@@ -33,6 +34,12 @@ const ResumeCard = memo(function ResumeCard({
   onSelect,
 }: ResumeCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSelectClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -40,40 +47,44 @@ const ResumeCard = memo(function ResumeCard({
     onSelect?.(resume.id, !isSelected);
   };
 
-  // 國家對應顏色
+  // 國家對應顏色 - 使用品牌色系
   const countryColors: Record<string, { bg: string; text: string }> = {
-    印尼: { bg: "bg-amber-400", text: "text-blue-900" },
-    菲律賓: { bg: "bg-blue-500", text: "text-white" },
-    越南: { bg: "bg-red-500", text: "text-yellow-300" },
-    泰國: { bg: "bg-purple-500", text: "text-white" },
-    印度: { bg: "bg-orange-500", text: "text-white" },
+    印尼: { bg: "bg-brand-primary", text: "text-white" },
+    菲律賓: { bg: "bg-brand-secondary", text: "text-white" },
+    越南: { bg: "bg-brand-accent", text: "text-white" },
+    泰國: { bg: "bg-[#5BA3C0]", text: "text-white" },
+    印度: { bg: "bg-[#0D5A7A]", text: "text-white" },
   };
 
   const countryStyle = countryColors[resume.country] || {
-    bg: "bg-gray-500",
+    bg: "bg-brand-secondary",
     text: "text-white",
   };
 
   return (
-    <div
-      className={`group bg-white rounded-xl shadow-md border overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 relative ${
-        isSelected
-          ? "border-brand-primary border-2 ring-2 ring-brand-primary/30"
-          : "border-gray-200 hover:border-brand-primary"
-      }`}
-    >
-      {/* NEW 標籤 */}
-      {resume.isNew && (
-        <div className="absolute top-3 left-3 z-20">
-          <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded shadow-md">
-            NEW
-          </span>
-        </div>
-      )}
+    <>
+      <div
+        className={`group bg-white rounded-xl shadow-md border overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 relative ${
+          isSelected
+            ? "border-brand-primary border-2 ring-2 ring-brand-primary/30"
+            : "border-gray-200 hover:border-brand-primary"
+        }`}
+      >
+        {/* NEW 標籤 */}
+        {resume.isNew && (
+          <div className="absolute top-3 left-3 z-20">
+            <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded shadow-md">
+              NEW
+            </span>
+          </div>
+        )}
 
-      {/* 照片區域 */}
-      <Link href={`/resume/${resume.id}`} className="block">
-        <div className="relative w-full aspect-[3/4] bg-gradient-to-b from-pink-100 to-pink-50 overflow-hidden">
+        {/* 照片區域 - hover 放大 */}
+        <div
+          className="relative w-full aspect-[3/4] bg-gradient-to-b from-pink-100 to-pink-50 overflow-hidden cursor-pointer"
+          onMouseEnter={() => setIsZoomed(true)}
+          onMouseLeave={() => setIsZoomed(false)}
+        >
           {!imageError ? (
             <Image
               src={resume.photo}
@@ -90,60 +101,110 @@ const ResumeCard = memo(function ResumeCard({
               </span>
             </div>
           )}
-        </div>
-      </Link>
-
-      {/* 資訊區域 */}
-      <div className="p-4 flex flex-col flex-1">
-        {/* 姓名 */}
-        <h3 className="font-bold text-lg text-gray-900 mb-2 leading-tight">
-          {resume.name}
-        </h3>
-
-        {/* 國籍標籤 */}
-        <div className="mb-3">
-          <span
-            className={`inline-block ${countryStyle.bg} ${countryStyle.text} text-xs font-bold px-3 py-1 rounded`}
+          {/* 點擊查看詳情提示 */}
+          <Link
+            href={`/resume/${resume.id}`}
+            className="absolute inset-0 flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-black/50 to-transparent"
           >
-            {resume.country}
-          </span>
+            <span className="text-white text-sm font-medium mb-4 flex items-center gap-1">
+              <span className="material-symbols-outlined text-base">visibility</span>
+              查看詳情
+            </span>
+          </Link>
         </div>
 
-        {/* 詳細資訊 */}
-        <div className="space-y-1.5 text-sm text-gray-700 mb-4">
-          <div className="flex">
-            <span className="text-gray-500 w-20 shrink-0">外國人編號：</span>
-            <span className="font-medium">{resume.foreignId}</span>
-          </div>
-          <div className="flex">
-            <span className="text-gray-500 w-20 shrink-0">年齡：</span>
-            <span className="font-medium">{resume.age}</span>
-          </div>
-          <div className="flex">
-            <span className="text-gray-500 w-20 shrink-0">學歷：</span>
-            <span className="font-medium">{resume.education}</span>
-          </div>
-          <div className="flex">
-            <span className="text-gray-500 w-20 shrink-0">身高/體重：</span>
-            <span className="font-medium">
-              {resume.height}cm/{resume.weight}kg
+        {/* 資訊區域 */}
+        <div className="p-4 flex flex-col flex-1">
+          {/* 姓名 */}
+          <h3 className="font-bold text-lg text-gray-900 mb-2 leading-tight">
+            {resume.name}
+          </h3>
+
+          {/* 國籍標籤 */}
+          <div className="mb-3">
+            <span
+              className={`inline-block ${countryStyle.bg} ${countryStyle.text} text-xs font-bold px-3 py-1 rounded`}
+            >
+              {resume.country}
             </span>
           </div>
-        </div>
 
-        {/* 選定按鈕 */}
-        <button
-          onClick={handleSelectClick}
-          className={`mt-auto w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-200 ${
-            isSelected
-              ? "bg-brand-primary text-white shadow-lg"
-              : "bg-amber-400 text-gray-900 hover:bg-amber-500 hover:shadow-md"
-          }`}
-        >
-          {isSelected ? "✓ 已選定" : "選定"}
-        </button>
+          {/* 詳細資訊 */}
+          <div className="space-y-1.5 text-sm text-gray-700 mb-4">
+            <div className="flex">
+              <span className="text-gray-500 w-20 shrink-0">外國人編號：</span>
+              <span className="font-medium">{resume.foreignId}</span>
+            </div>
+            <div className="flex">
+              <span className="text-gray-500 w-20 shrink-0">年齡：</span>
+              <span className="font-medium">{resume.age}</span>
+            </div>
+            <div className="flex">
+              <span className="text-gray-500 w-20 shrink-0">學歷：</span>
+              <span className="font-medium">{resume.education}</span>
+            </div>
+            <div className="flex">
+              <span className="text-gray-500 w-20 shrink-0">身高/體重：</span>
+              <span className="font-medium">
+                {resume.height}cm/{resume.weight}kg
+              </span>
+            </div>
+          </div>
+
+          {/* 選定按鈕 */}
+          <button
+            onClick={handleSelectClick}
+            className={`mt-auto w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-200 ${
+              isSelected
+                ? "bg-brand-secondary text-white shadow-lg"
+                : "bg-brand-primary text-white hover:bg-brand-accent hover:shadow-md"
+            }`}
+          >
+            {isSelected ? "✓ 已選定" : "選定"}
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* 全螢幕放大預覽 - 使用 Portal */}
+      {mounted &&
+        isZoomed &&
+        !imageError &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/90 flex items-center justify-center pointer-events-none"
+            style={{ zIndex: 99999 }}
+          >
+            <div className="relative max-w-[90vw] max-h-[90vh]">
+              <Image
+                src={resume.photo}
+                alt={`${resume.name} 的照片`}
+                width={800}
+                height={1067}
+                className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+                unoptimized
+              />
+              {/* 資訊覆蓋層 */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
+                <h3 className="text-white text-2xl font-bold mb-2">{resume.name}</h3>
+                <div className="flex flex-wrap gap-4 text-white/90 text-sm">
+                  <span
+                    className={`${countryStyle.bg} ${countryStyle.text} px-3 py-1 rounded font-bold`}
+                  >
+                    {resume.country}
+                  </span>
+                  <span>編號：{resume.foreignId}</span>
+                  <span>年齡：{resume.age}歲</span>
+                  <span>學歷：{resume.education}</span>
+                  <span>
+                    {resume.height}cm / {resume.weight}kg
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 });
 

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ImageZoom from "@/components/Resume/ImageZoom";
 
 // 強制動態渲染
 export const dynamic = "force-dynamic";
@@ -96,13 +97,13 @@ async function getResumeDetailData(id: string) {
   }
 }
 
-// 國家對應顏色
+// 國家對應顏色 - 使用品牌色系
 const countryColors: Record<string, { bg: string; text: string }> = {
-  印尼: { bg: "bg-amber-400", text: "text-blue-900" },
-  菲律賓: { bg: "bg-blue-500", text: "text-white" },
-  越南: { bg: "bg-red-500", text: "text-yellow-300" },
-  泰國: { bg: "bg-purple-500", text: "text-white" },
-  印度: { bg: "bg-orange-500", text: "text-white" },
+  印尼: { bg: "bg-brand-primary", text: "text-white" },
+  菲律賓: { bg: "bg-brand-secondary", text: "text-white" },
+  越南: { bg: "bg-brand-accent", text: "text-white" },
+  泰國: { bg: "bg-[#5BA3C0]", text: "text-white" },
+  印度: { bg: "bg-[#0D5A7A]", text: "text-white" },
 };
 
 export default async function ResumeDetailPage({
@@ -237,16 +238,21 @@ export default async function ResumeDetailPage({
                     </div>
                   )}
 
-                  {/* 照片 */}
-                  <div className="relative w-full aspect-[3/4] bg-gradient-to-b from-pink-100 to-pink-50">
-                    <Image
-                      src={worker.photo || "/placeholder-avatar.png"}
-                      alt={`${worker.name} 的照片`}
-                      fill
-                      className="object-cover object-top"
-                      sizes="(max-width: 1024px) 100vw, 33vw"
-                    />
-                  </div>
+                  {/* 照片 - hover 放大 */}
+                  <ImageZoom
+                    src={worker.photo || "/placeholder-avatar.png"}
+                    alt={`${worker.name} 的照片`}
+                    overlayInfo={{
+                      name: worker.name,
+                      country: worker.country,
+                      countryStyle: countryStyle,
+                      foreignId: worker.foreignId || worker.id,
+                      age: worker.age,
+                      education: worker.education || "未填寫",
+                      height: worker.height || 0,
+                      weight: worker.weight || 0,
+                    }}
+                  />
 
                   {/* 基本資訊 */}
                   <div className="p-6">
@@ -323,7 +329,7 @@ export default async function ResumeDetailPage({
                     {/* 選定按鈕 */}
                     <Link
                       href={`/resume/request?selected=${worker.id}`}
-                      className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-amber-400 text-gray-900 rounded-lg font-bold hover:bg-amber-500 transition-colors shadow-md"
+                      className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-brand-primary text-white rounded-lg font-bold hover:bg-brand-accent transition-colors shadow-md"
                     >
                       <span className="material-symbols-outlined">send</span>
                       選定此人才
