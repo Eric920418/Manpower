@@ -10,16 +10,22 @@ import Pagination from "./Pagination";
 interface Worker {
   id: string;
   name: string;
+  foreignId?: string;
   age: number;
   gender: string;
   country: string;
   photo: string;
   experience: string;
+  education?: string;
+  height?: number;
+  weight?: number;
   skills: string[];
   languages: string[];
   availability: string;
   category: string;
+  sourceType?: string;
   description: string;
+  isNew?: boolean;
 }
 
 // 將 Worker 轉換為 Resume 格式
@@ -27,11 +33,18 @@ const convertWorkerToResume = (worker: Worker): Resume => {
   return {
     id: worker.id,
     name: worker.name,
+    foreignId: worker.foreignId || `ID-${worker.id}`,
+    age: worker.age,
+    country: worker.country,
+    photo: worker.photo || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+    education: worker.education || "未填寫",
+    height: worker.height || 0,
+    weight: worker.weight || 0,
+    isNew: worker.isNew ?? false,
+    // 保留舊欄位以兼容
     title: worker.category || "專業人才",
     experience: worker.experience || `${worker.age}歲`,
     location: worker.country,
-    country: worker.country,
-    photo: worker.photo || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
     skills: worker.skills || [],
   };
 };
@@ -113,11 +126,11 @@ export default function ResumeGrid() {
     const filtered = resumes.filter(
       (resume) =>
         resume.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        resume.title.toLowerCase().includes(keyword.toLowerCase()) ||
-        resume.skills.some((skill) =>
+        (resume.title?.toLowerCase().includes(keyword.toLowerCase()) ?? false) ||
+        (resume.skills?.some((skill) =>
           skill.toLowerCase().includes(keyword.toLowerCase())
-        ) ||
-        resume.location.toLowerCase().includes(keyword.toLowerCase()) ||
+        ) ?? false) ||
+        (resume.location?.toLowerCase().includes(keyword.toLowerCase()) ?? false) ||
         resume.country.toLowerCase().includes(keyword.toLowerCase())
     );
 
@@ -164,7 +177,7 @@ export default function ResumeGrid() {
       const matchKeywords = industryMap[filters.industry] || [];
       filtered = filtered.filter((resume) =>
         matchKeywords.some((keyword) =>
-          resume.title.toLowerCase().includes(keyword.toLowerCase())
+          (resume.title?.toLowerCase().includes(keyword.toLowerCase()) ?? false)
         )
       );
     }
@@ -172,7 +185,7 @@ export default function ResumeGrid() {
     // 經驗年資篩選
     if (filters.experience) {
       filtered = filtered.filter((resume) => {
-        const exp = resume.experience.toLowerCase();
+        const exp = (resume.experience || "").toLowerCase();
         if (filters.experience === "1-2") {
           return exp.includes("1") || exp.includes("2");
         } else if (filters.experience === "3-5") {
@@ -205,7 +218,7 @@ export default function ResumeGrid() {
       const matchLanguages = languageMap[filters.language] || [];
       filtered = filtered.filter((resume) =>
         matchLanguages.some((lang) =>
-          resume.skills.some((skill) =>
+          (resume.skills || []).some((skill) =>
             skill.toLowerCase().includes(lang.toLowerCase())
           )
         )
@@ -233,7 +246,8 @@ export default function ResumeGrid() {
       // 經驗年資排序 (從多到少)
       sorted.sort((a, b) => {
         // 提取數字
-        const getYears = (exp: string): number => {
+        const getYears = (exp: string | undefined): number => {
+          if (!exp) return 0;
           const match = exp.match(/\d+/);
           return match ? parseInt(match[0]) : 0;
         };

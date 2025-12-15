@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import AvatarZoom from "@/components/Resume/AvatarZoom";
 
 // 強制動態渲染
 export const dynamic = "force-dynamic";
@@ -10,16 +9,22 @@ export const dynamic = "force-dynamic";
 interface Worker {
   id: string;
   name: string;
+  foreignId?: string;
   age: number;
   gender: string;
   country: string;
   photo: string;
   experience: string;
+  education?: string;
+  height?: number;
+  weight?: number;
   skills: string[];
   languages: string[];
   availability: string;
   category: string;
+  sourceType?: string;
   description: string;
+  isNew?: boolean;
 }
 
 async function getResumeDetailData(id: string) {
@@ -90,6 +95,15 @@ async function getResumeDetailData(id: string) {
     throw error;
   }
 }
+
+// 國家對應顏色
+const countryColors: Record<string, { bg: string; text: string }> = {
+  印尼: { bg: "bg-amber-400", text: "text-blue-900" },
+  菲律賓: { bg: "bg-blue-500", text: "text-white" },
+  越南: { bg: "bg-red-500", text: "text-yellow-300" },
+  泰國: { bg: "bg-purple-500", text: "text-white" },
+  印度: { bg: "bg-orange-500", text: "text-white" },
+};
 
 export default async function ResumeDetailPage({
   params,
@@ -164,6 +178,11 @@ export default async function ResumeDetailPage({
       );
     }
 
+    const countryStyle = countryColors[worker.country] || {
+      bg: "bg-gray-500",
+      text: "text-white",
+    };
+
     return (
       <main className="relative flex w-full flex-col bg-bg-primary">
         {/* 固定背景 Logo */}
@@ -194,7 +213,7 @@ export default async function ResumeDetailPage({
 
         {/* 主要內容區 */}
         <div className="relative z-10 pt-24 pb-16 min-h-screen">
-          <div className="container mx-auto px-4 max-w-4xl">
+          <div className="container mx-auto px-4 max-w-5xl">
             {/* 返回按鈕 */}
             <Link
               href="/resume"
@@ -204,71 +223,148 @@ export default async function ResumeDetailPage({
               返回人才列表
             </Link>
 
-            {/* 履歷卡片 */}
-            <div className="bg-white rounded-2xl shadow-xl border border-border overflow-visible">
-              {/* 頭部區域 */}
-              <div className="bg-gradient-to-r from-brand-primary to-brand-accent p-8 text-white rounded-t-2xl overflow-visible">
-                <div className="flex flex-col md:flex-row items-center gap-6 overflow-visible">
-                  {/* 照片 */}
-                  <AvatarZoom
-                    src={worker.photo || "/placeholder-avatar.png"}
-                    alt={`${worker.name} 的照片`}
-                    size={128}
-                    badge={worker.id}
-                  />
-
-                  {/* 基本資訊 */}
-                  <div className="text-center md:text-left flex-1">
-                    <h1 className="text-3xl font-bold mb-2">{worker.name}</h1>
-                    <p className="text-xl text-white/90 mb-3">{worker.category}</p>
-                    <div className="flex flex-wrap justify-center md:justify-start gap-4 text-white/80">
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-lg">
-                          location_on
-                        </span>
-                        {worker.country}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-lg">
-                          person
-                        </span>
-                        {worker.gender} · {worker.age}歲
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-lg">
-                          work_history
-                        </span>
-                        {worker.experience}
+            {/* 主要內容：左右佈局 */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* 左側：照片與基本資訊卡片 */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden sticky top-24">
+                  {/* NEW 標籤 */}
+                  {worker.isNew && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <span className="bg-red-500 text-white text-sm font-bold px-4 py-1.5 rounded shadow-md">
+                        NEW
                       </span>
                     </div>
+                  )}
+
+                  {/* 照片 */}
+                  <div className="relative w-full aspect-[3/4] bg-gradient-to-b from-pink-100 to-pink-50">
+                    <Image
+                      src={worker.photo || "/placeholder-avatar.png"}
+                      alt={`${worker.name} 的照片`}
+                      fill
+                      className="object-cover object-top"
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                    />
                   </div>
 
-                  {/* 狀態標籤 */}
-                  <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
-                    <p className="text-sm text-white/80">可上工時間</p>
-                    <p className="text-lg font-bold">{worker.availability}</p>
+                  {/* 基本資訊 */}
+                  <div className="p-6">
+                    {/* 姓名 */}
+                    <h1 className="text-2xl font-bold text-gray-900 mb-3">
+                      {worker.name}
+                    </h1>
+
+                    {/* 國籍標籤 */}
+                    <div className="mb-4">
+                      <span
+                        className={`inline-block ${countryStyle.bg} ${countryStyle.text} text-sm font-bold px-4 py-1.5 rounded`}
+                      >
+                        {worker.country}
+                      </span>
+                    </div>
+
+                    {/* 詳細資訊 */}
+                    <div className="space-y-3 text-sm">
+                      <div className="flex border-b border-gray-100 pb-2">
+                        <span className="text-gray-500 w-24 shrink-0">外國人編號</span>
+                        <span className="font-semibold text-gray-900">
+                          {worker.foreignId || worker.id}
+                        </span>
+                      </div>
+                      <div className="flex border-b border-gray-100 pb-2">
+                        <span className="text-gray-500 w-24 shrink-0">年齡</span>
+                        <span className="font-semibold text-gray-900">
+                          {worker.age} 歲
+                        </span>
+                      </div>
+                      <div className="flex border-b border-gray-100 pb-2">
+                        <span className="text-gray-500 w-24 shrink-0">性別</span>
+                        <span className="font-semibold text-gray-900">
+                          {worker.gender}
+                        </span>
+                      </div>
+                      <div className="flex border-b border-gray-100 pb-2">
+                        <span className="text-gray-500 w-24 shrink-0">學歷</span>
+                        <span className="font-semibold text-gray-900">
+                          {worker.education || "未填寫"}
+                        </span>
+                      </div>
+                      <div className="flex border-b border-gray-100 pb-2">
+                        <span className="text-gray-500 w-24 shrink-0">身高/體重</span>
+                        <span className="font-semibold text-gray-900">
+                          {worker.height && worker.weight
+                            ? `${worker.height}cm / ${worker.weight}kg`
+                            : "未填寫"}
+                        </span>
+                      </div>
+                      <div className="flex border-b border-gray-100 pb-2">
+                        <span className="text-gray-500 w-24 shrink-0">工作類別</span>
+                        <span className="font-semibold text-gray-900">
+                          {worker.category}
+                        </span>
+                      </div>
+                      {worker.sourceType && (
+                        <div className="flex border-b border-gray-100 pb-2">
+                          <span className="text-gray-500 w-24 shrink-0">來源類型</span>
+                          <span className="font-semibold text-gray-900">
+                            {worker.sourceType}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex">
+                        <span className="text-gray-500 w-24 shrink-0">可上工</span>
+                        <span className="font-semibold text-green-600">
+                          {worker.availability}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 選定按鈕 */}
+                    <Link
+                      href={`/resume/request?selected=${worker.id}`}
+                      className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-amber-400 text-gray-900 rounded-lg font-bold hover:bg-amber-500 transition-colors shadow-md"
+                    >
+                      <span className="material-symbols-outlined">send</span>
+                      選定此人才
+                    </Link>
                   </div>
                 </div>
               </div>
 
-              {/* 詳細內容 */}
-              <div className="p-8 space-y-8">
+              {/* 右側：詳細內容 */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* 工作經驗 */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-brand-primary">
+                      work_history
+                    </span>
+                    工作經驗
+                  </h2>
+                  <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4">
+                    <p className="text-lg font-semibold text-brand-secondary">
+                      {worker.experience}
+                    </p>
+                  </div>
+                </div>
+
                 {/* 自我介紹 */}
-                <section>
-                  <h2 className="text-xl font-bold text-brand-secondary mb-4 flex items-center gap-2">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-brand-primary">
                       info
                     </span>
                     自我介紹
                   </h2>
-                  <p className="text-text-secondary leading-relaxed bg-gray-50 p-4 rounded-lg">
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
                     {worker.description || "暫無自我介紹"}
                   </p>
-                </section>
+                </div>
 
                 {/* 專業技能 */}
-                <section>
-                  <h2 className="text-xl font-bold text-brand-secondary mb-4 flex items-center gap-2">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-brand-primary">
                       build
                     </span>
@@ -279,20 +375,20 @@ export default async function ResumeDetailPage({
                       worker.skills.map((skill: string, index: number) => (
                         <span
                           key={index}
-                          className="bg-brand-primary/10 text-brand-secondary px-4 py-2 rounded-full font-medium border border-brand-primary/20 hover:bg-brand-primary/20 transition-colors"
+                          className="bg-brand-primary/10 text-brand-secondary px-4 py-2 rounded-full font-medium border border-brand-primary/20"
                         >
                           {skill}
                         </span>
                       ))
                     ) : (
-                      <p className="text-text-secondary">暫無技能資料</p>
+                      <p className="text-gray-500">暫無技能資料</p>
                     )}
                   </div>
-                </section>
+                </div>
 
                 {/* 語言能力 */}
-                <section>
-                  <h2 className="text-xl font-bold text-brand-secondary mb-4 flex items-center gap-2">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-brand-primary">
                       translate
                     </span>
@@ -309,67 +405,23 @@ export default async function ResumeDetailPage({
                         </span>
                       ))
                     ) : (
-                      <p className="text-text-secondary">暫無語言資料</p>
+                      <p className="text-gray-500">暫無語言資料</p>
                     )}
                   </div>
-                </section>
-
-                {/* 詳細資訊表格 */}
-                <section>
-                  <h2 className="text-xl font-bold text-brand-secondary mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-brand-primary">
-                      assignment
-                    </span>
-                    詳細資訊
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">編號</p>
-                      <p className="font-semibold text-text-primary">{worker.id}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">姓名</p>
-                      <p className="font-semibold text-text-primary">{worker.name}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">年齡</p>
-                      <p className="font-semibold text-text-primary">{worker.age}歲</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">性別</p>
-                      <p className="font-semibold text-text-primary">{worker.gender}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">國籍</p>
-                      <p className="font-semibold text-text-primary">{worker.country}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">工作類別</p>
-                      <p className="font-semibold text-text-primary">{worker.category}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">工作經驗</p>
-                      <p className="font-semibold text-text-primary">{worker.experience}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-text-secondary mb-1">可上工時間</p>
-                      <p className="font-semibold text-text-primary">{worker.availability}</p>
-                    </div>
-                  </div>
-                </section>
+                </div>
 
                 {/* 操作按鈕 */}
-                <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-border">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <Link
                     href="/resume"
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-brand-primary text-brand-primary rounded-lg hover:bg-brand-primary/10 transition-colors font-semibold"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-semibold"
                   >
                     <span className="material-symbols-outlined">arrow_back</span>
                     返回列表
                   </Link>
                   <Link
                     href={`/resume/request?selected=${worker.id}`}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-accent transition-colors font-semibold shadow-lg"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-primary text-white rounded-xl hover:bg-brand-accent transition-colors font-semibold shadow-lg"
                   >
                     <span className="material-symbols-outlined">send</span>
                     提交人力需求

@@ -22,7 +22,8 @@
       "Bash(sudo systemctl status:*)",
       "Bash(sudo -u postgres psql:*)",
       "Bash(openssl rand:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
