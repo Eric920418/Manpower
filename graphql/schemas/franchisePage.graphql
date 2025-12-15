@@ -1,8 +1,6 @@
 type FranchisePage {
   id: ID!
   hero: JSON
-  marketTrends: JSON
-  policySupport: JSON
   marketOpportunity: JSON
   partnershipAdvantages: JSON
   franchiseProcess: JSON
@@ -15,8 +13,6 @@ extend type Query {
 
 input UpdateFranchisePageInput {
   hero: JSON
-  marketTrends: JSON
-  policySupport: JSON
   marketOpportunity: JSON
   partnershipAdvantages: JSON
   franchiseProcess: JSON

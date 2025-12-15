@@ -10,8 +10,6 @@ const UPDATE_PAGE = gql`
   mutation UpdateFranchisePage($input: UpdateFranchisePageInput!) {
     updateFranchisePage(input: $input) {
       hero
-      marketTrends
-      policySupport
       marketOpportunity
       partnershipAdvantages
       franchiseProcess
@@ -24,8 +22,6 @@ const query = `
   query franchisePage {
     franchisePage {
       hero
-      marketTrends
-      policySupport
       marketOpportunity
       partnershipAdvantages
       franchiseProcess
@@ -33,22 +29,6 @@ const query = `
     }
   }
 `;
-
-interface MarketCard {
-  icon: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  chartLabel: string;
-  chartIcon: string;
-}
-
-interface Policy {
-  icon: string;
-  title: string;
-  description: string;
-  color: string;
-}
 
 interface Feature {
   icon: string;
@@ -95,16 +75,6 @@ interface PageData {
     title: string;
     backgroundImage: string;
   };
-  marketTrends: {
-    badge: string;
-    title: string;
-    cards: MarketCard[];
-  };
-  policySupport: {
-    title: string;
-    subtitle: string;
-    policies: Policy[];
-  };
   marketOpportunity: {
     title: string;
     backgroundImage: string;
@@ -135,8 +105,6 @@ interface PageData {
 
 const defaultPageData: PageData = {
   hero: { title: "", backgroundImage: "" },
-  marketTrends: { badge: "", title: "", cards: [] },
-  policySupport: { title: "", subtitle: "", policies: [] },
   marketOpportunity: { title: "", backgroundImage: "", opportunities: [] },
   partnershipAdvantages: { title: "", subtitle: "", advantages: [], ctaButton: { text: "", link: "" } },
   franchiseProcess: { title: "", subtitle: "", steps: [] },
@@ -188,8 +156,6 @@ export const FranchisePage = () => {
 
   const sections = [
     { id: "hero", label: "Hero 區塊" },
-    { id: "marketTrends", label: "市場趨勢" },
-    { id: "policySupport", label: "政策支持" },
     { id: "marketOpportunity", label: "市場機會" },
     { id: "partnershipAdvantages", label: "合作優勢" },
     { id: "franchiseProcess", label: "加盟流程" },
@@ -266,325 +232,6 @@ export const FranchisePage = () => {
                   }))
                 }
               />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 市場趨勢 */}
-      {activeSection === "marketTrends" && (
-        <div className="bg-gray-100 p-6 rounded-lg mb-6">
-          <h2 className="text-2xl font-bold mb-4">市場趨勢設定</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">徽章文字</label>
-              <input
-                type="text"
-                value={pageData.marketTrends.badge}
-                onChange={(e) =>
-                  setPageData((prev) => ({
-                    ...prev,
-                    marketTrends: { ...prev.marketTrends, badge: e.target.value },
-                  }))
-                }
-                className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">標題</label>
-              <input
-                type="text"
-                value={pageData.marketTrends.title}
-                onChange={(e) =>
-                  setPageData((prev) => ({
-                    ...prev,
-                    marketTrends: { ...prev.marketTrends, title: e.target.value },
-                  }))
-                }
-                className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
-              />
-            </div>
-
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold">卡片內容</h3>
-                <button
-                  onClick={() =>
-                    setPageData((prev) => ({
-                      ...prev,
-                      marketTrends: {
-                        ...prev.marketTrends,
-                        cards: [
-                          ...prev.marketTrends.cards,
-                          { icon: "", title: "", subtitle: "", description: "", chartLabel: "", chartIcon: "" },
-                        ],
-                      },
-                    }))
-                  }
-                  className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                >
-                  新增卡片
-                </button>
-              </div>
-              {pageData.marketTrends.cards.map((card, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg border mb-4">
-                  <h4 className="font-medium mb-3">卡片 #{index + 1}</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">圖標</label>
-                      <input
-                        type="text"
-                        value={card.icon}
-                        onChange={(e) => {
-                          const newCards = [...pageData.marketTrends.cards];
-                          newCards[index] = { ...newCards[index], icon: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            marketTrends: { ...prev.marketTrends, cards: newCards },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">標題</label>
-                      <input
-                        type="text"
-                        value={card.title}
-                        onChange={(e) => {
-                          const newCards = [...pageData.marketTrends.cards];
-                          newCards[index] = { ...newCards[index], title: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            marketTrends: { ...prev.marketTrends, cards: newCards },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">副標題</label>
-                      <input
-                        type="text"
-                        value={card.subtitle}
-                        onChange={(e) => {
-                          const newCards = [...pageData.marketTrends.cards];
-                          newCards[index] = { ...newCards[index], subtitle: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            marketTrends: { ...prev.marketTrends, cards: newCards },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">描述</label>
-                      <textarea
-                        value={card.description}
-                        onChange={(e) => {
-                          const newCards = [...pageData.marketTrends.cards];
-                          newCards[index] = { ...newCards[index], description: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            marketTrends: { ...prev.marketTrends, cards: newCards },
-                          }));
-                        }}
-                        rows={3}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">圖表標籤</label>
-                      <input
-                        type="text"
-                        value={card.chartLabel}
-                        onChange={(e) => {
-                          const newCards = [...pageData.marketTrends.cards];
-                          newCards[index] = { ...newCards[index], chartLabel: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            marketTrends: { ...prev.marketTrends, cards: newCards },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">圖表圖標</label>
-                      <input
-                        type="text"
-                        value={card.chartIcon}
-                        onChange={(e) => {
-                          const newCards = [...pageData.marketTrends.cards];
-                          newCards[index] = { ...newCards[index], chartIcon: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            marketTrends: { ...prev.marketTrends, cards: newCards },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const newCards = pageData.marketTrends.cards.filter((_, i) => i !== index);
-                      setPageData((prev) => ({
-                        ...prev,
-                        marketTrends: { ...prev.marketTrends, cards: newCards },
-                      }));
-                    }}
-                    className="mt-3 bg-red-500 text-white px-3 py-1 rounded text-sm"
-                  >
-                    刪除卡片
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 政策支持 */}
-      {activeSection === "policySupport" && (
-        <div className="bg-gray-100 p-6 rounded-lg mb-6">
-          <h2 className="text-2xl font-bold mb-4">政策支持設定</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">標題</label>
-              <input
-                type="text"
-                value={pageData.policySupport.title}
-                onChange={(e) =>
-                  setPageData((prev) => ({
-                    ...prev,
-                    policySupport: { ...prev.policySupport, title: e.target.value },
-                  }))
-                }
-                className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">副標題</label>
-              <input
-                type="text"
-                value={pageData.policySupport.subtitle}
-                onChange={(e) =>
-                  setPageData((prev) => ({
-                    ...prev,
-                    policySupport: { ...prev.policySupport, subtitle: e.target.value },
-                  }))
-                }
-                className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
-              />
-            </div>
-
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold">政策項目</h3>
-                <button
-                  onClick={() =>
-                    setPageData((prev) => ({
-                      ...prev,
-                      policySupport: {
-                        ...prev.policySupport,
-                        policies: [
-                          ...prev.policySupport.policies,
-                          { icon: "", title: "", description: "", color: "from-blue-500 to-cyan-500" },
-                        ],
-                      },
-                    }))
-                  }
-                  className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                >
-                  新增政策
-                </button>
-              </div>
-              {pageData.policySupport.policies.map((policy, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg border mb-4">
-                  <h4 className="font-medium mb-3">政策 #{index + 1}</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">圖標</label>
-                      <input
-                        type="text"
-                        value={policy.icon}
-                        onChange={(e) => {
-                          const newPolicies = [...pageData.policySupport.policies];
-                          newPolicies[index] = { ...newPolicies[index], icon: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            policySupport: { ...prev.policySupport, policies: newPolicies },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">標題</label>
-                      <input
-                        type="text"
-                        value={policy.title}
-                        onChange={(e) => {
-                          const newPolicies = [...pageData.policySupport.policies];
-                          newPolicies[index] = { ...newPolicies[index], title: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            policySupport: { ...prev.policySupport, policies: newPolicies },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">描述</label>
-                      <textarea
-                        value={policy.description}
-                        onChange={(e) => {
-                          const newPolicies = [...pageData.policySupport.policies];
-                          newPolicies[index] = { ...newPolicies[index], description: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            policySupport: { ...prev.policySupport, policies: newPolicies },
-                          }));
-                        }}
-                        rows={3}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">漸層顏色 (Tailwind class)</label>
-                      <input
-                        type="text"
-                        value={policy.color}
-                        onChange={(e) => {
-                          const newPolicies = [...pageData.policySupport.policies];
-                          newPolicies[index] = { ...newPolicies[index], color: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            policySupport: { ...prev.policySupport, policies: newPolicies },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                        placeholder="from-blue-500 to-cyan-500"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const newPolicies = pageData.policySupport.policies.filter((_, i) => i !== index);
-                      setPageData((prev) => ({
-                        ...prev,
-                        policySupport: { ...prev.policySupport, policies: newPolicies },
-                      }));
-                    }}
-                    className="mt-3 bg-red-500 text-white px-3 py-1 rounded text-sm"
-                  >
-                    刪除政策
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
         </div>

@@ -2,8 +2,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FranchiseHero from "@/components/Franchise/FranchiseHero";
 import FranchiseNavButtons from "@/components/Franchise/FranchiseNavButtons";
-import MarketTrends from "@/components/Franchise/MarketTrends";
-import PolicySupport from "@/components/Franchise/PolicySupport";
 import MarketOpportunity from "@/components/Franchise/MarketOpportunity";
 import PartnershipAdvantages from "@/components/Franchise/PartnershipAdvantages";
 import FranchiseProcess from "@/components/Franchise/FranchiseProcess";
@@ -21,8 +19,6 @@ async function getPageData() {
       }
       franchisePage {
         hero
-        marketTrends
-        policySupport
         marketOpportunity
         partnershipAdvantages
         franchiseProcess
@@ -85,8 +81,6 @@ export default async function FranchisePage() {
 
       <FranchiseHero data={franchisePage?.hero} />
       <FranchiseNavButtons />
-      <MarketTrends data={franchisePage?.marketTrends} />
-      <PolicySupport data={franchisePage?.policySupport} />
       <MarketOpportunity data={franchisePage?.marketOpportunity} />
       <PartnershipAdvantages data={franchisePage?.partnershipAdvantages} />
       <FranchiseProcess data={franchisePage?.franchiseProcess} />

@@ -588,46 +588,6 @@ const franchisePageDefaults = {
     title: "創業加盟",
     backgroundImage: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?q=80&w=2000",
   },
-  marketTrends: {
-    badge: "照護需求快速增長",
-    title: "加入佑羲人力,攜手共創照護新時代",
-    cards: [
-      {
-        icon: "elderly",
-        title: "人口老化",
-        subtitle: "超高齡社會的挑戰與機遇",
-        description: "目前,台灣已經步入超高齡社會,這意味著在每五個人當中,就有一位是65歲以上的長者。這種現象帶來的影響涉及到社會、經濟、醫療、長照等各個層面。",
-        chartLabel: "未來人口預估趨勢圖",
-        chartIcon: "insert_chart",
-      },
-      {
-        icon: "health_and_safety",
-        title: "不健康餘命",
-        subtitle: "平均8年的照護需求",
-        description: "根據政府公布的統計數據,透過計算「平均死亡年齡」減去「健康年齡」,我們可以得出所謂的「不健康餘命」。自2014年至2022年,台灣人平均會面臨約8年的不健康年齡。",
-        chartLabel: "不健康餘命統計圖",
-        chartIcon: "monitoring",
-      },
-    ],
-  },
-  policySupport: {
-    title: "政策支持",
-    subtitle: "政府積極推動長照產業發展",
-    policies: [
-      {
-        icon: "verified_user",
-        title: "資格條件放寬",
-        description: "政府自113年年底即開始進行申請條件放寬的法規修訂,預計放寬後可以讓更多有需要的族群得到這方面的照護資源。",
-        color: "from-blue-500 to-cyan-500",
-      },
-      {
-        icon: "groups",
-        title: "短期照護需求",
-        description: "政府將於114年試辦「多元陪伴照顧服務」,規劃由公益專業團體聘請移工,以一對多的方式,提供有照顧需求家庭臨時性照顧服務。",
-        color: "from-cyan-500 to-teal-500",
-      },
-    ],
-  },
   marketOpportunity: {
     title: "長照市場:未來的黃金產業",
     backgroundImage: "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?q=80&w=2000",
