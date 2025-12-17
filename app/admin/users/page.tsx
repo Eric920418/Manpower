@@ -392,7 +392,9 @@ export default function UsersPage() {
                 狀態
               </label>
               <select
-                value={statusFilter === "" ? "" : statusFilter ? "true" : "false"}
+                value={
+                  statusFilter === "" ? "" : statusFilter ? "true" : "false"
+                }
                 onChange={(e) => {
                   setStatusFilter(
                     e.target.value === "" ? "" : e.target.value === "true"
@@ -438,7 +440,7 @@ export default function UsersPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         角色
                       </th>
-                      
+
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         電話
                       </th>
@@ -497,9 +499,7 @@ export default function UsersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {user.lastLoginAt
-                            ? new Date(user.lastLoginAt).toLocaleString(
-                                "zh-TW"
-                              )
+                            ? new Date(user.lastLoginAt).toLocaleString("zh-TW")
                             : "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -520,17 +520,18 @@ export default function UsersPage() {
                                 </button>
                               </>
                             )}
-                            {can(PermissionEnum.USER_DELETE) && user.role !== Role.SUPER_ADMIN && (
-                              <button
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setShowDeleteConfirm(true);
-                                }}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                刪除
-                              </button>
-                            )}
+                            {can(PermissionEnum.USER_DELETE) &&
+                              user.role !== Role.SUPER_ADMIN && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setShowDeleteConfirm(true);
+                                  }}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  刪除
+                                </button>
+                              )}
                           </div>
                         </td>
                       </tr>
@@ -610,27 +611,39 @@ export default function UsersPage() {
       {/* 新增/編輯用戶表單 */}
       {showUserForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`bg-white rounded-lg w-full max-h-[90vh] flex flex-col ${
-            formMode === "edit" && (formData.role === Role.STAFF || formData.role === Role.OWNER)
-              ? "max-w-5xl"
-              : "max-w-lg"
-          }`}>
-            <div className="p-2 flex-shrink-0">
+          <div
+            className={`bg-white rounded-lg w-full max-h-[90vh] flex flex-col ${
+              formMode === "edit" &&
+              (formData.role === Role.STAFF || formData.role === Role.OWNER)
+                ? "max-w-5xl"
+                : "max-w-lg"
+            }`}
+          >
+            <div className="p-4 flex-shrink-0">
               <h3 className="text-lg font-bold text-gray-900">
                 {formMode === "create" ? "新增用戶" : "編輯用戶"}
               </h3>
             </div>
-            <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 overflow-hidden">
+            <form
+              onSubmit={handleSubmitForm}
+              className="flex flex-col flex-1 overflow-hidden"
+            >
               <div className="flex-1 overflow-y-auto p-2">
-                <div className={`grid gap-6 ${
-                  formMode === "edit" && (formData.role === Role.STAFF || formData.role === Role.OWNER)
-                    ? "lg:grid-cols-2"
-                    : "grid-cols-1"
-                }`}>
+                <div
+                  className={`grid gap-6 ${
+                    formMode === "edit" &&
+                    (formData.role === Role.STAFF ||
+                      formData.role === Role.OWNER)
+                      ? "lg:grid-cols-2"
+                      : "grid-cols-1"
+                  }`}
+                >
                   {/* 左側：基本資訊 */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-gray-900  flex items-center gap-2">
-                      <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">1</span>
+                      <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">
+                        1
+                      </span>
                       基本資訊
                     </h4>
 
@@ -686,7 +699,10 @@ export default function UsersPage() {
                           required={formMode === "create"}
                           value={formData.password}
                           onChange={(e) =>
-                            setFormData({ ...formData, password: e.target.value })
+                            setFormData({
+                              ...formData,
+                              password: e.target.value,
+                            })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder={
@@ -709,9 +725,15 @@ export default function UsersPage() {
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          {canManage(Role.STAFF) && <option value={Role.STAFF}>業務人員</option>}
-                          {canManage(Role.OWNER) && <option value={Role.OWNER}>業主</option>}
-                          {canManage(Role.ADMIN) && <option value={Role.ADMIN}>管理員</option>}
+                          {canManage(Role.STAFF) && (
+                            <option value={Role.STAFF}>業務人員</option>
+                          )}
+                          {canManage(Role.OWNER) && (
+                            <option value={Role.OWNER}>業主</option>
+                          )}
+                          {canManage(Role.ADMIN) && (
+                            <option value={Role.ADMIN}>管理員</option>
+                          )}
                         </select>
                       </div>
                     </div>
@@ -739,7 +761,10 @@ export default function UsersPage() {
                           type="checkbox"
                           checked={formData.isActive}
                           onChange={(e) =>
-                            setFormData({ ...formData, isActive: e.target.checked })
+                            setFormData({
+                              ...formData,
+                              isActive: e.target.checked,
+                            })
                           }
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                         />
@@ -751,109 +776,124 @@ export default function UsersPage() {
                   </div>
 
                   {/* 右側：業務人員展示欄位（只在編輯模式且角色為 STAFF 或 OWNER 時顯示） */}
-                  {formMode === "edit" && (formData.role === Role.STAFF || formData.role === Role.OWNER) && (
-                    <div className="space-y-4 lg:border-l lg:pl-6">
-                      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">2</span>
-                        公開展示資訊
-                      </h4>
-
-                      {/* 職稱 & Line ID - 並排 */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            職稱
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.position}
-                            onChange={(e) =>
-                              setFormData({ ...formData, position: e.target.value })
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="例：業務經理"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Line ID
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.lineId}
-                            onChange={(e) =>
-                              setFormData({ ...formData, lineId: e.target.value })
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="例：@youshi_wang"
-                          />
-                        </div>
-                      </div>
-
-                      {/* 專長領域 */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          專長領域
-                          <span className="text-gray-500 text-xs ml-1">（以逗號分隔）</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.specialties.join(", ")}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              specialties: e.target.value
-                                .split(",")
-                                .map((s) => s.trim())
-                                .filter((s) => s),
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="例：製造業, 營建業, 大型企業專案"
-                        />
-                      </div>
-
-                      {/* 自我介紹 */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          自我介紹
-                        </label>
-                        <textarea
-                          value={formData.bio}
-                          onChange={(e) =>
-                            setFormData({ ...formData, bio: e.target.value })
-                          }
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="簡短介紹自己的專業背景和服務理念..."
-                        />
-                      </div>
-
-                      {/* 是否公開顯示 */}
-                      <div className="pt-2 p-3 bg-gray-50 rounded-lg">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.isPublic}
-                            onChange={(e) =>
-                              setFormData({ ...formData, isPublic: e.target.checked })
-                            }
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            在公開頁面顯示此業務人員
+                  {formMode === "edit" &&
+                    (formData.role === Role.STAFF ||
+                      formData.role === Role.OWNER) && (
+                      <div className="space-y-4 lg:border-l lg:pl-6">
+                        <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                          <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">
+                            2
                           </span>
-                        </label>
-                        <p className="text-xs text-gray-500 mt-1 ml-6">
-                          取消勾選後，此業務人員將不會顯示在 /staff 頁面
-                        </p>
+                          公開展示資訊
+                        </h4>
+
+                        {/* 職稱 & Line ID - 並排 */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              職稱
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.position}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  position: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="例：業務經理"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Line ID
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.lineId}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  lineId: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="例：@youshi_wang"
+                            />
+                          </div>
+                        </div>
+
+                        {/* 專長領域 */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            專長領域
+                            <span className="text-gray-500 text-xs ml-1">
+                              （以逗號分隔）
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.specialties.join(", ")}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                specialties: e.target.value
+                                  .split(",")
+                                  .map((s) => s.trim())
+                                  .filter((s) => s),
+                              })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="例：製造業, 營建業, 大型企業專案"
+                          />
+                        </div>
+
+                        {/* 自我介紹 */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            自我介紹
+                          </label>
+                          <textarea
+                            value={formData.bio}
+                            onChange={(e) =>
+                              setFormData({ ...formData, bio: e.target.value })
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="簡短介紹自己的專業背景和服務理念..."
+                          />
+                        </div>
+
+                        {/* 是否公開顯示 */}
+                        <div className="pt-2 p-3 bg-gray-50 rounded-lg">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={formData.isPublic}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  isPublic: e.target.checked,
+                                })
+                              }
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              在公開頁面顯示此業務人員
+                            </span>
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1 ml-6">
+                            取消勾選後，此業務人員將不會顯示在 /staff 頁面
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 p-2  flex-shrink-0 bg-gray-50">
+              <div className="flex justify-end space-x-3 p-2  flex-shrink-0 bg-white">
                 <button
                   type="button"
                   onClick={() => {
