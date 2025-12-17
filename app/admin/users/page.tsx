@@ -615,13 +615,13 @@ export default function UsersPage() {
               ? "max-w-5xl"
               : "max-w-lg"
           }`}>
-            <div className="p-6 border-b flex-shrink-0">
+            <div className="p-2 flex-shrink-0">
               <h3 className="text-lg font-bold text-gray-900">
                 {formMode === "create" ? "新增用戶" : "編輯用戶"}
               </h3>
             </div>
             <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-2">
                 <div className={`grid gap-6 ${
                   formMode === "edit" && (formData.role === Role.STAFF || formData.role === Role.OWNER)
                     ? "lg:grid-cols-2"
@@ -629,7 +629,7 @@ export default function UsersPage() {
                 }`}>
                   {/* 左側：基本資訊 */}
                   <div className="space-y-4">
-                    <h4 className="text-sm font-semibold text-gray-900 pb-2 border-b flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-gray-900  flex items-center gap-2">
                       <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">1</span>
                       基本資訊
                     </h4>
@@ -753,7 +753,7 @@ export default function UsersPage() {
                   {/* 右側：業務人員展示欄位（只在編輯模式且角色為 STAFF 或 OWNER 時顯示） */}
                   {formMode === "edit" && (formData.role === Role.STAFF || formData.role === Role.OWNER) && (
                     <div className="space-y-4 lg:border-l lg:pl-6">
-                      <h4 className="text-sm font-semibold text-gray-900 pb-2 border-b flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                         <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">2</span>
                         公開展示資訊
                       </h4>
@@ -853,7 +853,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 p-6 border-t flex-shrink-0 bg-gray-50">
+              <div className="flex justify-end space-x-3 p-2  flex-shrink-0 bg-gray-50">
                 <button
                   type="button"
                   onClick={() => {
