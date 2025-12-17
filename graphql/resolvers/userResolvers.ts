@@ -1,7 +1,7 @@
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import {
-  hasPermission,
+  hasPermissionWithCustom,
   canManageRole,
   PermissionEnum,
   AllPermissionDefinitions,
@@ -30,10 +30,21 @@ interface Context {
     id: string;
     role: Role;
     email: string;
+    customPermissions?: CustomPermissions | null;
   };
   loaders?: DataLoaders; // ✅ 添加 DataLoaders 支援
   isIPAllowed?: boolean;
 }
+
+// 權限檢查輔助函數（支援自訂權限）
+const checkPermission = (context: Context, permission: Permission): boolean => {
+  if (!context.user) return false;
+  return hasPermissionWithCustom(
+    context.user.role,
+    permission,
+    context.user.customPermissions
+  );
+};
 
 interface UserFilterInput {
   search?: string;
@@ -77,15 +88,25 @@ export const userResolvers = {
       },
       context: Context
     ) => {
+      // 調試：記錄 context 信息
+      console.log('[userResolvers.users] Context:', JSON.stringify({
+        hasUser: !!context.user,
+        userId: context.user?.id,
+        userRole: context.user?.role,
+        userEmail: context.user?.email,
+      }));
+
       // 權限檢查
-      // 開發環境下：如果 IP 在白名單內，暫時允許訪問
       if (!context.user) {
-        if (process.env.NODE_ENV !== 'development' || !context.isIPAllowed) {
-          throw new Error('未授權：請先登入');
-        }
-        // 開發環境且 IP 允許，繼續執行
-      } else if (!hasPermission(context.user.role, PermissionEnum.USER_READ)) {
-        throw new Error('沒有權限查看用戶列表');
+        throw new Error('未授權：請先登入（context.user 為空）');
+      }
+
+      if (!context.user.role) {
+        throw new Error(`未授權：用戶角色未設置（user: ${context.user.email}）`);
+      }
+
+      if (!checkPermission(context, PermissionEnum.USER_READ)) {
+        throw new Error(`沒有權限查看用戶列表（role: ${context.user.role}）`);
       }
 
       const page = args.page || 1;
@@ -152,9 +173,12 @@ export const userResolvers = {
         },
       });
 
-      // 格式化用戶資料（包含自訂權限）
+      // 格式化用戶資料（包含自訂權限和日期轉換）
       const safeUsers = users.map(user => ({
         ...user,
+        lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        createdAt: user.createdAt?.toISOString() ?? null,
+        updatedAt: user.updatedAt?.toISOString() ?? null,
         customPermissions: formatCustomPermissions(user.customPermissions),
       }));
 
@@ -176,7 +200,7 @@ export const userResolvers = {
         throw new Error('未授權：請先登入');
       }
 
-      if (!hasPermission(context.user.role, PermissionEnum.USER_READ)) {
+      if (!checkPermission(context, PermissionEnum.USER_READ)) {
         throw new Error('沒有權限查看用戶資訊');
       }
 
@@ -212,6 +236,9 @@ export const userResolvers = {
 
       return {
         ...user,
+        lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        createdAt: user.createdAt?.toISOString() ?? null,
+        updatedAt: user.updatedAt?.toISOString() ?? null,
         customPermissions: formatCustomPermissions(user.customPermissions),
       };
     },
@@ -256,6 +283,9 @@ export const userResolvers = {
 
       return {
         ...user,
+        lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        createdAt: user.createdAt?.toISOString() ?? null,
+        updatedAt: user.updatedAt?.toISOString() ?? null,
         customPermissions: formatCustomPermissions(user.customPermissions),
       };
     },
@@ -401,7 +431,7 @@ export const userResolvers = {
         throw new Error('未授權：請先登入');
       }
 
-      if (!hasPermission(context.user.role, PermissionEnum.USER_CREATE)) {
+      if (!checkPermission(context, PermissionEnum.USER_CREATE)) {
         throw new Error('沒有權限創建用戶');
       }
 
@@ -459,9 +489,14 @@ export const userResolvers = {
         where: { id: user.id },
       });
 
-      // 移除密碼欄位
+      // 移除密碼欄位並轉換日期格式
       const { password, ...safeUser } = updatedUser!;
-      return safeUser;
+      return {
+        ...safeUser,
+        lastLoginAt: safeUser.lastLoginAt?.toISOString() ?? null,
+        createdAt: safeUser.createdAt?.toISOString() ?? null,
+        updatedAt: safeUser.updatedAt?.toISOString() ?? null,
+      };
     },
 
     /**
@@ -477,7 +512,7 @@ export const userResolvers = {
         throw new Error('未授權：請先登入');
       }
 
-      if (!hasPermission(context.user.role, PermissionEnum.USER_UPDATE)) {
+      if (!checkPermission(context, PermissionEnum.USER_UPDATE)) {
         throw new Error('沒有權限更新用戶');
       }
 
@@ -542,9 +577,14 @@ export const userResolvers = {
         },
       });
 
-      // 移除密碼欄位
+      // 移除密碼欄位並轉換日期格式
       const { password: _pwd, ...safeUser } = user;
-      return safeUser;
+      return {
+        ...safeUser,
+        lastLoginAt: safeUser.lastLoginAt?.toISOString() ?? null,
+        createdAt: safeUser.createdAt?.toISOString() ?? null,
+        updatedAt: safeUser.updatedAt?.toISOString() ?? null,
+      };
     },
 
     /**
@@ -556,7 +596,7 @@ export const userResolvers = {
         throw new Error('未授權：請先登入');
       }
 
-      if (!hasPermission(context.user.role, PermissionEnum.USER_DELETE)) {
+      if (!checkPermission(context, PermissionEnum.USER_DELETE)) {
         throw new Error('沒有權限刪除用戶');
       }
 
@@ -584,7 +624,18 @@ export const userResolvers = {
         throw new Error('無法刪除超級管理員帳號');
       }
 
-      // 記錄操作日誌（在刪除前）
+      // 檢查用戶是否有作為申請人的行政任務（申請人欄位不可為空）
+      const applicantTaskCount = await prisma.adminTask.count({
+        where: { applicantId: args.id },
+      });
+
+      if (applicantTaskCount > 0) {
+        throw new Error(
+          `無法刪除此用戶：該用戶有 ${applicantTaskCount} 筆行政任務作為申請人。請先將這些任務重新分配給其他用戶。`
+        );
+      }
+
+      // 記錄操作日誌（在刪除前，用當前用戶的 ID）
       await prisma.activityLog.create({
         data: {
           userId: context.user.id,
@@ -598,9 +649,39 @@ export const userResolvers = {
         },
       });
 
-      // 刪除用戶
-      await prisma.user.delete({
-        where: { id: args.id },
+      // 使用事務處理關聯記錄的清理和用戶刪除
+      await prisma.$transaction(async (tx) => {
+        // 1. 刪除該用戶的活動日誌記錄
+        await tx.activityLog.deleteMany({
+          where: { userId: args.id },
+        });
+
+        // 2. 刪除該用戶的審批記錄
+        await tx.approvalRecord.deleteMany({
+          where: { approverId: args.id },
+        });
+
+        // 3. 更新行政任務：清除處理人和審批人關聯
+        await tx.adminTask.updateMany({
+          where: { processorId: args.id },
+          data: { processorId: null },
+        });
+
+        await tx.adminTask.updateMany({
+          where: { approverId: args.id },
+          data: { approverId: null },
+        });
+
+        // 4. 更新人力需求：清除邀請人關聯
+        await tx.manpowerRequest.updateMany({
+          where: { invitedBy: args.id },
+          data: { invitedBy: null },
+        });
+
+        // 5. 最後刪除用戶（AdminTaskTypeAssignment 已設定 onDelete: Cascade）
+        await tx.user.delete({
+          where: { id: args.id },
+        });
       });
 
       return true;
@@ -619,7 +700,7 @@ export const userResolvers = {
         throw new Error('未授權：請先登入');
       }
 
-      if (!hasPermission(context.user.role, PermissionEnum.USER_UPDATE)) {
+      if (!checkPermission(context, PermissionEnum.USER_UPDATE)) {
         throw new Error('沒有權限更改用戶狀態');
       }
 
@@ -662,9 +743,14 @@ export const userResolvers = {
         },
       });
 
-      // 移除密碼欄位
+      // 移除密碼欄位並轉換日期格式
       const { password, ...safeUser } = user;
-      return safeUser;
+      return {
+        ...safeUser,
+        lastLoginAt: safeUser.lastLoginAt?.toISOString() ?? null,
+        createdAt: safeUser.createdAt?.toISOString() ?? null,
+        updatedAt: safeUser.updatedAt?.toISOString() ?? null,
+      };
     },
 
     /**
@@ -680,7 +766,7 @@ export const userResolvers = {
         throw new Error('未授權：請先登入');
       }
 
-      if (!hasPermission(context.user.role, PermissionEnum.USER_UPDATE)) {
+      if (!checkPermission(context, PermissionEnum.USER_UPDATE)) {
         throw new Error('沒有權限重置密碼');
       }
 
@@ -827,6 +913,9 @@ export const userResolvers = {
 
       return {
         ...user,
+        lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        createdAt: user.createdAt?.toISOString() ?? null,
+        updatedAt: user.updatedAt?.toISOString() ?? null,
         customPermissions: formatCustomPermissions(user.customPermissions),
       };
     },

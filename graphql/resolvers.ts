@@ -1,4 +1,4 @@
-import type { ContentBlock, Prisma } from "@prisma/client";
+import type { ContentBlock, Prisma, Role } from "@prisma/client";
 import { prisma } from "./prismaClient";
 import { JSONScalar } from "./utils/jsonScalar";
 import { getDefaultPayload, type BlockKey } from "./utils/defaults";
@@ -11,6 +11,7 @@ import { taskTypeFlowResolvers } from "./resolvers/taskTypeFlowResolvers";
 import { dashboardResolvers } from "./resolvers/dashboardResolvers";
 import { activityLogResolvers } from "./resolvers/activityLogResolvers";
 import { pendingTaskReminderResolvers } from "./resolvers/pendingTaskReminderResolvers";
+import { hasPermissionWithCustom, type CustomPermissions } from "@/lib/permissions";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -73,6 +74,7 @@ interface MutationContext {
   user?: {
     id: string;
     role: string;
+    customPermissions?: CustomPermissions | null;
   };
 }
 
@@ -81,6 +83,21 @@ const createMutationResolver = (key: BlockKey) => async (
   { input }: { input?: Record<string, unknown> | null },
   context: MutationContext
 ) => {
+  // 檢查 web_content:update 權限
+  if (!context.user) {
+    throw new Error("未登入");
+  }
+
+  const hasUpdatePermission = hasPermissionWithCustom(
+    context.user.role as Role,
+    'web_content:update',
+    context.user.customPermissions
+  );
+
+  if (!hasUpdatePermission) {
+    throw new Error("權限不足：需要「編輯網頁內容」權限才能進行此操作");
+  }
+
   if (!input || typeof input !== "object") {
     throw new Error("Invalid input payload");
   }

@@ -154,7 +154,7 @@ const statusLabels: Record<string, { label: string; className: string }> = {
 
 function AdminTasksContent() {
   const { data: session, status } = useSession();
-  const { getRole, isAdminOrAbove } = usePermission();
+  const { getRole, isAdminOrAbove, can, canAny } = usePermission();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { createReminders, completeReminder } = useTaskReminder();
@@ -162,9 +162,16 @@ function AdminTasksContent() {
 
   // 使用 useMemo 緩存角色檢查結果，避免每次渲染都重新計算
   const userRole = getRole();
-  // 允許 ADMIN 或 SUPER_ADMIN 訪問此頁面
+  // 允許 ADMIN 或 SUPER_ADMIN 訪問此頁面，或擁有行政任務相關權限的用戶
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const hasAccess = useMemo(() => isAdminOrAbove(), [userRole]);
+  const hasAccess = useMemo(() => {
+    return isAdminOrAbove() || canAny([
+      'admin_task:create',
+      'admin_task:read',
+      'admin_task:update',
+      'admin_task:approve'
+    ]);
+  }, [userRole]);
 
   // URL 參數（從提醒跳轉過來時使用）
   const urlCreateTaskType = searchParams.get("createTask");
@@ -824,6 +831,7 @@ function AdminTasksContent() {
         const updateRes = await fetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             query: updateMutation,
             variables: {
@@ -863,6 +871,7 @@ function AdminTasksContent() {
       const res = await fetch("/api/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ query: mutation, variables }),
       });
 
@@ -1911,8 +1920,9 @@ function AdminTasksContent() {
                   </div>
                 )}
 
-                {/* 審批操作（僅待處理/處理中狀態顯示） */}
-                {(selectedTask.status === "PENDING" ||
+                {/* 審批操作（僅待處理/處理中狀態且有審批權限才顯示） */}
+                {can('admin_task:approve') &&
+                  (selectedTask.status === "PENDING" ||
                   selectedTask.status === "PROCESSING" ||
                   selectedTask.status === "PENDING_DOCUMENTS") && (
                   <div>

@@ -118,7 +118,7 @@ export default function UserPermissionsPage() {
     onCompleted: () => {
       setHasChanges(false);
       refetch();
-      alert("權限更新成功！");
+      alert("權限更新成功！\n\n後端權限已即時生效。\n如果該用戶正在使用系統，需要刷新頁面才能看到前端介面的變化。");
     },
     onError: (error) => {
       alert(`權限更新失敗: ${error.message}`);
@@ -260,11 +260,8 @@ export default function UserPermissionsPage() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {user.name || user.email}
-                          </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="font-medium text-gray-900">
+                          {user.name || user.email}
                         </div>
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${

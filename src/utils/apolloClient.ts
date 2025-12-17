@@ -6,6 +6,7 @@ import { persistCache, LocalStorageWrapper } from 'apollo3-cache-persist';
 // HTTP 連結
 const httpLink = createHttpLink({
   uri: '/api/graphql',
+  credentials: 'include', // 確保 cookies 會被發送到 API
 });
 
 // 認證連結（添加 token 到請求頭）

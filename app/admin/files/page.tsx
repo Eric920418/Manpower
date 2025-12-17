@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useQuery, gql } from "@apollo/client";
 import { useSession } from "next-auth/react";
 import AdminLayout from "@/components/Admin/AdminLayout";
-import { usePermission } from "@/hooks/usePermission";
 
 // GraphQL 查詢
 const GET_ATTACHMENTS = gql`
@@ -55,7 +54,6 @@ const FILE_TYPE_ICONS: Record<string, string> = {
 
 export default function FilesPage() {
   const { status } = useSession();
-  const { can } = usePermission();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [search, setSearch] = useState("");
@@ -126,18 +124,7 @@ export default function FilesPage() {
     );
   }
 
-  // Session 載入完成後才檢查權限 - 直接使用字符串避免編譯問題
-  if (status === "authenticated" && !can('file:read')) {
-    return (
-      <AdminLayout>
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">🚫</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">沒有權限</h2>
-          <p className="text-gray-600">您沒有權限訪問檔案管理</p>
-        </div>
-      </AdminLayout>
-    );
-  }
+  // 所有已登入用戶都可以訪問檔案管理
 
   return (
     <AdminLayout>
@@ -283,17 +270,15 @@ export default function FilesPage() {
                                 下載
                               </a>
                             )}
-                            {can('file:delete') && (
-                              <button
-                                onClick={() => {
-                                  setSelectedFile(file);
-                                  setShowDeleteConfirm(true);
-                                }}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                刪除
-                              </button>
-                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedFile(file);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              刪除
+                            </button>
                           </div>
                         </td>
                       </tr>

@@ -1,40 +1,37 @@
 import { prisma } from "../prismaClient";
+import { hasPermissionWithCustom, type CustomPermissions } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
 
-// 權限檢查輔助函數
-function hasPermission(userRole: string, requiredPermission: string): boolean {
-  // 超級管理員擁有所有權限
-  if (userRole === "SUPER_ADMIN") {
-    return true;
-  }
+// 生成需求單號（格式：MPR-YYYYMMDD-XXXXX）
+function generateRequestNo(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const random = Math.floor(Math.random() * 100000)
+    .toString()
+    .padStart(5, "0");
 
-  // 管理員權限（ADMIN 可以讀取和處理表單）
-  const adminPermissions = [
-    "form:read",
-    "form:process",
-  ];
+  return `MPR-${year}${month}${day}-${random}`;
+}
 
-  // 業主權限
-  const ownerPermissions = [
-    "form:read",
-    "form:create",
-    "form:update",
-    "form:delete",
-    "form:process",
-  ];
+// Context 類型
+interface Context {
+  user?: {
+    id: string;
+    role: string;
+    customPermissions?: CustomPermissions | null;
+  };
+}
 
-  // 業務人員權限
-  const staffPermissions = ["form:read", "form:process"];
-
-  const permissions =
-    userRole === "ADMIN"
-      ? adminPermissions
-      : userRole === "OWNER"
-      ? ownerPermissions
-      : userRole === "STAFF"
-      ? staffPermissions
-      : [];
-
-  return permissions.includes(requiredPermission);
+// 權限檢查輔助函數 - 使用支援自訂權限的版本
+function checkPermission(context: Context, permission: string): boolean {
+  if (!context.user) return false;
+  return hasPermissionWithCustom(
+    context.user.role as Role,
+    permission as any,
+    context.user.customPermissions
+  );
 }
 
 export const manpowerRequestResolvers = {
@@ -50,7 +47,7 @@ export const manpowerRequestResolvers = {
         throw new Error("未登入，無法查看人力需求");
       }
 
-      if (!hasPermission(context.user.role, "form:read")) {
+      if (!checkPermission(context, "form:read")) {
         throw new Error("沒有權限查看人力需求");
       }
 
@@ -113,7 +110,7 @@ export const manpowerRequestResolvers = {
         throw new Error("未登入，無法查看人力需求");
       }
 
-      if (!hasPermission(context.user.role, "form:read")) {
+      if (!checkPermission(context, "form:read")) {
         throw new Error("沒有權限查看人力需求");
       }
 
@@ -151,7 +148,7 @@ export const manpowerRequestResolvers = {
         throw new Error("未登入，無法查看人力需求");
       }
 
-      if (!hasPermission(context.user.role, "form:read")) {
+      if (!checkPermission(context, "form:read")) {
         throw new Error("沒有權限查看人力需求");
       }
 
@@ -185,7 +182,7 @@ export const manpowerRequestResolvers = {
         throw new Error("未登入，無法查看統計資料");
       }
 
-      if (!hasPermission(context.user.role, "form:read")) {
+      if (!checkPermission(context, "form:read")) {
         throw new Error("沒有權限查看統計資料");
       }
 
@@ -235,6 +232,107 @@ export const manpowerRequestResolvers = {
   },
 
   Mutation: {
+    // 新增人力需求（手動建立）- 需要 form:create 權限
+    createManpowerRequest: async (
+      _: any,
+      { input }: { input: any },
+      context: Context
+    ) => {
+      if (!context.user) {
+        throw new Error("未登入，無法新增人力需求");
+      }
+
+      // 使用 customPermissions 檢查權限
+      const canCreate = hasPermissionWithCustom(
+        context.user.role as Role,
+        'form:create',
+        context.user.customPermissions
+      );
+
+      if (!canCreate) {
+        throw new Error("沒有權限新增人力需求");
+      }
+
+      try {
+        // 生成唯一需求單號（檢查是否重複）
+        let requestNo = generateRequestNo();
+        let attempts = 0;
+        while (attempts < 10) {
+          const existing = await prisma.manpowerRequest.findUnique({
+            where: { requestNo },
+          });
+
+          if (!existing) {
+            break;
+          }
+
+          requestNo = generateRequestNo();
+          attempts++;
+        }
+
+        if (attempts >= 10) {
+          throw new Error("無法生成唯一需求單號，請稍後再試");
+        }
+
+        // 處理預計到職日期
+        let expectedStartDate: Date | null = null;
+        if (input.expectedStartDate) {
+          expectedStartDate = new Date(input.expectedStartDate);
+        }
+
+        // 建立人力需求
+        const request = await prisma.manpowerRequest.create({
+          data: {
+            requestNo,
+            selectedResumeIds: input.selectedResumeIds || [],
+            companyName: input.companyName || null,
+            contactPerson: input.contactPerson,
+            contactPhone: input.contactPhone,
+            contactEmail: input.contactEmail || null,
+            lineId: input.lineId || null,
+            qualifications: input.qualifications || null,
+            positionTitle: input.positionTitle || null,
+            jobDescription: input.jobDescription || null,
+            quantity: input.quantity || 1,
+            salaryRange: input.salaryRange || null,
+            expectedStartDate,
+            workLocation: input.workLocation || null,
+            additionalRequirements: input.additionalRequirements || null,
+            status: "pending",
+            invitedBy: context.user.id, // 建立者即為邀請人
+          },
+        });
+
+        // 記錄活動日誌
+        await prisma.activityLog.create({
+          data: {
+            userId: context.user.id,
+            action: "create",
+            entity: "manpower_request",
+            entityId: request.id.toString(),
+            details: {
+              requestNo: request.requestNo,
+              companyName: request.companyName,
+              contactPerson: request.contactPerson,
+            },
+          },
+        });
+
+        return {
+          ...request,
+          expectedStartDate: request.expectedStartDate?.toISOString() || null,
+          processedAt: request.processedAt?.toISOString() || null,
+          createdAt: request.createdAt.toISOString(),
+          updatedAt: request.updatedAt.toISOString(),
+        };
+      } catch (error) {
+        console.error("新增人力需求失敗：", error);
+        throw new Error(
+          `新增失敗：${error instanceof Error ? error.message : "未知錯誤"}`
+        );
+      }
+    },
+
     // 更新人力需求（主要用於更新狀態和備註）- 僅 SUPER_ADMIN 可操作
     updateManpowerRequest: async (
       _: any,
@@ -317,7 +415,7 @@ export const manpowerRequestResolvers = {
         throw new Error("未登入，無法刪除人力需求");
       }
 
-      if (!hasPermission(context.user.role, "form:delete")) {
+      if (!checkPermission(context, "form:delete")) {
         throw new Error("沒有權限刪除人力需求");
       }
 

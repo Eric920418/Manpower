@@ -1,12 +1,34 @@
 import { prisma } from "../prismaClient";
+import { hasPermissionWithCustom, type CustomPermissions } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
 
 // Context 介面
 interface Context {
   user?: {
     id: string;
     role: string;
+    customPermissions?: CustomPermissions | null;
   };
 }
+
+// 檢查網頁內容編輯權限
+const requireWebContentUpdate = (context: Context) => {
+  if (!context.user) {
+    throw new Error("未登入");
+  }
+
+  const hasPermission = hasPermissionWithCustom(
+    context.user.role as Role,
+    'web_content:update',
+    context.user.customPermissions
+  );
+
+  if (!hasPermission) {
+    throw new Error("權限不足：需要「編輯網頁內容」權限才能進行此操作");
+  }
+
+  return context.user;
+};
 
 interface NavigationInput {
   label: string;
@@ -138,6 +160,9 @@ export const navigationResolvers = {
   Mutation: {
     // 建立導航項目
     createNavigation: async (_: unknown, { input }: { input: NavigationInput }, context: Context) => {
+      // 檢查權限
+      requireWebContentUpdate(context);
+
       // 驗證 parentId 是否存在
       if (input.parentId) {
         const parent = await prisma.navigation.findUnique({
@@ -198,6 +223,9 @@ export const navigationResolvers = {
 
     // 更新導航項目
     updateNavigation: async (_: unknown, { input }: { input: UpdateNavigationInput }, context: Context) => {
+      // 檢查權限
+      requireWebContentUpdate(context);
+
       const { id, ...data } = input;
 
       // 檢查導航是否存在
@@ -267,6 +295,9 @@ export const navigationResolvers = {
 
     // 刪除導航項目（Cascade 會自動刪除子項目）
     deleteNavigation: async (_: unknown, { id }: { id: number }, context: Context) => {
+      // 檢查權限
+      requireWebContentUpdate(context);
+
       const existing = await prisma.navigation.findUnique({
         where: { id },
       });
@@ -300,6 +331,9 @@ export const navigationResolvers = {
 
     // 批次更新排序
     reorderNavigations: async (_: unknown, { ids }: { ids: number[] }, context: Context) => {
+      // 檢查權限
+      requireWebContentUpdate(context);
+
       // 使用 transaction 確保原子性
       await prisma.$transaction(
         ids.map((id, index) =>

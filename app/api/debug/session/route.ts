@@ -42,7 +42,6 @@ export async function GET() {
       role: userRole,
       count: permissions.length,
       list: permissions,
-      hasFileRead: permissions.includes('file:read' as any),
     },
   });
 }

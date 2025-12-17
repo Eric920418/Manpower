@@ -47,14 +47,14 @@ interface Advantage {
   title: string;
   subtitle: string;
   description: string;
-  icon: string;
+  image: string;
   imagePosition: string;
 }
 
 interface ProcessStep {
   number: number;
   title: string;
-  icon: string;
+  image: string;
 }
 
 interface CTAButton {
@@ -529,7 +529,7 @@ export const FranchisePage = () => {
                         ...prev.partnershipAdvantages,
                         advantages: [
                           ...prev.partnershipAdvantages.advantages,
-                          { number: "", title: "", subtitle: "", description: "", icon: "", imagePosition: "right" },
+                          { number: "", title: "", subtitle: "", description: "", image: "", imagePosition: "right" },
                         ],
                       },
                     }))
@@ -551,22 +551,6 @@ export const FranchisePage = () => {
                         onChange={(e) => {
                           const newAdvs = [...pageData.partnershipAdvantages.advantages];
                           newAdvs[index] = { ...newAdvs[index], number: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">圖標</label>
-                      <input
-                        type="text"
-                        value={adv.icon}
-                        onChange={(e) => {
-                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
-                          newAdvs[index] = { ...newAdvs[index], icon: e.target.value };
                           setPageData((prev) => ({
                             ...prev,
                             partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
@@ -609,7 +593,7 @@ export const FranchisePage = () => {
                         <option value="right">右側</option>
                       </select>
                     </div>
-                    <div className="col-span-2">
+                    <div>
                       <label className="block text-sm font-medium mb-1">副標題</label>
                       <input
                         type="text"
@@ -639,6 +623,30 @@ export const FranchisePage = () => {
                         }}
                         rows={3}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium mb-1">優勢圖片</label>
+                      {adv.image && (
+                        <div className="mb-3">
+                          <Image
+                            src={adv.image}
+                            alt={`優勢 ${index + 1}`}
+                            width={300}
+                            height={200}
+                            className="rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
+                      <ImageUploader
+                        onImageUpload={(data) => {
+                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
+                          newAdvs[index] = { ...newAdvs[index], image: data.imageUrl };
+                          setPageData((prev) => ({
+                            ...prev,
+                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                          }));
+                        }}
                       />
                     </div>
                   </div>
@@ -706,7 +714,7 @@ export const FranchisePage = () => {
                         ...prev.franchiseProcess,
                         steps: [
                           ...prev.franchiseProcess.steps,
-                          { number: prev.franchiseProcess.steps.length + 1, title: "", icon: "" },
+                          { number: prev.franchiseProcess.steps.length + 1, title: "", image: "" },
                         ],
                       },
                     }))
@@ -718,7 +726,7 @@ export const FranchisePage = () => {
               </div>
               {pageData.franchiseProcess.steps.map((step, index) => (
                 <div key={index} className="bg-white p-4 rounded-lg border mb-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">步驟編號</label>
                       <input
@@ -751,20 +759,28 @@ export const FranchisePage = () => {
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">圖標</label>
-                      <input
-                        type="text"
-                        value={step.icon}
-                        onChange={(e) => {
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium mb-1">步驟圖片</label>
+                      {step.image && (
+                        <div className="mb-3">
+                          <Image
+                            src={step.image}
+                            alt={`步驟 ${step.number}`}
+                            width={200}
+                            height={200}
+                            className="rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
+                      <ImageUploader
+                        onImageUpload={(data) => {
                           const newSteps = [...pageData.franchiseProcess.steps];
-                          newSteps[index] = { ...newSteps[index], icon: e.target.value };
+                          newSteps[index] = { ...newSteps[index], image: data.imageUrl };
                           setPageData((prev) => ({
                             ...prev,
                             franchiseProcess: { ...prev.franchiseProcess, steps: newSteps },
                           }));
                         }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                   </div>

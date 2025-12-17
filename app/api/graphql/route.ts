@@ -187,13 +187,31 @@ const rateLimitPlugin = {
 };
 
 // 🔒 Introspection 防護 Plugin（生產環境禁用 schema 查詢）
+// 使用 onExecute hook 來檢查已解析的 GraphQL 文檔，更加可靠
 const introspectionPlugin = {
-  onParse({ params }: { params: { source?: string } }) {
-    // 在生產環境禁用 introspection 查詢
-    if (process.env.NODE_ENV === 'production') {
-      const query = params.source || '';
-      if (query.includes('__schema') || query.includes('__type')) {
-        throw new Error('Introspection 查詢在生產環境已被禁用');
+  onExecute({ args }: { args: { document?: any } }) {
+    // 只在生產環境禁用 introspection 查詢
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+
+    const document = args.document;
+    if (!document?.definitions) {
+      return;
+    }
+
+    // 遍歷所有操作定義，檢查是否有 introspection 查詢
+    for (const definition of document.definitions) {
+      if (definition.kind === 'OperationDefinition' && definition.selectionSet?.selections) {
+        for (const selection of definition.selectionSet.selections) {
+          if (selection.kind === 'Field') {
+            const fieldName = selection.name?.value;
+            // 只檢查頂層的 __schema 和 __type 查詢
+            if (fieldName === '__schema' || fieldName === '__type') {
+              throw new Error('Introspection 查詢在生產環境已被禁用');
+            }
+          }
+        }
       }
     }
   },
@@ -208,6 +226,8 @@ const yoga = createYoga({
   // 添加 GraphQL 相關配置
   graphqlEndpoint: "/api/graphql",
   fetchAPI: { Response: NextResponse },
+  // 顯示完整的錯誤信息（不隱藏）
+  maskedErrors: false,
   plugins: [
     performancePlugin,
     rateLimitPlugin,
@@ -234,20 +254,20 @@ const yoga = createYoga({
         'Query.formTemplates': 3 * 60 * 1000,
         // 任務類型：中長快取（5 分鐘）- 變動不頻繁
         'Query.taskTypes': 5 * 60 * 1000,
-        // 統計資料：中等快取（1 分鐘）
-        'Query.formStats': 60 * 1000,
-        'Query.dashboardData': 60 * 1000,
-        'Query.adminTaskStats': 0, // 不快取，需要即時更新
-        'Query.adminTaskStatsByType': 60 * 1000,
-        // 動態列表：短快取（30 秒）
-        'Query.users': 30 * 1000,
-        'Query.formSubmissions': 30 * 1000,
-        'Query.contracts': 30 * 1000,
-        'Query.manpowerRequests': 30 * 1000,
-        'Query.adminTasks': 0, // 不快取，需要即時更新
-        // 需要認證的管理操作：短快取
-        'Query.adminsWithAssignments': 60 * 1000,
-        'Query.myAssignedTaskTypes': 60 * 1000,
+        // 統計資料：不快取（需要認證）
+        'Query.formStats': 0,
+        'Query.dashboardData': 0,
+        'Query.adminTaskStats': 0,
+        'Query.adminTaskStatsByType': 0,
+        // 動態列表：不快取（需要認證且即時更新）
+        'Query.users': 0,
+        'Query.formSubmissions': 0,
+        'Query.contracts': 0,
+        'Query.manpowerRequests': 0,
+        'Query.adminTasks': 0,
+        // 需要認證的管理操作：不快取
+        'Query.adminsWithAssignments': 0,
+        'Query.myAssignedTaskTypes': 0,
         // 待處理任務提醒：不快取（需要即時）
         'Query.myPendingTaskReminders': 0,
         'Query.checkPendingReminders': 0,
@@ -264,6 +284,10 @@ const yoga = createYoga({
       // 獲取客戶端 IP
       clientIP = getClientIP(request);
 
+      // 調試：記錄 cookie
+      const cookieHeader = request.headers.get('cookie') || '';
+      console.log(`[GraphQL] Cookie length: ${cookieHeader.length}, Has session: ${cookieHeader.includes('next-auth')}`);
+
       // 優先從 NextAuth JWT cookie 獲取用戶資訊
       try {
         const token = await getToken({
@@ -271,18 +295,43 @@ const yoga = createYoga({
           secret: process.env.NEXTAUTH_SECRET
         });
 
+        console.log(`[GraphQL] Token: ${token ? JSON.stringify({ id: token.sub || token.id, role: token.role }) : 'null'}`);
+
         if (token) {
           isAuthenticated = true;
-          user = {
-            id: token.sub || token.id,
-            role: token.role,
-            email: token.email,
-          };
+          const userId = token.sub || token.id;
+
+          // 從數據庫獲取最新的用戶資訊和權限（確保權限變更即時生效）
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId as string },
+            select: {
+              id: true,
+              role: true,
+              email: true,
+              name: true,
+              customPermissions: true,
+            },
+          });
+
+          if (dbUser) {
+            user = {
+              id: dbUser.id,
+              role: dbUser.role,
+              email: dbUser.email,
+              name: dbUser.name,
+              customPermissions: dbUser.customPermissions,
+            };
+          } else {
+            // 如果數據庫找不到用戶，使用 token 中的基本信息
+            user = {
+              id: userId,
+              role: token.role,
+              email: token.email,
+            };
+          }
         }
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error("NextAuth token 驗證失敗:", error);
-        }
+        console.error("[GraphQL] Token error:", error);
       }
 
       // 如果沒有 NextAuth session，檢查 Authorization header（向後兼容）

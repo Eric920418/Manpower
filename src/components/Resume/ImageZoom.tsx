@@ -67,40 +67,17 @@ export default function ImageZoom({
         !imageError &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/90 flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 bg-black flex items-center justify-center pointer-events-none"
             style={{ zIndex: 99999 }}
           >
-            <div className="relative max-w-[90vw] max-h-[90vh]">
-              <Image
-                src={src}
-                alt={alt}
-                width={800}
-                height={1067}
-                className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
-                unoptimized
-              />
-              {/* 資訊覆蓋層 */}
-              {overlayInfo && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
-                  <h3 className="text-white text-2xl font-bold mb-2">
-                    {overlayInfo.name}
-                  </h3>
-                  <div className="flex flex-wrap gap-4 text-white/90 text-sm">
-                    <span
-                      className={`${overlayInfo.countryStyle.bg} ${overlayInfo.countryStyle.text} px-3 py-1 rounded font-bold`}
-                    >
-                      {overlayInfo.country}
-                    </span>
-                    <span>編號：{overlayInfo.foreignId}</span>
-                    <span>年齡：{overlayInfo.age}歲</span>
-                    <span>學歷：{overlayInfo.education}</span>
-                    <span>
-                      {overlayInfo.height}cm / {overlayInfo.weight}kg
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+            <Image
+              src={src}
+              alt={alt}
+              width={800}
+              height={1067}
+              className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
+              unoptimized
+            />
           </div>,
           document.body
         )}

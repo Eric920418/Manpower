@@ -94,9 +94,13 @@ export async function proxy(req: NextRequest) {
       }
     }
 
-    // 內容管理 - 超級管理員和業主
-    if (pathname.startsWith('/admin/content') || pathname.startsWith('/admin/pages')) {
-      if (!hasPermission(userRole, PermissionEnum.CONTENT_READ)) {
+    // 網頁內容管理 - 需要 web_content:read 權限
+    if (pathname.startsWith('/admin/content') || pathname.startsWith('/admin/pages') ||
+        pathname.startsWith('/admin/home-page') || pathname.startsWith('/admin/application-process') ||
+        pathname.startsWith('/admin/workers') || pathname.startsWith('/admin/faq') ||
+        pathname.startsWith('/admin/news') || pathname.startsWith('/admin/staff') ||
+        pathname.startsWith('/admin/franchise') || pathname.startsWith('/admin/navigation')) {
+      if (!hasPermission(userRole, PermissionEnum.WEB_CONTENT_READ)) {
         return NextResponse.redirect(
           new URL('/admin/dashboard?error=forbidden&reason=no_content_permission', baseUrl)
         );

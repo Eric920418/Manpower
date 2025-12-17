@@ -5,54 +5,61 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePermission } from "@/hooks/usePermission";
-import { RoleNames } from "@/lib/permissions";
+import { RoleNames, Permission } from "@/lib/permissions";
 
 interface MenuItem {
   label: string;
   href: string;
+  permission?: Permission; // 需要的權限（可選，如果沒有則檢查分組權限）
 }
 
 interface MenuGroup {
   title: string;
   roles: string[]; // 哪些角色可以看到這個分組
+  permissions?: Permission[]; // 或者擁有這些權限之一也可以看到
   items: MenuItem[];
 }
 
 // 分組選單結構
+// 分組會顯示給：1. 角色在 roles 列表中的用戶，或 2. 擁有分組內任何項目權限的用戶
 const menuGroups: MenuGroup[] = [
   {
     title: "管理員操作",
-    roles: ['SUPER_ADMIN', 'ADMIN'],
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'], // 所有角色都可能看到此分組，但顯示哪些項目取決於權限
+    permissions: ['dashboard:view', 'admin_task:read', 'admin_task:create', 'form:read', 'user:read'],
     items: [
-      { label: "儀表板", href: "/admin/dashboard" },
-      { label: "行政事務", href: "/admin/admin-tasks" },
-      { label: "人力需求", href: "/admin/manpower-requests" },
-      { label: "用戶管理", href: "/admin/users" },
+      { label: "儀表板", href: "/admin/dashboard", permission: 'dashboard:view' },
+      { label: "行政事務", href: "/admin/admin-tasks", permission: 'admin_task:read' },
+      { label: "人力需求", href: "/admin/manpower-requests", permission: 'form:read' },
+      { label: "用戶管理", href: "/admin/users", permission: 'user:read' },
     ],
   },
   {
     title: "網站內容",
-    roles: ['SUPER_ADMIN', 'ADMIN'],
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'], // 所有角色都可能看到此分組
+    permissions: ['web_content:read', 'web_content:update'],
     items: [
-      { label: "首頁內容", href: "/admin/home-page" },
-      { label: "申請流程", href: "/admin/application-process" },
-      { label: "移工列表", href: "/admin/workers" },
-      { label: "常見問題", href: "/admin/faq" },
-      { label: "最新消息", href: "/admin/news" },
-      { label: "主力人力", href: "/admin/staff" },
-      { label: "創業加盟", href: "/admin/franchise" },
-      { label: "導航選單", href: "/admin/navigation" },
+      // 有 web_content:read 權限就能看到所有項目，有 web_content:update 才能編輯
+      { label: "首頁內容", href: "/admin/home-page", permission: 'web_content:read' },
+      { label: "申請流程", href: "/admin/application-process", permission: 'web_content:read' },
+      { label: "移工列表", href: "/admin/workers", permission: 'web_content:read' },
+      { label: "常見問題", href: "/admin/faq", permission: 'web_content:read' },
+      { label: "最新消息", href: "/admin/news", permission: 'web_content:read' },
+      { label: "主力人力", href: "/admin/staff", permission: 'web_content:read' },
+      { label: "創業加盟", href: "/admin/franchise", permission: 'web_content:read' },
+      { label: "導航選單", href: "/admin/navigation", permission: 'web_content:read' },
     ],
   },
   {
     title: "系統管理",
     roles: ['SUPER_ADMIN'],
+    permissions: ['system:config', 'user:manage_roles', 'system:logs', 'system:analytics'],
     items: [
-      { label: "申請類型管理", href: "/admin/task-types" },
-      { label: "管理員任務分配", href: "/admin/admin-assignments" },
-      { label: "用戶權限管理", href: "/admin/user-permissions" },
-      { label: "活動日誌", href: "/admin/activity-logs" },
-      { label: "數據分析", href: "/admin/analytics" },
+      { label: "申請類型管理", href: "/admin/task-types", permission: 'system:config' },
+      { label: "管理員任務分配", href: "/admin/admin-assignments", permission: 'user:manage_roles' },
+      { label: "用戶權限管理", href: "/admin/user-permissions", permission: 'user:manage_roles' },
+      { label: "活動日誌", href: "/admin/activity-logs", permission: 'system:logs' },
+      { label: "數據分析", href: "/admin/analytics", permission: 'system:analytics' },
     ],
   },
 ];
@@ -65,7 +72,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const { getRole } = usePermission();
+  const { getRole, can, canAny } = usePermission();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -132,12 +139,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const userRole = getRole();
 
   // 過濾分組，只顯示用戶有權限的分組
+  // 每個項目都會根據其 permission 進行檢查
   const visibleMenuGroups = menuGroups
-    .filter((group) => userRole && group.roles.includes(userRole))
     .map((group) => ({
       ...group,
-      items: group.items, // 分組內的所有項目都顯示
-    }));
+      // 過濾分組內的項目，只顯示用戶有權限的項目
+      items: group.items.filter((item) => {
+        if (!userRole) return false;
+        // 如果項目沒有指定權限，則顯示（依賴角色檢查）
+        if (!item.permission) return group.roles.includes(userRole);
+        // 檢查具體權限
+        return can(item.permission);
+      }),
+    }))
+    .filter((group) => group.items.length > 0); // 過濾掉沒有可見項目的分組
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

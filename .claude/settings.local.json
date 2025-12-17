@@ -23,7 +23,8 @@
       "Bash(sudo -u postgres psql:*)",
       "Bash(openssl rand:*)",
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(pm2 flush:*)"
     ],
     "deny": [],
     "ask": []

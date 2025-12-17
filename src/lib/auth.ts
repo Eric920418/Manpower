@@ -178,21 +178,43 @@ export const authOptions: NextAuthOptions = {
       if (trigger === 'update' && session) {
         token.name = session.name;
         token.email = session.email;
-        // 如果權限更新了，重新從資料庫獲取
-        if (session.refreshPermissions) {
+      }
+
+      // 每次 token 刷新時都從數據庫獲取最新的角色和權限
+      // 這確保權限變更能即時生效（用戶只需刷新頁面）
+      if (token.id) {
+        try {
           const dbUser = await prisma.user.findUnique({
-            where: { id: token.id },
-            select: { customPermissions: true },
+            where: { id: token.id as string },
+            select: {
+              role: true,
+              customPermissions: true,
+              isActive: true,
+            },
           });
-          if (dbUser?.customPermissions) {
-            const cp = dbUser.customPermissions as any;
-            token.customPermissions = {
-              granted: Array.isArray(cp.granted) ? cp.granted : [],
-              denied: Array.isArray(cp.denied) ? cp.denied : [],
-            };
-          } else {
-            token.customPermissions = null;
+
+          if (dbUser) {
+            // 更新角色（防止角色被修改後仍使用舊角色）
+            token.role = dbUser.role;
+
+            // 更新自定義權限
+            if (dbUser.customPermissions) {
+              const cp = dbUser.customPermissions as any;
+              token.customPermissions = {
+                granted: Array.isArray(cp.granted) ? cp.granted : [],
+                denied: Array.isArray(cp.denied) ? cp.denied : [],
+              };
+            } else {
+              token.customPermissions = null;
+            }
+
+            // 如果用戶被停用，清除 token（強制登出）
+            if (!dbUser.isActive) {
+              return null as any;
+            }
           }
+        } catch (error) {
+          console.error('Failed to refresh user permissions:', error);
         }
       }
 

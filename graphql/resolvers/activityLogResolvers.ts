@@ -1,20 +1,32 @@
 import { prisma } from "../prismaClient";
+import { hasPermissionWithCustom, type CustomPermissions } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
 
 // 認證檢查
 interface Context {
   user?: {
     id: string;
     role: string;
+    customPermissions?: CustomPermissions | null;
   };
 }
 
-const requireSuperAdmin = (context: Context) => {
+// 檢查系統日誌權限（支援自訂權限）
+const requireSystemLogsPermission = (context: Context) => {
   if (!context.user) {
     throw new Error("未授權：請先登入");
   }
-  if (context.user.role !== "SUPER_ADMIN") {
-    throw new Error("權限不足：僅超級管理員可訪問");
+
+  const hasPermission = hasPermissionWithCustom(
+    context.user.role as Role,
+    'system:logs',
+    context.user.customPermissions
+  );
+
+  if (!hasPermission) {
+    throw new Error("權限不足：需要「查看日誌」權限");
   }
+
   return context.user;
 };
 
@@ -45,7 +57,7 @@ export const activityLogResolvers = {
       },
       context: Context
     ) => {
-      requireSuperAdmin(context);
+      requireSystemLogsPermission(context);
 
       const page = args.page || 1;
       const pageSize = Math.min(args.pageSize || 20, 100);
@@ -110,7 +122,7 @@ export const activityLogResolvers = {
 
     // 獲取活動統計
     activityStats: async (_: unknown, __: unknown, context: Context) => {
-      requireSuperAdmin(context);
+      requireSystemLogsPermission(context);
 
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());

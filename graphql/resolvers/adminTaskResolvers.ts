@@ -1,5 +1,6 @@
 import { prisma } from "../prismaClient";
-import type { AdminTaskStatus, ApprovalRoute, Prisma } from "@prisma/client";
+import type { AdminTaskStatus, ApprovalRoute, Prisma, Role } from "@prisma/client";
+import { hasPermissionWithCustom, Permission, CustomPermissions } from "@/lib/permissions";
 
 // 生成任務編號
 const generateTaskNo = async (): Promise<string> => {
@@ -35,6 +36,7 @@ interface Context {
     email: string;
     role: string;
     name?: string;
+    customPermissions?: CustomPermissions | null;
   };
 }
 
@@ -59,6 +61,20 @@ const requireAdmin = (context: Context) => {
   const user = requireAuth(context);
   if (user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
     throw new Error("權限不足：需要管理員權限");
+  }
+  return user;
+};
+
+// 檢查用戶是否擁有特定權限（支援自訂權限）
+const requirePermission = (context: Context, permission: Permission) => {
+  const user = requireAuth(context);
+  const hasPermission = hasPermissionWithCustom(
+    user.role as Role,
+    permission,
+    user.customPermissions
+  );
+  if (!hasPermission) {
+    throw new Error(`權限不足：需要 ${permission} 權限`);
   }
   return user;
 };
@@ -338,7 +354,8 @@ export const adminTaskResolvers = {
       },
       context: Context
     ) => {
-      const user = requireAdmin(context);
+      // 使用權限檢查，允許有 admin_task:read 權限的用戶訪問
+      const user = requirePermission(context, "admin_task:read");
 
       const page = args.page || 1;
       const pageSize = Math.min(args.pageSize || 20, 100);
@@ -346,8 +363,11 @@ export const adminTaskResolvers = {
 
       const where: Prisma.AdminTaskWhereInput = {};
 
-      // ADMIN 角色只能看到被分配的任務類型
-      if (user.role === "ADMIN") {
+      // 根據角色設定不同的資料訪問範圍
+      if (user.role === "SUPER_ADMIN") {
+        // SUPER_ADMIN 可以看到所有任務
+      } else if (user.role === "ADMIN") {
+        // ADMIN 只能看到被分配的任務類型
         const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
         if (assignedTaskTypeIds.length === 0) {
           // 沒有被分配任何任務類型，返回空列表
@@ -357,6 +377,9 @@ export const adminTaskResolvers = {
           };
         }
         where.taskTypeId = { in: assignedTaskTypeIds };
+      } else {
+        // STAFF/OWNER 被授予權限後，只能看到自己創建的任務
+        where.applicantId = user.id;
       }
 
       if (args.status) where.status = args.status;
@@ -425,18 +448,25 @@ export const adminTaskResolvers = {
 
     // 獲取行政任務統計
     adminTaskStats: async (_: unknown, __: unknown, context: Context) => {
-      const user = requireAdmin(context);
+      // 使用權限檢查，允許有 admin_task:read 權限的用戶訪問
+      const user = requirePermission(context, "admin_task:read");
 
       const now = new Date();
 
-      // ADMIN 角色只統計被分配的任務類型
+      // 根據角色設定不同的統計範圍
       let taskTypeFilter: Prisma.AdminTaskWhereInput = {};
-      if (user.role === "ADMIN") {
+      if (user.role === "SUPER_ADMIN") {
+        // SUPER_ADMIN 統計所有任務
+      } else if (user.role === "ADMIN") {
+        // ADMIN 只統計被分配的任務類型
         const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
         if (assignedTaskTypeIds.length === 0) {
           return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
         }
         taskTypeFilter = { taskTypeId: { in: assignedTaskTypeIds } };
+      } else {
+        // STAFF/OWNER 只統計自己創建的任務
+        taskTypeFilter = { applicantId: user.id };
       }
 
       const [total, pending, processing, pendingDocuments, approved, rejected, completed, overdue] = await Promise.all([
@@ -623,7 +653,8 @@ export const adminTaskResolvers = {
       },
       context: Context
     ) => {
-      const user = requireAuth(context);
+      // 使用權限檢查，允許有 admin_task:create 權限的用戶創建任務
+      const user = requirePermission(context, "admin_task:create");
 
       // 驗證任務類型存在
       const taskType = await prisma.taskType.findUnique({
@@ -828,7 +859,8 @@ export const adminTaskResolvers = {
       },
       context: Context
     ) => {
-      const user = requireAdmin(context);
+      // 檢查 admin_task:approve 權限（支援自訂權限）
+      const user = requirePermission(context, "admin_task:approve");
 
       const task = await prisma.adminTask.findUnique({
         where: { id: args.input.taskId },
@@ -838,7 +870,7 @@ export const adminTaskResolvers = {
         throw new Error("找不到該行政任務");
       }
 
-      // ADMIN 角色只能審批被分配的任務類型
+      // ADMIN 角色只能審批被分配的任務類型（除非被授予特殊權限）
       if (user.role === "ADMIN") {
         const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
         if (!assignedTaskTypeIds.includes(task.taskTypeId)) {
