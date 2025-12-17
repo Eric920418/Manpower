@@ -107,7 +107,7 @@ export default function UserPermissionsPage() {
   const { data: permissionsData, loading: loadingPermissions } = useQuery(GET_AVAILABLE_PERMISSIONS);
 
   // 查詢選中用戶的有效權限
-  const { data: effectiveData, loading: loadingEffective } = useQuery(GET_USER_EFFECTIVE_PERMISSIONS, {
+  const { data: effectiveData, loading: loadingEffective, refetch: refetchEffective } = useQuery(GET_USER_EFFECTIVE_PERMISSIONS, {
     variables: { userId: selectedUserId },
     skip: !selectedUserId,
     fetchPolicy: "network-only",
@@ -118,6 +118,7 @@ export default function UserPermissionsPage() {
     onCompleted: () => {
       setHasChanges(false);
       refetch();
+      refetchEffective(); // 重新查詢有效權限
       alert("權限更新成功！\n\n後端權限已即時生效。\n如果該用戶正在使用系統，需要刷新頁面才能看到前端介面的變化。");
     },
     onError: (error) => {
@@ -138,8 +139,19 @@ export default function UserPermissionsPage() {
   );
 
   const selectedUser = users.find((u) => u.id === selectedUserId);
-  const categories: PermissionCategory[] = permissionsData?.availablePermissions || [];
+  const allCategories: PermissionCategory[] = permissionsData?.availablePermissions || [];
   const effectivePermissions: string[] = effectiveData?.userEffectivePermissions || [];
+
+  // 根據角色過濾權限類別
+  // 儀表板對所有人隱藏（所有角色都有此權限）
+  // OWNER 和 STAFF 不顯示：網頁內容、案件分配管理、系統設定
+  const hiddenCategoriesForAll = ["dashboard"];
+  const hiddenCategoriesForOwnerStaff = ["web_content", "task_assignment", "system"];
+
+  let categories = allCategories.filter((cat) => !hiddenCategoriesForAll.includes(cat.key));
+  if (selectedUser && (selectedUser.role === "OWNER" || selectedUser.role === "STAFF")) {
+    categories = categories.filter((cat) => !hiddenCategoriesForOwnerStaff.includes(cat.key));
+  }
 
   // 當選擇用戶變更時，載入其權限設定
   useEffect(() => {

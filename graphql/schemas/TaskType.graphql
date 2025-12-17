@@ -52,28 +52,8 @@ type TaskType {
   # 流程關聯（取代舊的 nextTaskTypeId）
   outgoingFlows: [TaskTypeFlow!]!  # 從此類型出發的流程
   incomingFlows: [TaskTypeFlow!]!  # 到達此類型的流程
-  assignedAdmins: [AdminTaskTypeAssignment!]!  # 被分配的管理員
   createdAt: String!
   updatedAt: String!
-}
-
-# 管理員任務類型分配
-type AdminTaskTypeAssignment {
-  id: ID!
-  adminId: String!
-  taskTypeId: Int!
-  admin: AdminInfo!
-  taskType: TaskType  # 可空，避免循環引用
-  assignedAt: String!
-  assignedBy: String
-}
-
-# 簡化的管理員資訊（用於顯示）
-type AdminInfo {
-  id: ID!
-  name: String
-  email: String!
-  role: String!
 }
 
 # ==================== Queries ====================
@@ -84,20 +64,6 @@ extend type Query {
 
   # 獲取單個任務類型
   taskType(id: Int!): TaskType
-
-  # 獲取所有管理員（ADMIN 角色）及其分配的任務類型（僅 SUPER_ADMIN）
-  adminsWithAssignments: [AdminWithAssignments!]!
-
-  # 獲取當前管理員被分配的任務類型（ADMIN 角色用）
-  myAssignedTaskTypes: [TaskType!]!
-}
-
-# 管理員及其分配的任務類型
-type AdminWithAssignments {
-  id: ID!
-  name: String
-  email: String!
-  assignedTaskTypes: [TaskType!]!
 }
 
 # ==================== Inputs ====================
@@ -168,13 +134,4 @@ extend type Mutation {
 
   # 批量更新排序
   reorderTaskTypes(ids: [Int!]!): [TaskType!]!
-
-  # 分配任務類型給管理員（僅 SUPER_ADMIN）
-  assignTaskTypeToAdmin(adminId: String!, taskTypeId: Int!): AdminTaskTypeAssignment!
-
-  # 移除管理員的任務類型分配（僅 SUPER_ADMIN）
-  removeTaskTypeFromAdmin(adminId: String!, taskTypeId: Int!): Boolean!
-
-  # 批量更新管理員的任務類型分配（僅 SUPER_ADMIN）
-  updateAdminTaskTypes(adminId: String!, taskTypeIds: [Int!]!): [TaskType!]!
 }

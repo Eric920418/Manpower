@@ -77,10 +77,9 @@ const questionTypeLabels: Record<QuestionType, string> = {
 
 export default function TaskTypesPage() {
   const { status } = useSession();
-  const { getRole } = usePermission();
+  const { can } = usePermission();
   const router = useRouter();
-  const userRole = getRole();
-  const isAdmin = userRole === "SUPER_ADMIN";
+  const canManageTaskTypes = can("system:config");
 
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [flows, setFlows] = useState<TaskTypeFlow[]>([]);
@@ -216,10 +215,10 @@ export default function TaskTypesPage() {
   }, []);
 
   useEffect(() => {
-    if (status === "authenticated" && isAdmin) {
+    if (status === "authenticated" && canManageTaskTypes) {
       fetchData();
     }
-  }, [status, isAdmin, fetchData]);
+  }, [status, canManageTaskTypes, fetchData]);
 
   // 開啟新增模態框
   const handleAdd = () => {
@@ -756,7 +755,7 @@ export default function TaskTypesPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canManageTaskTypes) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center min-h-[60vh]">

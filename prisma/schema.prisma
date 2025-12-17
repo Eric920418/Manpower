@@ -105,8 +105,9 @@ model User {
   approvedTasks     AdminTask[]      @relation("TaskApprover")    // 我審批的任務
   approvalRecords   ApprovalRecord[] @relation("ApprovalActor")   // 我的審批記錄
 
-  // 關聯 - 管理員任務類型分配（僅 ADMIN 角色適用）
-  assignedTaskTypes AdminTaskTypeAssignment[]
+  // 關聯 - 案件分配
+  taskAssignments       AdminTaskAssignment[] @relation("TaskAssignments")
+  taskAssignmentsGiven  AdminTaskAssignment[] @relation("TaskAssigner")
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -221,7 +222,6 @@ model TaskType {
 
   // 關聯
   tasks          AdminTask[]
-  assignedAdmins AdminTaskTypeAssignment[]  // 被分配的管理員
   // 流程關聯
   outgoingFlows  TaskTypeFlow[] @relation("FlowFrom")  // 從此類型出發的流程
   incomingFlows  TaskTypeFlow[] @relation("FlowTo")    // 到達此類型的流程
@@ -251,23 +251,6 @@ model TaskTypeFlow {
   @@index([toTaskTypeId])
 }
 
-// 管理員任務類型分配（多對多關聯表）
-model AdminTaskTypeAssignment {
-  id          Int      @id @default(autoincrement())
-  adminId     String                // 管理員 ID
-  taskTypeId  Int                   // 任務類型 ID
-  assignedAt  DateTime @default(now())  // 分配時間
-  assignedBy  String?               // 分配者（SUPER_ADMIN）ID
-
-  // 關聯
-  admin       User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  taskType    TaskType @relation(fields: [taskTypeId], references: [id], onDelete: Cascade)
-
-  @@unique([adminId, taskTypeId])  // 確保同一管理員不會重複分配同一類型
-  @@index([adminId])
-  @@index([taskTypeId])
-}
-
 // 行政任務狀態
 enum AdminTaskStatus {
   PENDING            // 待處理
@@ -276,6 +259,13 @@ enum AdminTaskStatus {
   APPROVED           // 已批准
   REJECTED           // 已退回
   COMPLETED          // 已完成
+}
+
+// 案件分配角色
+enum AssignmentRole {
+  PRIMARY     // 主要負責人
+  ASSISTANT   // 協助者
+  APPROVER    // 審批人
 }
 
 // 審批路線
@@ -331,6 +321,9 @@ model AdminTask {
   // 審批記錄
   approvalRecords ApprovalRecord[]
 
+  // 案件分配（新機制）
+  assignments     AdminTaskAssignment[]
+
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -343,6 +336,27 @@ model AdminTask {
   @@index([status, applicationDate(sort: Desc)])
   @@index([parentTaskId])
   @@index([groupId])
+}
+
+// 案件分配（多對多關聯表）- 取代 AdminTaskTypeAssignment
+model AdminTaskAssignment {
+  id          Int            @id @default(autoincrement())
+  taskId      Int            // 案件 ID
+  userId      String         // 被分配的用戶 ID
+  role        AssignmentRole // 分配角色
+  assignedAt  DateTime       @default(now())  // 分配時間
+  assignedBy  String?        // 分配者（SUPER_ADMIN）ID
+  notes       String?        // 分配備註
+
+  // 關聯
+  task        AdminTask      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User           @relation("TaskAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  assigner    User?          @relation("TaskAssigner", fields: [assignedBy], references: [id])
+
+  @@unique([taskId, userId, role])  // 同一用戶在同一案件中只能有一個特定角色
+  @@index([taskId])
+  @@index([userId])
+  @@index([userId, role])
 }
 
 // 審批記錄

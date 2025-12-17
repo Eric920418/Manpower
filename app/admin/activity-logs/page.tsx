@@ -256,9 +256,9 @@ const formatDetails = (action: string, entity: string, details: Record<string, u
 
 export default function ActivityLogsPage() {
   const { status } = useSession();
-  const { isSuperAdmin } = usePermission();
+  const { can } = usePermission();
   const permissionLoading = status === "loading";
-  const hasSuperAdminAccess = !permissionLoading && isSuperAdmin();
+  const hasAccess = !permissionLoading && can("system:logs");
 
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [stats, setStats] = useState<ActivityStats | null>(null);
@@ -425,17 +425,17 @@ export default function ActivityLogsPage() {
 
   // 初始載入（只執行一次）
   useEffect(() => {
-    if (hasSuperAdminAccess && !initialized) {
+    if (hasAccess && !initialized) {
       setInitialized(true);
       fetchUsers();
       fetchStats();
       fetchLogs();
     }
-  }, [hasSuperAdminAccess, initialized, fetchUsers, fetchStats, fetchLogs]);
+  }, [hasAccess, initialized, fetchUsers, fetchStats, fetchLogs]);
 
   // 當篩選條件變化時重新載入（排除初始載入）
   useEffect(() => {
-    if (hasSuperAdminAccess && initialized) {
+    if (hasAccess && initialized) {
       fetchLogs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -475,11 +475,11 @@ export default function ActivityLogsPage() {
     );
   }
 
-  if (!hasSuperAdminAccess) {
+  if (!hasAccess) {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-64">
-          <div className="text-red-500">權限不足：僅超級管理員可訪問此頁面</div>
+          <div className="text-red-500">權限不足：您沒有查看活動日誌的權限</div>
         </div>
       </AdminLayout>
     );

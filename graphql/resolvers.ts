@@ -6,6 +6,7 @@ import { userResolvers } from "./resolvers/userResolvers";
 import { navigationResolvers } from "./resolvers/navigationResolvers";
 import { manpowerRequestResolvers } from "./resolvers/manpowerRequestResolvers";
 import { adminTaskResolvers } from "./resolvers/adminTaskResolvers";
+import { adminTaskAssignmentResolvers } from "./resolvers/adminTaskAssignmentResolvers";
 import { taskTypeResolvers } from "./resolvers/taskTypeResolvers";
 import { taskTypeFlowResolvers } from "./resolvers/taskTypeFlowResolvers";
 import { dashboardResolvers } from "./resolvers/dashboardResolvers";
@@ -150,6 +151,8 @@ const Query = {
   ...taskTypeFlowResolvers.Query,
   // 行政事務簽核 queries
   ...adminTaskResolvers.Query,
+  // 案件分配 queries
+  ...adminTaskAssignmentResolvers.Query,
   // Dashboard 統計 queries
   ...dashboardResolvers.Query,
   // 活動日誌 queries
@@ -178,6 +181,8 @@ const Mutation = {
   ...taskTypeFlowResolvers.Mutation,
   // 行政事務簽核 mutations
   ...adminTaskResolvers.Mutation,
+  // 案件分配 mutations
+  ...adminTaskAssignmentResolvers.Mutation,
   // 待處理任務提醒 mutations
   ...pendingTaskReminderResolvers.Mutation,
 };

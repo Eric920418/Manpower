@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function AnalyticsPage() {
+  const { status } = useSession();
+  const { can } = usePermission();
+  const router = useRouter();
+  const hasAccess = can("system:analytics");
+
   const [gaConfigured, setGaConfigured] = useState(false);
   const [gaPropertyId, setGaPropertyId] = useState("");
 
@@ -20,6 +28,27 @@ export default function AnalyticsPage() {
 
     checkGAConfig();
   }, []);
+
+  // 權限檢查
+  if (status === "loading") {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-red-500">權限不足：您沒有查看數據分析的權限</div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

@@ -90,6 +90,12 @@ type AdminTask {
   # 審批記錄
   approvalRecords: [ApprovalRecord!]!
 
+  # 案件分配（新機制）
+  assignments: [AdminTaskAssignment!]!
+  primaryAssignees: [TaskUser!]!
+  assistants: [TaskUser!]!
+  assignedApprovers: [TaskUser!]!
+
   createdAt: String!
   updatedAt: String!
 }

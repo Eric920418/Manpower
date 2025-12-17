@@ -79,13 +79,14 @@ const requirePermission = (context: Context, permission: Permission) => {
   return user;
 };
 
-// 獲取管理員被分配的任務類型 ID 列表
-const getAdminAssignedTaskTypeIds = async (userId: string): Promise<number[]> => {
-  const assignments = await prisma.adminTaskTypeAssignment.findMany({
-    where: { adminId: userId },
-    select: { taskTypeId: true },
+// 獲取管理員被分配的案件 ID 列表
+const getAdminAssignedTaskIds = async (userId: string): Promise<number[]> => {
+  const assignments = await prisma.adminTaskAssignment.findMany({
+    where: { userId },
+    select: { taskId: true },
+    distinct: ["taskId"],
   });
-  return assignments.map((a) => a.taskTypeId);
+  return assignments.map((a) => a.taskId);
 };
 
 // 格式化日期
@@ -204,6 +205,31 @@ const formatSimpleTask = (task: SimpleTask) => ({
   createdAt: formatDate(task.createdAt),
 });
 
+// 格式化分配資訊
+interface AssignmentData {
+  id: number;
+  taskId: number;
+  userId: string;
+  role: string;
+  assignedAt: Date;
+  assignedBy: string | null;
+  notes: string | null;
+  user: { id: string; name: string | null; email: string; role: string };
+  assigner: { id: string; name: string | null; email: string; role: string } | null;
+}
+
+const formatAssignment = (assignment: AssignmentData) => ({
+  id: assignment.id,
+  taskId: assignment.taskId,
+  userId: assignment.userId,
+  role: assignment.role,
+  assignedAt: formatDate(assignment.assignedAt),
+  assignedBy: assignment.assignedBy,
+  notes: assignment.notes,
+  user: formatUser(assignment.user),
+  assigner: assignment.assigner ? formatUser(assignment.assigner) : null,
+});
+
 // 格式化任務
 const formatTask = (task: Prisma.AdminTaskGetPayload<{
   include: {
@@ -215,6 +241,7 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
     approvalRecords: { include: { approver: true } };
     parentTask: { include: { taskType: true; applicant: true } };
     childTasks: { include: { taskType: true; applicant: true } };
+    assignments: { include: { user: true; assigner: true } };
   };
 }>) => ({
   id: task.id,
@@ -260,6 +287,17 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
     approver: formatUser(record.approver),
     createdAt: formatDate(record.createdAt),
   })),
+  // 案件分配（新機制）
+  assignments: (task.assignments || []).map((a) => formatAssignment(a as AssignmentData)),
+  primaryAssignees: (task.assignments || [])
+    .filter((a) => a.role === "PRIMARY")
+    .map((a) => formatUser(a.user)),
+  assistants: (task.assignments || [])
+    .filter((a) => a.role === "ASSISTANT")
+    .map((a) => formatUser(a.user)),
+  assignedApprovers: (task.assignments || [])
+    .filter((a) => a.role === "APPROVER")
+    .map((a) => formatUser(a.user)),
   createdAt: formatDate(task.createdAt),
   updatedAt: formatDate(task.updatedAt),
 });
@@ -298,6 +336,14 @@ const taskInclude = {
       applicant: true,
     },
     orderBy: { createdAt: "asc" as const },
+  },
+  // 案件分配（新機制）
+  assignments: {
+    include: {
+      user: true,
+      assigner: true,
+    },
+    orderBy: [{ role: "asc" as const }, { assignedAt: "asc" as const }],
   },
 };
 
@@ -367,16 +413,16 @@ export const adminTaskResolvers = {
       if (user.role === "SUPER_ADMIN") {
         // SUPER_ADMIN 可以看到所有任務
       } else if (user.role === "ADMIN") {
-        // ADMIN 只能看到被分配的任務類型
-        const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
-        if (assignedTaskTypeIds.length === 0) {
-          // 沒有被分配任何任務類型，返回空列表
+        // ADMIN 只能看到被分配的案件（新機制）
+        const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
+        if (assignedTaskIds.length === 0) {
+          // 沒有被分配任何案件，返回空列表
           return {
             items: [],
             pageInfo: { total: 0, page, pageSize, totalPages: 0 },
           };
         }
-        where.taskTypeId = { in: assignedTaskTypeIds };
+        where.id = { in: assignedTaskIds };
       } else {
         // STAFF/OWNER 被授予權限後，只能看到自己創建的任務
         where.applicantId = user.id;
@@ -384,16 +430,7 @@ export const adminTaskResolvers = {
 
       if (args.status) where.status = args.status;
       if (args.taskTypeId) {
-        // 如果是 ADMIN，確保只能查詢被分配的任務類型
-        if (user.role === "ADMIN") {
-          const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
-          if (!assignedTaskTypeIds.includes(args.taskTypeId)) {
-            return {
-              items: [],
-              pageInfo: { total: 0, page, pageSize, totalPages: 0 },
-            };
-          }
-        }
+        // 對於 ADMIN，已經透過案件分配限制了可見範圍，這裡只需要額外篩選類型
         where.taskTypeId = args.taskTypeId;
       }
       if (args.applicantId) where.applicantId = args.applicantId;
@@ -458,12 +495,12 @@ export const adminTaskResolvers = {
       if (user.role === "SUPER_ADMIN") {
         // SUPER_ADMIN 統計所有任務
       } else if (user.role === "ADMIN") {
-        // ADMIN 只統計被分配的任務類型
-        const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
-        if (assignedTaskTypeIds.length === 0) {
+        // ADMIN 只統計被分配的案件（新機制）
+        const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
+        if (assignedTaskIds.length === 0) {
           return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
         }
-        taskTypeFilter = { taskTypeId: { in: assignedTaskTypeIds } };
+        taskTypeFilter = { id: { in: assignedTaskIds } };
       } else {
         // STAFF/OWNER 只統計自己創建的任務
         taskTypeFilter = { applicantId: user.id };
@@ -870,13 +907,20 @@ export const adminTaskResolvers = {
         throw new Error("找不到該行政任務");
       }
 
-      // ADMIN 角色只能審批被分配的任務類型（除非被授予特殊權限）
+      // ADMIN 角色只能審批被分配的案件（需有 APPROVER 角色），SUPER_ADMIN 不受限制
       if (user.role === "ADMIN") {
-        const assignedTaskTypeIds = await getAdminAssignedTaskTypeIds(user.id);
-        if (!assignedTaskTypeIds.includes(task.taskTypeId)) {
-          throw new Error("權限不足：您沒有權限審批此任務類型");
+        const approverAssignment = await prisma.adminTaskAssignment.findFirst({
+          where: {
+            taskId: task.id,
+            userId: user.id,
+            role: "APPROVER",
+          },
+        });
+        if (!approverAssignment) {
+          throw new Error("權限不足：您不是此案件的審批人");
         }
       }
+      // SUPER_ADMIN 可以審批任何案件，不需要被分配
 
       // 創建審批記錄
       await prisma.approvalRecord.create({

@@ -609,136 +609,144 @@ export default function UsersPage() {
 
       {/* 新增/編輯用戶表單 */}
       {showUserForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-6">
-              {formMode === "create" ? "新增用戶" : "編輯用戶"}
-            </h3>
-            <form onSubmit={handleSubmitForm}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="user@example.com"
-                  />
-                </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b flex-shrink-0">
+              <h3 className="text-lg font-bold text-gray-900">
+                {formMode === "create" ? "新增用戶" : "編輯用戶"}
+              </h3>
+            </div>
+            <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                {/* 左側：基本資訊 */}
+                <div className="flex-1 space-y-4">
+                  <h4 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+                    基本資訊
+                  </h4>
 
-                {/* 姓名 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    姓名 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="張三"
-                  />
-                </div>
-
-                {/* 密碼 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    密碼{" "}
-                    {formMode === "create" ? (
-                      <span className="text-red-500">*</span>
-                    ) : (
-                      <span className="text-gray-500 text-xs">
-                        （留空則不修改）
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="password"
-                    required={formMode === "create"}
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={
-                      formMode === "create" ? "設定密碼" : "留空則不修改"
-                    }
-                  />
-                </div>
-
-                {/* 角色 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    角色 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={formData.role}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        role: e.target.value as Role,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {canManage(Role.STAFF) && <option value={Role.STAFF}>業務人員</option>}
-                    {canManage(Role.OWNER) && <option value={Role.OWNER}>業主</option>}
-                    {canManage(Role.ADMIN) && <option value={Role.ADMIN}>管理員</option>}
-                  </select>
-                </div>
-
-                {/* 電話 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    電話
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0912-345-678"
-                  />
-                </div>
-
-                {/* 狀態 */}
-                <div className="md:col-span-2">
-                  <label className="flex items-center space-x-2">
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email <span className="text-red-500">*</span>
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={formData.isActive}
+                      type="email"
+                      required
+                      value={formData.email}
                       onChange={(e) =>
-                        setFormData({ ...formData, isActive: e.target.checked })
+                        setFormData({ ...formData, email: e.target.value })
                       }
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="user@example.com"
                     />
-                    <span className="text-sm font-medium text-gray-700">
-                      啟用此用戶
-                    </span>
-                  </label>
+                  </div>
+
+                  {/* 姓名 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      姓名 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="張三"
+                    />
+                  </div>
+
+                  {/* 密碼 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      密碼{" "}
+                      {formMode === "create" ? (
+                        <span className="text-red-500">*</span>
+                      ) : (
+                        <span className="text-gray-500 text-xs">
+                          （留空則不修改）
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="password"
+                      required={formMode === "create"}
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={
+                        formMode === "create" ? "設定密碼" : "留空則不修改"
+                      }
+                    />
+                  </div>
+
+                  {/* 角色 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      角色 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={formData.role}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          role: e.target.value as Role,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {canManage(Role.STAFF) && <option value={Role.STAFF}>業務人員</option>}
+                      {canManage(Role.OWNER) && <option value={Role.OWNER}>業主</option>}
+                      {canManage(Role.ADMIN) && <option value={Role.ADMIN}>管理員</option>}
+                    </select>
+                  </div>
+
+                  {/* 電話 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      電話
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0912-345-678"
+                    />
+                  </div>
+
+                  {/* 狀態 */}
+                  <div>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.isActive}
+                        onChange={(e) =>
+                          setFormData({ ...formData, isActive: e.target.checked })
+                        }
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        啟用此用戶
+                      </span>
+                    </label>
+                  </div>
                 </div>
 
-                {/* 業務人員展示欄位區塊（只在編輯模式且角色為 STAFF 或 OWNER 時顯示） */}
+                {/* 右側：業務人員展示欄位（只在編輯模式且角色為 STAFF 或 OWNER 時顯示） */}
                 {formMode === "edit" && (formData.role === Role.STAFF || formData.role === Role.OWNER) && (
-                  <>
-                    <div className="md:col-span-2 border-t pt-4 mt-2">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                        📋 業務人員公開展示資訊
-                      </h4>
-                    </div>
+                  <div className="flex-1 space-y-4 lg:border-l lg:pl-6">
+                    <h4 className="text-sm font-semibold text-gray-900 pb-2 border-b">
+                      公開展示資訊
+                    </h4>
 
                     {/* 職稱 */}
                     <div>
@@ -773,7 +781,7 @@ export default function UsersPage() {
                     </div>
 
                     {/* 自我介紹 */}
-                    <div className="md:col-span-2">
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         自我介紹
                       </label>
@@ -789,7 +797,7 @@ export default function UsersPage() {
                     </div>
 
                     {/* 專長領域 */}
-                    <div className="md:col-span-2">
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         專長領域
                         <span className="text-gray-500 text-xs ml-1">（以逗號分隔）</span>
@@ -812,7 +820,7 @@ export default function UsersPage() {
                     </div>
 
                     {/* 是否公開顯示 */}
-                    <div className="md:col-span-2">
+                    <div>
                       <label className="flex items-center space-x-2">
                         <input
                           type="checkbox"
@@ -830,11 +838,12 @@ export default function UsersPage() {
                         取消勾選後，此業務人員將不會顯示在 /staff 頁面
                       </p>
                     </div>
-                  </>
+                  </div>
                 )}
+                </div>
               </div>
 
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex justify-end space-x-3 p-6 border-t flex-shrink-0 bg-gray-50">
                 <button
                   type="button"
                   onClick={() => {
@@ -842,7 +851,7 @@ export default function UsersPage() {
                     resetForm();
                   }}
                   disabled={creating || updating}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 bg-white"
                 >
                   取消
                 </button>

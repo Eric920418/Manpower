@@ -31,6 +31,9 @@ export type Permission =
   | 'admin_task:update'
   | 'admin_task:delete'
   | 'admin_task:approve'
+  // 案件分配管理
+  | 'task_assignment:read'
+  | 'task_assignment:assign'
   // 系統設定
   | 'system:config'
   | 'system:logs'
@@ -66,6 +69,9 @@ export const PermissionEnum = {
   ADMIN_TASK_UPDATE: 'admin_task:update' as const,
   ADMIN_TASK_DELETE: 'admin_task:delete' as const,
   ADMIN_TASK_APPROVE: 'admin_task:approve' as const,
+  // 案件分配管理
+  TASK_ASSIGNMENT_READ: 'task_assignment:read' as const,
+  TASK_ASSIGNMENT_ASSIGN: 'task_assignment:assign' as const,
   // 系統設定
   SYSTEM_CONFIG: 'system:config' as const,
   SYSTEM_LOGS: 'system:logs' as const,
@@ -105,6 +111,9 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'admin_task:update',
     'admin_task:delete',
     'admin_task:approve',
+    // 案件分配管理
+    'task_assignment:read',
+    'task_assignment:assign',
     // 系統設定
     'system:config',
     'system:logs',
@@ -357,10 +366,18 @@ export const AllPermissionDefinitions: PermissionCategory[] = [
     ],
   },
   {
+    key: 'task_assignment',
+    label: '案件分配管理',
+    permissions: [
+      { key: 'task_assignment:read', label: '查看案件分配', description: '可以查看案件分配狀況', category: 'task_assignment' },
+      { key: 'task_assignment:assign', label: '分配案件', description: '可以分配案件給管理員處理', category: 'task_assignment' },
+    ],
+  },
+  {
     key: 'system',
     label: '系統設定',
     permissions: [
-      { key: 'system:config', label: '系統設定', description: '可以修改系統設定', category: 'system' },
+      { key: 'system:config', label: '申請類型管理', description: '可以管理申請類型設定', category: 'system' },
       { key: 'system:logs', label: '查看日誌', description: '可以查看活動日誌', category: 'system' },
       { key: 'system:analytics', label: '數據分析', description: '可以查看數據分析報表', category: 'system' },
     ],
@@ -428,17 +445,17 @@ export function getEffectivePermissions(
   }
 
   // 從角色權限開始
-  const rolePermissions = new Set(RolePermissions[userRole] || []);
+  const rolePermissions = new Set<string>(RolePermissions[userRole] || []);
 
   // 添加額外授予的權限
   if (customPermissions?.granted) {
-    customPermissions.granted.forEach(p => rolePermissions.add(p));
+    customPermissions.granted.forEach(p => rolePermissions.add(p as string));
   }
 
   // 移除被禁止的權限
   if (customPermissions?.denied) {
-    customPermissions.denied.forEach(p => rolePermissions.delete(p));
+    customPermissions.denied.forEach(p => rolePermissions.delete(p as string));
   }
 
-  return Array.from(rolePermissions);
+  return Array.from(rolePermissions) as Permission[];
 }

@@ -24,7 +24,8 @@
       "Bash(openssl rand:*)",
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
-      "Bash(pm2 flush:*)"
+      "Bash(pm2 flush:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

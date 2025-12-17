@@ -102,7 +102,6 @@ const formatTaskTypeBasic = (taskType: {
   positionY: taskType.positionY ?? null,
   outgoingFlows: [],
   incomingFlows: [],
-  assignedAdmins: [],
   createdAt: formatDate(taskType.createdAt),
   updatedAt: formatDate(taskType.updatedAt),
 });
@@ -136,19 +135,6 @@ interface TaskTypeWithAssignments {
   updatedAt: Date;
   outgoingFlows?: FlowRelation[];
   incomingFlows?: FlowRelation[];
-  assignedAdmins?: Array<{
-    id: number;
-    adminId: string;
-    taskTypeId: number;
-    assignedAt: Date;
-    assignedBy: string | null;
-    admin: {
-      id: string;
-      name: string | null;
-      email: string;
-      role: string;
-    };
-  }>;
 }
 
 // 格式化流程
@@ -185,20 +171,6 @@ const formatTaskType = (taskType: TaskTypeWithAssignments) => ({
   positionY: taskType.positionY ?? null,
   outgoingFlows: (taskType.outgoingFlows || []).map(formatFlow),
   incomingFlows: (taskType.incomingFlows || []).map(formatFlow),
-  assignedAdmins: (taskType.assignedAdmins || []).map((assignment) => ({
-    id: assignment.id,
-    adminId: assignment.adminId,
-    taskTypeId: assignment.taskTypeId,
-    admin: {
-      id: assignment.admin.id,
-      name: assignment.admin.name,
-      email: assignment.admin.email,
-      role: assignment.admin.role,
-    },
-    taskType: null, // 避免循環引用，在需要時再填充
-    assignedAt: formatDate(assignment.assignedAt),
-    assignedBy: assignment.assignedBy,
-  })),
   createdAt: formatDate(taskType.createdAt),
   updatedAt: formatDate(taskType.updatedAt),
 });
@@ -219,18 +191,6 @@ export const taskTypeResolvers = {
         where,
         orderBy: { order: "asc" },
         include: {
-          assignedAdmins: {
-            include: {
-              admin: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  role: true,
-                },
-              },
-            },
-          },
           outgoingFlows: {
             include: {
               toTaskType: {
@@ -260,11 +220,6 @@ export const taskTypeResolvers = {
       const taskType = await prisma.taskType.findUnique({
         where: { id: args.id },
         include: {
-          assignedAdmins: {
-            include: {
-              admin: true,
-            },
-          },
           outgoingFlows: {
             include: {
               toTaskType: {
@@ -288,61 +243,6 @@ export const taskTypeResolvers = {
       return formatTaskType(taskType);
     },
 
-    // 獲取所有管理員及其分配的任務類型（僅 SUPER_ADMIN）
-    adminsWithAssignments: async (_: unknown, __: unknown, context: Context) => {
-      requireSuperAdmin(context);
-
-      const admins = await prisma.user.findMany({
-        where: { role: "ADMIN", isActive: true },
-        include: {
-          assignedTaskTypes: {
-            include: {
-              taskType: true,
-            },
-          },
-        },
-        orderBy: { name: "asc" },
-      });
-
-      return admins.map((admin) => ({
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        assignedTaskTypes: admin.assignedTaskTypes.map((assignment) =>
-          formatTaskTypeBasic(assignment.taskType)
-        ),
-      }));
-    },
-
-    // 獲取當前管理員被分配的任務類型（ADMIN 角色用）
-    myAssignedTaskTypes: async (_: unknown, __: unknown, context: Context) => {
-      const user = requireAuth(context);
-
-      // SUPER_ADMIN 可以看到所有任務類型
-      if (user.role === "SUPER_ADMIN") {
-        const taskTypes = await prisma.taskType.findMany({
-          where: { isActive: true },
-          orderBy: { order: "asc" },
-        });
-        return taskTypes.map(formatTaskTypeBasic);
-      }
-
-      // ADMIN 只能看到被分配的任務類型
-      if (user.role === "ADMIN") {
-        const assignments = await prisma.adminTaskTypeAssignment.findMany({
-          where: { adminId: user.id },
-          include: {
-            taskType: true,
-          },
-        });
-
-        return assignments
-          .filter((a) => a.taskType.isActive)
-          .map((a) => formatTaskTypeBasic(a.taskType));
-      }
-
-      return [];
-    },
   },
 
   Mutation: {
@@ -693,152 +593,5 @@ export const taskTypeResolvers = {
       return taskTypes.map(formatTaskTypeBasic);
     },
 
-    // 分配任務類型給管理員（僅 SUPER_ADMIN）
-    assignTaskTypeToAdmin: async (
-      _: unknown,
-      args: { adminId: string; taskTypeId: number },
-      context: Context
-    ) => {
-      const user = requireSuperAdmin(context);
-
-      // 驗證管理員存在且為 ADMIN 角色
-      const admin = await prisma.user.findUnique({
-        where: { id: args.adminId },
-      });
-
-      if (!admin) {
-        throw new Error("找不到該用戶");
-      }
-
-      if (admin.role !== "ADMIN") {
-        throw new Error("只能分配任務類型給管理員角色");
-      }
-
-      // 驗證任務類型存在
-      const taskType = await prisma.taskType.findUnique({
-        where: { id: args.taskTypeId },
-      });
-
-      if (!taskType) {
-        throw new Error("找不到該任務類型");
-      }
-
-      // 創建分配關聯
-      const assignment = await prisma.adminTaskTypeAssignment.create({
-        data: {
-          adminId: args.adminId,
-          taskTypeId: args.taskTypeId,
-          assignedBy: user.id,
-        },
-        include: {
-          admin: true,
-          taskType: true,
-        },
-      });
-
-      return {
-        id: assignment.id,
-        adminId: assignment.adminId,
-        taskTypeId: assignment.taskTypeId,
-        admin: {
-          id: assignment.admin.id,
-          name: assignment.admin.name,
-          email: assignment.admin.email,
-          role: assignment.admin.role,
-        },
-        taskType: formatTaskTypeBasic(assignment.taskType),
-        assignedAt: formatDate(assignment.assignedAt),
-        assignedBy: assignment.assignedBy,
-      };
-    },
-
-    // 移除管理員的任務類型分配（僅 SUPER_ADMIN）
-    removeTaskTypeFromAdmin: async (
-      _: unknown,
-      args: { adminId: string; taskTypeId: number },
-      context: Context
-    ) => {
-      requireSuperAdmin(context);
-
-      const assignment = await prisma.adminTaskTypeAssignment.findUnique({
-        where: {
-          adminId_taskTypeId: {
-            adminId: args.adminId,
-            taskTypeId: args.taskTypeId,
-          },
-        },
-      });
-
-      if (!assignment) {
-        throw new Error("找不到該分配記錄");
-      }
-
-      await prisma.adminTaskTypeAssignment.delete({
-        where: { id: assignment.id },
-      });
-
-      return true;
-    },
-
-    // 批量更新管理員的任務類型分配（僅 SUPER_ADMIN）
-    updateAdminTaskTypes: async (
-      _: unknown,
-      args: { adminId: string; taskTypeIds: number[] },
-      context: Context
-    ) => {
-      const user = requireSuperAdmin(context);
-
-      // 驗證管理員存在且為 ADMIN 角色
-      const admin = await prisma.user.findUnique({
-        where: { id: args.adminId },
-      });
-
-      if (!admin) {
-        throw new Error("找不到該用戶");
-      }
-
-      if (admin.role !== "ADMIN") {
-        throw new Error("只能分配任務類型給管理員角色");
-      }
-
-      // 刪除現有的所有分配
-      await prisma.adminTaskTypeAssignment.deleteMany({
-        where: { adminId: args.adminId },
-      });
-
-      // 創建新的分配
-      if (args.taskTypeIds.length > 0) {
-        await prisma.adminTaskTypeAssignment.createMany({
-          data: args.taskTypeIds.map((taskTypeId) => ({
-            adminId: args.adminId,
-            taskTypeId,
-            assignedBy: user.id,
-          })),
-        });
-      }
-
-      // 記錄活動日誌
-      await prisma.activityLog.create({
-        data: {
-          userId: user.id,
-          action: "update",
-          entity: "admin_assignment",
-          entityId: args.adminId,
-          details: {
-            adminEmail: admin.email,
-            adminName: admin.name,
-            taskTypeIds: args.taskTypeIds,
-          },
-        },
-      });
-
-      // 返回更新後的任務類型列表
-      const taskTypes = await prisma.taskType.findMany({
-        where: { id: { in: args.taskTypeIds } },
-        orderBy: { order: "asc" },
-      });
-
-      return taskTypes.map(formatTaskTypeBasic);
-    },
   },
 };

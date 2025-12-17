@@ -53,10 +53,10 @@ const menuGroups: MenuGroup[] = [
   {
     title: "系統管理",
     roles: ['SUPER_ADMIN'],
-    permissions: ['system:config', 'user:manage_roles', 'system:logs', 'system:analytics'],
+    permissions: ['system:config', 'user:manage_roles', 'system:logs', 'system:analytics', 'task_assignment:read'],
     items: [
       { label: "申請類型管理", href: "/admin/task-types", permission: 'system:config' },
-      { label: "管理員任務分配", href: "/admin/admin-assignments", permission: 'user:manage_roles' },
+      { label: "案件分配管理", href: "/admin/admin-assignments", permission: 'task_assignment:read' },
       { label: "用戶權限管理", href: "/admin/user-permissions", permission: 'user:manage_roles' },
       { label: "活動日誌", href: "/admin/activity-logs", permission: 'system:logs' },
       { label: "數據分析", href: "/admin/analytics", permission: 'system:analytics' },

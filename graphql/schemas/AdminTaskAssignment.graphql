@@ -1,0 +1,108 @@
+# 案件分配角色
+enum AssignmentRole {
+  PRIMARY     # 主要負責人
+  ASSISTANT   # 協助者
+  APPROVER    # 審批人
+}
+
+# 案件分配資訊
+type AdminTaskAssignment {
+  id: ID!
+  taskId: Int!
+  userId: String!
+  role: AssignmentRole!
+  assignedAt: String!
+  assignedBy: String
+  notes: String
+
+  # 關聯資料
+  task: AdminTask
+  user: TaskUser!
+  assigner: TaskUser
+}
+
+# 用戶的案件分配摘要（管理員視角）
+type UserTaskAssignmentSummary {
+  user: TaskUser!
+  totalTasks: Int!
+  primaryTasks: Int!
+  assistantTasks: Int!
+  approverTasks: Int!
+  pendingTasks: Int!
+  processingTasks: Int!
+}
+
+# ==================== Queries ====================
+
+extend type Query {
+  # 獲取案件的所有分配（案件視角）
+  taskAssignments(taskId: Int!): [AdminTaskAssignment!]!
+
+  # 獲取用戶被分配的所有案件（管理員視角）
+  userTaskAssignments(
+    userId: String!
+    role: AssignmentRole
+    status: AdminTaskStatus
+    page: Int
+    pageSize: Int
+  ): AdminTaskConnection!
+
+  # 獲取所有用戶的分配摘要（SUPER_ADMIN 用）
+  allUserAssignmentSummaries: [UserTaskAssignmentSummary!]!
+
+  # 獲取當前用戶被分配的案件
+  myAssignedTasks(
+    role: AssignmentRole
+    status: AdminTaskStatus
+    page: Int
+    pageSize: Int
+  ): AdminTaskConnection!
+
+  # 獲取可分配的用戶列表（ADMIN 或 SUPER_ADMIN）
+  assignableUsers: [TaskUser!]!
+}
+
+# ==================== Inputs ====================
+
+input AssignTaskInput {
+  taskId: Int!
+  userId: String!
+  role: AssignmentRole!
+  notes: String
+}
+
+input SingleAssignmentInput {
+  userId: String!
+  role: AssignmentRole!
+  notes: String
+}
+
+input BulkAssignTaskInput {
+  taskId: Int!
+  assignments: [SingleAssignmentInput!]!
+}
+
+input UpdateAssignmentInput {
+  assignmentId: Int!
+  role: AssignmentRole
+  notes: String
+}
+
+# ==================== Mutations ====================
+
+extend type Mutation {
+  # 分配案件給用戶（單個）
+  assignTask(input: AssignTaskInput!): AdminTaskAssignment!
+
+  # 批量分配案件
+  bulkAssignTask(input: BulkAssignTaskInput!): [AdminTaskAssignment!]!
+
+  # 移除案件分配
+  removeTaskAssignment(assignmentId: Int!): Boolean!
+
+  # 更新分配設定
+  updateTaskAssignment(input: UpdateAssignmentInput!): AdminTaskAssignment!
+
+  # 批量更新案件的所有分配（覆蓋模式）
+  replaceTaskAssignments(taskId: Int!, assignments: [SingleAssignmentInput!]!): [AdminTaskAssignment!]!
+}
