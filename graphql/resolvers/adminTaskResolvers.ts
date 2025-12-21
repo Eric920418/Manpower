@@ -68,11 +68,13 @@ const requireAdmin = (context: Context) => {
 // 檢查用戶是否擁有特定權限（支援自訂權限）
 const requirePermission = (context: Context, permission: Permission) => {
   const user = requireAuth(context);
+  console.log(`[Permission Check] User: ${user.id}, Role: ${user.role}, Permission: ${permission}, CustomPermissions: ${JSON.stringify(user.customPermissions)}`);
   const hasPermission = hasPermissionWithCustom(
     user.role as Role,
     permission,
     user.customPermissions
   );
+  console.log(`[Permission Check] Result: ${hasPermission}`);
   if (!hasPermission) {
     throw new Error(`權限不足：需要 ${permission} 權限`);
   }
@@ -495,7 +497,7 @@ export const adminTaskResolvers = {
         // ADMIN 只統計被分配的案件（新機制）
         const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
         if (assignedTaskIds.length === 0) {
-          return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, pendingReview: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
+          return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, pendingReview: 0, revisionRequested: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
         }
         taskTypeFilter = { id: { in: assignedTaskIds } };
       } else {
@@ -503,25 +505,26 @@ export const adminTaskResolvers = {
         taskTypeFilter = { applicantId: user.id };
       }
 
-      const [total, pending, processing, pendingDocuments, pendingReview, approved, rejected, completed, overdue] = await Promise.all([
+      const [total, pending, processing, pendingDocuments, pendingReview, revisionRequested, approved, rejected, completed, overdue] = await Promise.all([
         prisma.adminTask.count({ where: taskTypeFilter }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PROCESSING" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING_DOCUMENTS" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING_REVIEW" } }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "REVISION_REQUESTED" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "APPROVED" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "REJECTED" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "COMPLETED" } }),
         prisma.adminTask.count({
           where: {
             ...taskTypeFilter,
-            status: { in: ["PENDING", "PROCESSING", "PENDING_DOCUMENTS", "PENDING_REVIEW"] },
+            status: { in: ["PENDING", "PROCESSING", "PENDING_DOCUMENTS", "PENDING_REVIEW", "REVISION_REQUESTED"] },
             deadline: { lt: now },
           },
         }),
       ]);
 
-      return { total, pending, processing, pendingDocuments, pendingReview, approved, rejected, completed, overdue };
+      return { total, pending, processing, pendingDocuments, pendingReview, revisionRequested, approved, rejected, completed, overdue };
     },
 
     // 按類型統計（優化：使用 groupBy 替代 N+1 查詢）
@@ -671,11 +674,11 @@ export const adminTaskResolvers = {
     checkRevisionRequests: async (_: unknown, __: unknown, context: Context) => {
       const user = requireAuth(context);
 
-      // 查找當前用戶作為申請人的案件，且最新的審批記錄是 request_revision
+      // 查找當前用戶作為申請人的案件，且狀態為要求修改
       const tasksWithRevisionRequest = await prisma.adminTask.findMany({
         where: {
           applicantId: user.id,
-          status: "PENDING", // 要求修改後狀態會變成 PENDING
+          status: "REVISION_REQUESTED", // 要求修改的專用狀態
           approvalRecords: {
             some: {
               action: "request_revision",
@@ -961,9 +964,27 @@ export const adminTaskResolvers = {
         throw new Error("找不到該行政任務");
       }
 
-      // 檢查權限：只有申請人、SUPER_ADMIN 可以編輯
-      if (existingTask.applicantId !== user.id && user.role !== "SUPER_ADMIN") {
-        throw new Error("權限不足：只有申請人或管理員可以編輯任務");
+      // 檢查權限：申請人、SUPER_ADMIN、被分配的 ADMIN 可以編輯
+      let canEdit = false;
+      if (existingTask.applicantId === user.id) {
+        canEdit = true;
+      } else if (user.role === "SUPER_ADMIN") {
+        canEdit = true;
+      } else if (user.role === "ADMIN") {
+        // 檢查是否被分配到此案件
+        const assignment = await prisma.adminTaskAssignment.findFirst({
+          where: {
+            taskId: existingTask.id,
+            userId: user.id,
+          },
+        });
+        if (assignment) {
+          canEdit = true;
+        }
+      }
+
+      if (!canEdit) {
+        throw new Error("權限不足：只有申請人或被分配的管理員可以編輯任務");
       }
 
       const updateData: Prisma.AdminTaskUpdateInput = {};
@@ -1126,7 +1147,7 @@ export const adminTaskResolvers = {
         newStatus = "PENDING_DOCUMENTS";
         approvalMark = "?";
       } else if (args.input.action === "request_revision") {
-        newStatus = "PENDING";
+        newStatus = "REVISION_REQUESTED";
         approvalMark = null;
       }
 

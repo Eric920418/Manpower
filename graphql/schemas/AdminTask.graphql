@@ -2,13 +2,14 @@
 
 # 行政任務狀態
 enum AdminTaskStatus {
-  PENDING            # 待處理
-  PROCESSING         # 處理中
-  PENDING_DOCUMENTS  # 待補件
-  PENDING_REVIEW     # 待複審
-  APPROVED           # 已批准
-  REJECTED           # 已退回
-  COMPLETED          # 已完成
+  PENDING              # 待處理
+  PROCESSING           # 處理中
+  PENDING_DOCUMENTS    # 待補件
+  PENDING_REVIEW       # 待複審
+  REVISION_REQUESTED   # 要求修改
+  APPROVED             # 已批准
+  REJECTED             # 已退回
+  COMPLETED            # 已完成
 }
 
 # 審批路線
@@ -125,6 +126,7 @@ type AdminTaskStats {
   processing: Int!
   pendingDocuments: Int!
   pendingReview: Int!
+  revisionRequested: Int!
   approved: Int!
   rejected: Int!
   completed: Int!

@@ -151,6 +151,8 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   PENDING: { label: "待處理", className: "bg-yellow-100 text-yellow-800" },
   PROCESSING: { label: "處理中", className: "bg-blue-100 text-blue-800" },
   PENDING_DOCUMENTS: { label: "待補件", className: "bg-orange-100 text-orange-800" },
+  PENDING_REVIEW: { label: "待複審", className: "bg-purple-100 text-purple-800" },
+  REVISION_REQUESTED: { label: "要求修改", className: "bg-pink-100 text-pink-800" },
   APPROVED: { label: "已批准", className: "bg-green-100 text-green-800" },
   REJECTED: { label: "已退回", className: "bg-red-100 text-red-800" },
   COMPLETED: { label: "已完成", className: "bg-gray-100 text-gray-800" },
@@ -980,6 +982,47 @@ function AdminTasksContent() {
     });
   };
 
+  // 格式化期限日期（簡短格式）
+  const formatDeadlineDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("zh-TW", {
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  // 計算期限緊急程度
+  const getDeadlineUrgency = (deadline: string | null): "overdue" | "today" | "3days" | "week" | "normal" | null => {
+    if (!deadline) return null;
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffTime = deadlineDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "overdue";
+    if (diffDays === 0) return "today";
+    if (diffDays <= 3) return "3days";
+    if (diffDays <= 7) return "week";
+    return "normal";
+  };
+
+  // 獲取期限樣式
+  const getDeadlineStyle = (urgency: "overdue" | "today" | "3days" | "week" | "normal" | null) => {
+    switch (urgency) {
+      case "overdue":
+        return "bg-red-600 text-white";
+      case "today":
+        return "bg-red-100 text-red-800";
+      case "3days":
+        return "bg-yellow-100 text-yellow-800";
+      case "week":
+        return "bg-blue-100 text-blue-800";
+      default:
+        return "text-gray-600";
+    }
+  };
+
   // 獲取狀態標籤
   const getStatusBadge = (status: string) => {
     const badge = statusLabels[status] || statusLabels.PENDING;
@@ -1126,6 +1169,8 @@ function AdminTasksContent() {
                 <option value="PENDING">待處理</option>
                 <option value="PROCESSING">處理中</option>
                 <option value="PENDING_DOCUMENTS">待補件</option>
+                <option value="PENDING_REVIEW">待複審</option>
+                <option value="REVISION_REQUESTED">要求修改</option>
                 <option value="APPROVED">已批准</option>
                 <option value="REJECTED">已退回</option>
                 <option value="COMPLETED">已完成</option>
@@ -1193,23 +1238,25 @@ function AdminTasksContent() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       標題
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       類型
                     </th>
-
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       申請人
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       狀態
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                      完成期限
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       申請時間
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       操作
                     </th>
                   </tr>
@@ -1221,7 +1268,7 @@ function AdminTasksContent() {
                       <tr
                         className={`hover:bg-gray-50 ${item.type === "group" ? "bg-blue-50/50" : ""}`}
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             {/* 展開/收起按鈕（僅群組顯示） */}
                             {item.type === "group" && item.children && item.children.length > 0 && (
@@ -1233,40 +1280,57 @@ function AdminTasksContent() {
                               </button>
                             )}
                             <div>
-                              <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                              <div className="text-sm font-medium text-gray-900 max-w-[180px] truncate">
                                 {item.task.title}
                               </div>
                               {/* 群組標記 */}
                               {item.type === "group" && item.children && item.children.length > 0 && (
                                 <span className="text-xs text-blue-600 font-medium">
-                                  📎 {item.children.length + 1} 個關聯任務
+                                  📎 {item.children.length + 1} 個關聯
                                 </span>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
                             {item.task.taskType?.label || "未知類型"}
                           </span>
                         </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 max-w-[80px] truncate">
                             {item.task.applicantName ||
                               item.task.applicant?.name ||
                               item.task.applicant?.email}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           {getStatusBadge(item.task.status)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {(() => {
+                            const deadline = item.task.deadline;
+                            const deadlineText = item.task.payload?.deadlineText as string;
+                            if (!deadline && !deadlineText) {
+                              return <span className="text-sm text-gray-400">-</span>;
+                            }
+                            if (deadlineText && !deadline) {
+                              return <span className="text-sm text-gray-600">{deadlineText}</span>;
+                            }
+                            const urgency = getDeadlineUrgency(deadline);
+                            return (
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${getDeadlineStyle(urgency)}`}>
+                                {formatDeadlineDate(deadline)}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-600">
-                            {formatDate(item.task.applicationDate)}
+                            {formatDeadlineDate(item.task.applicationDate)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => {
@@ -1276,7 +1340,7 @@ function AdminTasksContent() {
                               }}
                               className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                             >
-                              查看詳情
+                              詳情
                             </button>
                             {userRole === "SUPER_ADMIN" && (
                               <button
@@ -1295,55 +1359,73 @@ function AdminTasksContent() {
                       {item.type === "group" &&
                         item.task.groupId &&
                         expandedGroups.has(item.task.groupId) &&
-                        item.children?.map((childTask) => (
+                        item.children?.map((childTask) => {
+                          const fullChildTask = tasks.find(t => t.id === childTask.id) as AdminTask | undefined;
+                          return (
                           <tr
                             key={childTask.id}
                             className="bg-gray-50 hover:bg-gray-100"
                           >
-                            <td className="px-6 py-3 pl-14">
+                            <td className="px-4 py-3 pl-10">
                               <div className="flex items-center gap-2">
                                 <span className="text-gray-400">└</span>
-                                <div className="text-sm text-gray-700 max-w-xs truncate">
+                                <div className="text-sm text-gray-700 max-w-[160px] truncate">
                                   {childTask.title}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-3 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded">
                                 {childTask.taskType?.label || "未知類型"}
                               </span>
                             </td>
-                            <td className="px-6 py-3 whitespace-nowrap">
-                              <div className="text-sm text-gray-600">
-                                {(childTask as AdminTask).applicantName ||
-                                  (childTask as AdminTask).applicant?.name ||
-                                  (childTask as AdminTask).applicant?.email ||
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-gray-600 max-w-[80px] truncate">
+                                {fullChildTask?.applicantName ||
+                                  fullChildTask?.applicant?.name ||
+                                  fullChildTask?.applicant?.email ||
                                   "-"}
                               </div>
                             </td>
-                            <td className="px-6 py-3 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               {getStatusBadge(childTask.status)}
                             </td>
-                            <td className="px-6 py-3 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {(() => {
+                                const deadline = fullChildTask?.deadline;
+                                const deadlineText = fullChildTask?.payload?.deadlineText as string;
+                                if (!deadline && !deadlineText) {
+                                  return <span className="text-sm text-gray-400">-</span>;
+                                }
+                                if (deadlineText && !deadline) {
+                                  return <span className="text-sm text-gray-500">{deadlineText}</span>;
+                                }
+                                const urgency = getDeadlineUrgency(deadline ?? null);
+                                return (
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${getDeadlineStyle(urgency)}`}>
+                                    {formatDeadlineDate(deadline ?? null)}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
                               <div className="text-sm text-gray-500">
-                                {formatDate(childTask.createdAt)}
+                                {formatDeadlineDate(childTask.createdAt)}
                               </div>
                             </td>
-                            <td className="px-6 py-3 whitespace-nowrap">
+                            <td className="px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => {
-                                    // 找到完整的 task 資料
-                                    const fullTask = tasks.find(t => t.id === childTask.id);
-                                    if (fullTask) {
-                                      setSelectedTask(fullTask);
-                                      setApprovalProcessorName(fullTask.processorName || "");
+                                    if (fullChildTask) {
+                                      setSelectedTask(fullChildTask);
+                                      setApprovalProcessorName(fullChildTask.processorName || "");
                                       setShowDetailModal(true);
                                     }
                                   }}
                                   className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                                 >
-                                  查看詳情
+                                  詳情
                                 </button>
                                 {userRole === "SUPER_ADMIN" && (
                                   <button
@@ -1357,7 +1439,7 @@ function AdminTasksContent() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        );})}
                     </React.Fragment>
                   ))}
                 </tbody>

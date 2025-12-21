@@ -16,19 +16,8 @@ async function getPageData() {
       }
       staffPage {
         hero
+        staffList
         ctaSection
-      }
-      staffMembers {
-        id
-        name
-        position
-        avatar
-        phone
-        email
-        lineId
-        bio
-        specialties
-        department
       }
       activeNavigations {
         id
@@ -51,7 +40,7 @@ async function getPageData() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
-    next: { revalidate: 300 }, // ISR: 每 5 分鐘重新驗證
+    cache: 'no-store', // 不快取，確保每次都獲取最新資料
   });
 
   const { data } = await res.json();
@@ -59,13 +48,13 @@ async function getPageData() {
     header: data?.homePage[0]?.header || null,
     footer: data?.homePage[0]?.footer || null,
     pageData: data?.staffPage[0] || null,
-    staffMembers: data?.staffMembers || [],
+    staffList: data?.staffPage[0]?.staffList || [],
     navigations: data?.activeNavigations || [],
   };
 }
 
 export default async function StaffPage() {
-  const { header, footer, pageData, staffMembers, navigations } = await getPageData();
+  const { header, footer, pageData, staffList, navigations } = await getPageData();
 
   if (!header || !footer || !pageData) {
     return (
@@ -75,27 +64,27 @@ export default async function StaffPage() {
     );
   }
 
-  // 將資料庫欄位映射為組件需要的格式
-  const formattedStaffList = staffMembers.map((member: {
+  // staffList 已經是後台編輯的格式，直接使用
+  const formattedStaffList = staffList.map((staff: {
     id: string;
     name: string;
-    position: string | null;
-    avatar: string | null;
-    phone: string | null;
+    position: string;
+    photo: string;
+    phone: string;
     email: string;
-    lineId: string | null;
-    bio: string | null;
-    specialties: string[] | null;
+    line: string;
+    bio: string;
+    specialties: string[];
   }) => ({
-    id: member.id,
-    name: member.name,
-    position: member.position || '業務專員',
-    photo: member.avatar || '/images/default-avatar.png',
-    phone: member.phone || '',
-    email: member.email,
-    line: member.lineId || '',
-    bio: member.bio || '',
-    specialties: member.specialties || [],
+    id: staff.id,
+    name: staff.name,
+    position: staff.position || '業務專員',
+    photo: staff.photo || '/images/default-avatar.png',
+    phone: staff.phone || '',
+    email: staff.email,
+    line: staff.line || '',
+    bio: staff.bio || '',
+    specialties: staff.specialties || [],
   }));
 
   return (
