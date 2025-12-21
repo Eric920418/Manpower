@@ -726,28 +726,6 @@ export default function AdminAssignmentsPage() {
         {/* 全局分配視角 */}
         {viewMode === "global" && (
           <>
-            {/* 說明區塊 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">💡</span>
-                <div className="flex-1">
-                  <p className="text-blue-900 font-medium">全局分配說明</p>
-                  <p className="text-blue-700 text-sm mt-1">
-                    在此設定各案件類型的預設分配人員。當新案件建立時，系統會自動將案件分配給對應類型的預設管理員。
-                  </p>
-                </div>
-                {canAssign && (
-                  <button
-                    onClick={handleApplyGlobalToExisting}
-                    disabled={applyingGlobal}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm whitespace-nowrap"
-                  >
-                    {applyingGlobal ? "套用中..." : "套用到現有案件"}
-                  </button>
-                )}
-              </div>
-            </div>
-
             {loading ? (
               <div className="text-center py-16">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
