@@ -271,6 +271,13 @@ const yoga = createYoga({
         // 待處理任務提醒：不快取（需要即時）
         'Query.myPendingTaskReminders': 0,
         'Query.checkPendingReminders': 0,
+        // 全局分配設定：不快取（需要即時更新）
+        'Query.taskTypeDefaultAssignments': 0,
+        'Query.taskTypeDefaultAssignmentsByType': 0,
+        'Query.allTaskTypeAssignmentSummaries': 0,
+        // 案件分配相關：不快取
+        'Query.allUserAssignmentSummaries': 0,
+        'Query.assignableUsers': 0,
       },
       includeExtensionMetadata: process.env.NODE_ENV === 'development',
     }),

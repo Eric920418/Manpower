@@ -1,0 +1,61 @@
+# 全局分配設定（依案件類型自動分配管理員）
+type TaskTypeDefaultAssignment {
+  id: Int!
+  taskTypeId: Int!
+  userId: String!
+  role: AssignmentRole!
+  createdAt: String!
+  createdBy: String
+  taskType: TaskType
+  user: User
+  creator: User
+}
+
+# 全局分配摘要（依類型分組）
+type TaskTypeAssignmentSummary {
+  taskType: TaskType!
+  handlers: [User!]!       # 負責人
+  reviewers: [User!]!      # 複審人
+  assignments: [TaskTypeDefaultAssignment!]!
+}
+
+# 輸入類型
+input TaskTypeDefaultAssignmentInput {
+  taskTypeId: Int!
+  userId: String!
+  role: AssignmentRole!
+}
+
+input SetTaskTypeDefaultAssignmentsInput {
+  taskTypeId: Int!
+  handlerIds: [String!]!
+  reviewerIds: [String!]!
+}
+
+extend type Query {
+  # 獲取所有全局分配設定
+  taskTypeDefaultAssignments: [TaskTypeDefaultAssignment!]!
+  # 獲取特定類型的全局分配
+  taskTypeDefaultAssignmentsByType(taskTypeId: Int!): [TaskTypeDefaultAssignment!]!
+  # 獲取所有類型的分配摘要
+  allTaskTypeAssignmentSummaries: [TaskTypeAssignmentSummary!]!
+}
+
+# 套用全局分配結果
+type ApplyGlobalAssignmentsResult {
+  success: Boolean!
+  message: String!
+  updatedTaskCount: Int!
+  newAssignmentCount: Int!
+}
+
+extend type Mutation {
+  # 新增全局分配
+  addTaskTypeDefaultAssignment(input: TaskTypeDefaultAssignmentInput!): TaskTypeDefaultAssignment!
+  # 移除全局分配
+  removeTaskTypeDefaultAssignment(id: Int!): Boolean!
+  # 批量設定某類型的全局分配（覆蓋現有設定）
+  setTaskTypeDefaultAssignments(input: SetTaskTypeDefaultAssignmentsInput!): [TaskTypeDefaultAssignment!]!
+  # 將全局分配套用到現有案件（可指定特定類型或全部）
+  applyGlobalAssignmentsToExistingTasks(taskTypeId: Int): ApplyGlobalAssignmentsResult!
+}

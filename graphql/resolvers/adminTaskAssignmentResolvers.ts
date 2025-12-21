@@ -1,5 +1,5 @@
 import { prisma } from "../prismaClient";
-import type { AssignmentRole, AdminTaskStatus, Role } from "@prisma/client";
+import type { AdminTaskStatus, Role, AssignmentRole } from "@prisma/client";
 import { hasPermissionWithCustom, type CustomPermissions, type Permission } from "@/lib/permissions";
 
 // Context 類型
@@ -96,7 +96,7 @@ export const adminTaskAssignmentResolvers = {
       const assignments = await prisma.adminTaskAssignment.findMany({
         where: { taskId: args.taskId },
         include: assignmentInclude,
-        orderBy: [{ role: "asc" }, { assignedAt: "asc" }],
+        orderBy: { assignedAt: "asc" },
       });
 
       return assignments.map(formatAssignment);
@@ -107,7 +107,6 @@ export const adminTaskAssignmentResolvers = {
       _: unknown,
       args: {
         userId: string;
-        role?: AssignmentRole;
         status?: AdminTaskStatus;
         page?: number;
         pageSize?: number;
@@ -125,17 +124,9 @@ export const adminTaskAssignmentResolvers = {
       const pageSize = args.pageSize || 20;
       const skip = (page - 1) * pageSize;
 
-      // 構建查詢條件
-      const assignmentWhere: { userId: string; role?: AssignmentRole } = {
-        userId: args.userId,
-      };
-      if (args.role) {
-        assignmentWhere.role = args.role;
-      }
-
       // 先獲取分配的任務 ID
       const assignedTaskIds = await prisma.adminTaskAssignment.findMany({
-        where: assignmentWhere,
+        where: { userId: args.userId },
         select: { taskId: true },
         distinct: ["taskId"],
       });
@@ -181,7 +172,7 @@ export const adminTaskAssignmentResolvers = {
         }),
       ]);
 
-      // 使用 adminTaskResolvers 的格式化函數（簡化版）
+      // 格式化任務
       const formattedTasks = tasks.map((task) => ({
         ...task,
         applicationDate: task.applicationDate.toISOString(),
@@ -194,15 +185,7 @@ export const adminTaskAssignmentResolvers = {
         processor: formatUser(task.processor),
         approver: formatUser(task.approver),
         assignments: task.assignments.map(formatAssignment),
-        primaryAssignees: task.assignments
-          .filter((a) => a.role === "PRIMARY")
-          .map((a) => formatUser(a.user)),
-        assistants: task.assignments
-          .filter((a) => a.role === "ASSISTANT")
-          .map((a) => formatUser(a.user)),
-        assignedApprovers: task.assignments
-          .filter((a) => a.role === "APPROVER")
-          .map((a) => formatUser(a.user)),
+        assignees: task.assignments.map((a) => formatUser(a.user)),
         approvalRecords: task.approvalRecords.map((r) => ({
           ...r,
           createdAt: r.createdAt.toISOString(),
@@ -225,10 +208,10 @@ export const adminTaskAssignmentResolvers = {
     allUserAssignmentSummaries: async (_: unknown, __: unknown, context: Context) => {
       requirePermission(context, "task_assignment:read");
 
-      // 獲取所有 ADMIN 和 SUPER_ADMIN 用戶
+      // 獲取所有 ADMIN 用戶（不包含 SUPER_ADMIN）
       const users = await prisma.user.findMany({
         where: {
-          role: { in: ["ADMIN", "SUPER_ADMIN"] },
+          role: "ADMIN",
           isActive: true,
         },
         select: { id: true, name: true, email: true, role: true },
@@ -237,40 +220,35 @@ export const adminTaskAssignmentResolvers = {
       // 獲取所有分配的統計
       const summaries = await Promise.all(
         users.map(async (user) => {
-          const [totalTasks, primaryTasks, assistantTasks, approverTasks, pendingTasks, processingTasks] =
-            await Promise.all([
-              prisma.adminTaskAssignment.count({ where: { userId: user.id } }),
-              prisma.adminTaskAssignment.count({
-                where: { userId: user.id, role: "PRIMARY" },
-              }),
-              prisma.adminTaskAssignment.count({
-                where: { userId: user.id, role: "ASSISTANT" },
-              }),
-              prisma.adminTaskAssignment.count({
-                where: { userId: user.id, role: "APPROVER" },
-              }),
-              prisma.adminTaskAssignment.count({
-                where: {
-                  userId: user.id,
-                  task: { status: "PENDING" },
-                },
-              }),
-              prisma.adminTaskAssignment.count({
-                where: {
-                  userId: user.id,
-                  task: { status: "PROCESSING" },
-                },
-              }),
-            ]);
+          const [totalTasks, pendingTasks, processingTasks, pendingReviewTasks] = await Promise.all([
+            prisma.adminTaskAssignment.count({ where: { userId: user.id } }),
+            prisma.adminTaskAssignment.count({
+              where: {
+                userId: user.id,
+                task: { status: "PENDING" },
+              },
+            }),
+            prisma.adminTaskAssignment.count({
+              where: {
+                userId: user.id,
+                task: { status: "PROCESSING" },
+              },
+            }),
+            prisma.adminTaskAssignment.count({
+              where: {
+                userId: user.id,
+                role: "REVIEWER",
+                task: { status: "PENDING_REVIEW" },
+              },
+            }),
+          ]);
 
           return {
             user: formatUser(user),
             totalTasks,
-            primaryTasks,
-            assistantTasks,
-            approverTasks,
             pendingTasks,
             processingTasks,
+            pendingReviewTasks,
           };
         })
       );
@@ -282,7 +260,6 @@ export const adminTaskAssignmentResolvers = {
     myAssignedTasks: async (
       _: unknown,
       args: {
-        role?: AssignmentRole;
         status?: AdminTaskStatus;
         page?: number;
         pageSize?: number;
@@ -373,9 +350,9 @@ export const adminTaskAssignmentResolvers = {
           details: {
             taskId: args.input.taskId,
             taskNo: task.taskNo,
+            role: args.input.role,
             assignedUserId: args.input.userId,
             assignedUserEmail: targetUser.email,
-            role: args.input.role,
           },
         },
       });
@@ -490,7 +467,6 @@ export const adminTaskAssignmentResolvers = {
             taskNo: assignment.task.taskNo,
             removedUserId: assignment.userId,
             removedUserEmail: assignment.user.email,
-            role: assignment.role,
           },
         },
       });
@@ -504,7 +480,6 @@ export const adminTaskAssignmentResolvers = {
       args: {
         input: {
           assignmentId: number;
-          role?: AssignmentRole;
           notes?: string;
         };
       },
@@ -520,10 +495,7 @@ export const adminTaskAssignmentResolvers = {
         throw new Error("分配不存在");
       }
 
-      const updateData: { role?: AssignmentRole; notes?: string } = {};
-      if (args.input.role !== undefined) {
-        updateData.role = args.input.role;
-      }
+      const updateData: { notes?: string } = {};
       if (args.input.notes !== undefined) {
         updateData.notes = args.input.notes;
       }
@@ -611,6 +583,91 @@ export const adminTaskAssignmentResolvers = {
             taskNo: task.taskNo,
             newAssignmentsCount: results.length,
             assignments: args.assignments,
+          },
+        },
+      });
+
+      return results;
+    },
+
+    // 設定案件的負責人和複審人（便捷方法）
+    setTaskAssignments: async (
+      _: unknown,
+      args: {
+        input: {
+          taskId: number;
+          handlerIds: string[];
+          reviewerIds: string[];
+        };
+      },
+      context: Context
+    ) => {
+      const currentUser = requirePermission(context, "task_assignment:assign");
+
+      // 確認任務存在
+      const task = await prisma.adminTask.findUnique({
+        where: { id: args.input.taskId },
+      });
+      if (!task) {
+        throw new Error("任務不存在");
+      }
+
+      // 刪除現有分配
+      await prisma.adminTaskAssignment.deleteMany({
+        where: { taskId: args.input.taskId },
+      });
+
+      // 創建新分配
+      const results: Awaited<ReturnType<typeof formatAssignment>>[] = [];
+
+      // 添加負責人
+      for (const userId of args.input.handlerIds) {
+        try {
+          const assignment = await prisma.adminTaskAssignment.create({
+            data: {
+              taskId: args.input.taskId,
+              userId,
+              role: "HANDLER",
+              assignedBy: currentUser.id,
+            },
+            include: assignmentInclude,
+          });
+          results.push(formatAssignment(assignment));
+        } catch {
+          // 忽略錯誤
+        }
+      }
+
+      // 添加複審人
+      for (const userId of args.input.reviewerIds) {
+        try {
+          const assignment = await prisma.adminTaskAssignment.create({
+            data: {
+              taskId: args.input.taskId,
+              userId,
+              role: "REVIEWER",
+              assignedBy: currentUser.id,
+            },
+            include: assignmentInclude,
+          });
+          results.push(formatAssignment(assignment));
+        } catch {
+          // 忽略錯誤
+        }
+      }
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: currentUser.id,
+          action: "set_assignments",
+          entity: "task_assignment",
+          entityId: args.input.taskId.toString(),
+          details: {
+            taskId: args.input.taskId,
+            taskNo: task.taskNo,
+            handlerIds: args.input.handlerIds,
+            reviewerIds: args.input.reviewerIds,
           },
         },
       });

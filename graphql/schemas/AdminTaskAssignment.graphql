@@ -1,8 +1,7 @@
-# 案件分配角色
+# 分配角色
 enum AssignmentRole {
-  PRIMARY     # 主要負責人
-  ASSISTANT   # 協助者
-  APPROVER    # 審批人
+  HANDLER   # 負責人（處理案件）
+  REVIEWER  # 複審人（審核案件）
 }
 
 # 案件分配資訊
@@ -25,11 +24,9 @@ type AdminTaskAssignment {
 type UserTaskAssignmentSummary {
   user: TaskUser!
   totalTasks: Int!
-  primaryTasks: Int!
-  assistantTasks: Int!
-  approverTasks: Int!
   pendingTasks: Int!
   processingTasks: Int!
+  pendingReviewTasks: Int!
 }
 
 # ==================== Queries ====================
@@ -41,7 +38,6 @@ extend type Query {
   # 獲取用戶被分配的所有案件（管理員視角）
   userTaskAssignments(
     userId: String!
-    role: AssignmentRole
     status: AdminTaskStatus
     page: Int
     pageSize: Int
@@ -52,7 +48,6 @@ extend type Query {
 
   # 獲取當前用戶被分配的案件
   myAssignedTasks(
-    role: AssignmentRole
     status: AdminTaskStatus
     page: Int
     pageSize: Int
@@ -84,8 +79,14 @@ input BulkAssignTaskInput {
 
 input UpdateAssignmentInput {
   assignmentId: Int!
-  role: AssignmentRole
   notes: String
+}
+
+# 設定案件的負責人和複審人
+input SetTaskAssignmentsInput {
+  taskId: Int!
+  handlerIds: [String!]!
+  reviewerIds: [String!]!
 }
 
 # ==================== Mutations ====================
@@ -105,4 +106,7 @@ extend type Mutation {
 
   # 批量更新案件的所有分配（覆蓋模式）
   replaceTaskAssignments(taskId: Int!, assignments: [SingleAssignmentInput!]!): [AdminTaskAssignment!]!
+
+  # 設定案件的負責人和複審人（便捷方法）
+  setTaskAssignments(input: SetTaskAssignmentsInput!): [AdminTaskAssignment!]!
 }

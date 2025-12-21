@@ -50,6 +50,7 @@ const homePageDefaults = {
         experience: "5+ 年經驗",
         location: "菲律賓 馬尼拉",
         skills: ["TIG焊接", "MIG焊接", "藍圖解讀"],
+        detailUrl: "",
       },
       {
         name: "Johnathan Lee",
@@ -58,6 +59,7 @@ const homePageDefaults = {
         experience: "8 年經驗",
         location: "越南 胡志明市",
         skills: ["CNC編程", "品質控制", "AutoCAD"],
+        detailUrl: "",
       },
       {
         name: "Sofia Reyes",
@@ -66,6 +68,7 @@ const homePageDefaults = {
         experience: "3 年經驗",
         location: "墨西哥 瓜達拉哈拉",
         skills: ["作物收割", "灌溉系統", "畜牧管理"],
+        detailUrl: "",
       },
     ],
     ctaText: "查看更多人才",

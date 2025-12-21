@@ -37,11 +37,10 @@ export default function ImageZoom({
 
   return (
     <>
-      {/* 原始圖片容器 */}
+      {/* 原始圖片容器 - 點擊放大 */}
       <div
         className={`relative w-full ${aspectRatio} bg-gradient-to-b from-pink-100 to-pink-50 cursor-pointer ${className}`}
-        onMouseEnter={() => setIsZoomed(true)}
-        onMouseLeave={() => setIsZoomed(false)}
+        onClick={() => !imageError && setIsZoomed(true)}
       >
         {!imageError ? (
           <Image
@@ -61,14 +60,15 @@ export default function ImageZoom({
         )}
       </div>
 
-      {/* 全螢幕放大預覽 - 使用 Portal */}
+      {/* 全螢幕放大預覽 - 使用 Portal，點擊關閉 */}
       {mounted &&
         isZoomed &&
         !imageError &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 bg-black/90 flex items-center justify-center cursor-pointer"
             style={{ zIndex: 99999 }}
+            onClick={() => setIsZoomed(false)}
           >
             <Image
               src={src}
@@ -78,6 +78,11 @@ export default function ImageZoom({
               className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
               unoptimized
             />
+            {/* 關閉提示 */}
+            <div className="absolute top-4 right-4 text-white/70 flex items-center gap-2">
+              <span className="text-sm">點擊任意處關閉</span>
+              <span className="material-symbols-outlined">close</span>
+            </div>
           </div>,
           document.body
         )}

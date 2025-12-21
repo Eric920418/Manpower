@@ -1,6 +1,8 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Stat {
   number: string;
@@ -14,6 +16,7 @@ interface Talent {
   experience: string;
   location: string;
   skills: string[];
+  detailUrl?: string;
 }
 
 interface FeaturedTalentsProps {
@@ -35,6 +38,21 @@ export default function FeaturedTalents({
   ctaText,
   ctaLink,
 }: FeaturedTalentsProps) {
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedTalent, setSelectedTalent] = useState<Talent | null>(null);
+
+  const handleViewDetail = (talent: Talent) => {
+    if (talent.detailUrl) {
+      setSelectedTalent(talent);
+      setQrModalOpen(true);
+    }
+  };
+
+  const closeModal = () => {
+    setQrModalOpen(false);
+    setSelectedTalent(null);
+  };
+
   return (
     <section className="py-10 bg-bg-primary">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -133,11 +151,21 @@ export default function FeaturedTalents({
                 </div>
 
                 {/* 查看按鈕 */}
-                <button className="w-full py-3 bg-brand-primary hover:bg-brand-accent text-text-on-brand font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-lg">
-                  <span>查看詳細資料</span>
-                  <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">
-                    arrow_forward
-                  </span>
+                <button
+                  onClick={() => handleViewDetail(talent)}
+                  disabled={!talent.detailUrl}
+                  className={`w-full py-3 font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-lg ${
+                    talent.detailUrl
+                      ? "bg-brand-primary hover:bg-brand-accent text-text-on-brand cursor-pointer"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <span>{talent.detailUrl ? "查看詳細資料" : "暫無詳細資料"}</span>
+                  {talent.detailUrl && (
+                    <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">
+                      qr_code_2
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -155,6 +183,65 @@ export default function FeaturedTalents({
           </Link>
         </div>
       </div>
+
+      {/* QR Code 彈窗 */}
+      {qrModalOpen && selectedTalent && selectedTalent.detailUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={closeModal}
+        >
+          <div
+            className="relative bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 關閉按鈕 */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            {/* 標題 */}
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-1">
+                {selectedTalent.name}
+              </h3>
+              <p className="text-sm text-gray-500">{selectedTalent.position}</p>
+            </div>
+
+            {/* QR Code */}
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-white rounded-xl shadow-inner border-2 border-gray-100">
+                <QRCodeSVG
+                  value={selectedTalent.detailUrl}
+                  size={200}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+            </div>
+
+            {/* 提示文字 */}
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                掃描 QR Code 查看詳細資料
+              </p>
+              <p className="text-xs text-gray-400 break-all">
+                {selectedTalent.detailUrl}
+              </p>
+            </div>
+
+            {/* 關閉按鈕 */}
+            <button
+              onClick={closeModal}
+              className="w-full mt-6 py-3 bg-brand-primary hover:bg-brand-accent text-white font-semibold rounded-lg transition-colors"
+            >
+              關閉
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

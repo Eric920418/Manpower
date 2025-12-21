@@ -284,20 +284,17 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
     taskId: record.taskId,
     action: record.action,
     comment: record.comment,
+    // 要求修改專用欄位
+    revisionReason: record.revisionReason,
+    revisionDetail: record.revisionDetail,
+    revisionDeadline: record.revisionDeadline ? formatDate(record.revisionDeadline) : null,
     approver: formatUser(record.approver),
     createdAt: formatDate(record.createdAt),
   })),
-  // 案件分配（新機制）
+  // 案件分配
   assignments: (task.assignments || []).map((a) => formatAssignment(a as AssignmentData)),
-  primaryAssignees: (task.assignments || [])
-    .filter((a) => a.role === "PRIMARY")
-    .map((a) => formatUser(a.user)),
-  assistants: (task.assignments || [])
-    .filter((a) => a.role === "ASSISTANT")
-    .map((a) => formatUser(a.user)),
-  assignedApprovers: (task.assignments || [])
-    .filter((a) => a.role === "APPROVER")
-    .map((a) => formatUser(a.user)),
+  handlers: (task.assignments || []).filter((a) => a.role === "HANDLER").map((a) => formatUser(a.user)),
+  reviewers: (task.assignments || []).filter((a) => a.role === "REVIEWER").map((a) => formatUser(a.user)),
   createdAt: formatDate(task.createdAt),
   updatedAt: formatDate(task.updatedAt),
 });
@@ -498,7 +495,7 @@ export const adminTaskResolvers = {
         // ADMIN 只統計被分配的案件（新機制）
         const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
         if (assignedTaskIds.length === 0) {
-          return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
+          return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, pendingReview: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
         }
         taskTypeFilter = { id: { in: assignedTaskIds } };
       } else {
@@ -506,24 +503,25 @@ export const adminTaskResolvers = {
         taskTypeFilter = { applicantId: user.id };
       }
 
-      const [total, pending, processing, pendingDocuments, approved, rejected, completed, overdue] = await Promise.all([
+      const [total, pending, processing, pendingDocuments, pendingReview, approved, rejected, completed, overdue] = await Promise.all([
         prisma.adminTask.count({ where: taskTypeFilter }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PROCESSING" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING_DOCUMENTS" } }),
+        prisma.adminTask.count({ where: { ...taskTypeFilter, status: "PENDING_REVIEW" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "APPROVED" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "REJECTED" } }),
         prisma.adminTask.count({ where: { ...taskTypeFilter, status: "COMPLETED" } }),
         prisma.adminTask.count({
           where: {
             ...taskTypeFilter,
-            status: { in: ["PENDING", "PROCESSING", "PENDING_DOCUMENTS"] },
+            status: { in: ["PENDING", "PROCESSING", "PENDING_DOCUMENTS", "PENDING_REVIEW"] },
             deadline: { lt: now },
           },
         }),
       ]);
 
-      return { total, pending, processing, pendingDocuments, approved, rejected, completed, overdue };
+      return { total, pending, processing, pendingDocuments, pendingReview, approved, rejected, completed, overdue };
     },
 
     // 按類型統計（優化：使用 groupBy 替代 N+1 查詢）
@@ -668,6 +666,148 @@ export const adminTaskResolvers = {
         },
       };
     },
+
+    // 檢查待修改的案件（申請人收到要求修改通知）
+    checkRevisionRequests: async (_: unknown, __: unknown, context: Context) => {
+      const user = requireAuth(context);
+
+      // 查找當前用戶作為申請人的案件，且最新的審批記錄是 request_revision
+      const tasksWithRevisionRequest = await prisma.adminTask.findMany({
+        where: {
+          applicantId: user.id,
+          status: "PENDING", // 要求修改後狀態會變成 PENDING
+          approvalRecords: {
+            some: {
+              action: "request_revision",
+            },
+          },
+        },
+        include: {
+          approvalRecords: {
+            where: {
+              action: "request_revision",
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 1,
+            include: {
+              approver: true,
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      // 過濾出最新審批記錄是 request_revision 的案件
+      const notifications = [];
+      for (const task of tasksWithRevisionRequest) {
+        // 取得該任務的最新審批記錄
+        const latestRecord = await prisma.approvalRecord.findFirst({
+          where: { taskId: task.id },
+          orderBy: { createdAt: "desc" },
+          include: { approver: true },
+        });
+
+        // 只有當最新記錄是 request_revision 時才顯示
+        if (latestRecord && latestRecord.action === "request_revision") {
+          notifications.push({
+            taskId: task.id,
+            taskNo: task.taskNo,
+            title: task.title,
+            revisionReason: latestRecord.revisionReason,
+            revisionDetail: latestRecord.revisionDetail,
+            revisionDeadline: latestRecord.revisionDeadline
+              ? formatDate(latestRecord.revisionDeadline)
+              : null,
+            requestedBy: formatUser(latestRecord.approver),
+            requestedAt: formatDate(latestRecord.createdAt),
+          });
+        }
+      }
+
+      return notifications;
+    },
+
+    // 檢查待補件的任務
+    checkPendingDocuments: async (_: unknown, __: unknown, context: Context) => {
+      const user = requireAuth(context);
+
+      // 查找當前用戶相關的待補件任務
+      // 可能是申請人、處理人或分配人員
+      const pendingDocumentsTasks = await prisma.adminTask.findMany({
+        where: {
+          status: "PENDING_DOCUMENTS",
+          OR: [
+            { applicantId: user.id },
+            { processorId: user.id },
+            { approverId: user.id },
+            { assignments: { some: { userId: user.id } } },
+          ],
+        },
+        include: {
+          taskType: true,
+          approvalRecords: {
+            where: {
+              action: "pending_documents",
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 1,
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      return pendingDocumentsTasks.map((task) => ({
+        taskId: task.id,
+        taskNo: task.taskNo,
+        title: task.title,
+        taskTypeName: task.taskType?.label || "未知任務類型",
+        pendingReason: task.approvalRecords[0]?.comment || null,
+        createdAt: formatDate(task.createdAt),
+        updatedAt: formatDate(task.updatedAt),
+      }));
+    },
+
+    // 檢查待處理的任務（分配給當前用戶）
+    checkPendingTasks: async (_: unknown, __: unknown, context: Context) => {
+      const user = requireAuth(context);
+
+      // 查找分配給當前用戶的待處理任務
+      const pendingTasks = await prisma.adminTask.findMany({
+        where: {
+          status: "PENDING",
+          OR: [
+            { processorId: user.id },
+            { approverId: user.id },
+            { assignments: { some: { userId: user.id } } },
+          ],
+        },
+        include: {
+          taskType: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 10, // 最多顯示 10 筆
+      });
+
+      return pendingTasks.map((task) => ({
+        taskId: task.id,
+        taskNo: task.taskNo,
+        title: task.title,
+        taskTypeName: task.taskType?.label || "未知任務類型",
+        applicantName: task.applicantName,
+        deadline: task.deadline ? formatDate(task.deadline) : null,
+        createdAt: formatDate(task.createdAt),
+      }));
+    },
   },
 
   Mutation: {
@@ -740,6 +880,27 @@ export const adminTaskResolvers = {
         include: taskInclude,
       });
 
+      // 自動分配：根據全局分配設定建立案件分配記錄
+      const defaultAssignments = await prisma.taskTypeDefaultAssignment.findMany({
+        where: { taskTypeId: args.input.taskTypeId },
+      });
+
+      let autoAssignedCount = 0;
+      if (defaultAssignments.length > 0) {
+        const assignmentData = defaultAssignments.map((da) => ({
+          taskId: task.id,
+          userId: da.userId,
+          role: da.role, // 包含角色（HANDLER 或 REVIEWER）
+          assignedBy: null as string | null, // 系統自動分配
+          notes: "依全局分配設定自動分配",
+        }));
+
+        await prisma.adminTaskAssignment.createMany({
+          data: assignmentData,
+        });
+        autoAssignedCount = defaultAssignments.length;
+      }
+
       // 記錄活動日誌
       await prisma.activityLog.create({
         data: {
@@ -753,9 +914,19 @@ export const adminTaskResolvers = {
             title: task.title,
             parentTaskId: args.input.parentTaskId,
             groupId,
+            autoAssignedCount,
           },
         },
       });
+
+      // 如果有自動分配，重新載入任務以包含分配資訊
+      if (autoAssignedCount > 0) {
+        const updatedTask = await prisma.adminTask.findUnique({
+          where: { id: task.id },
+          include: taskInclude,
+        });
+        return formatTask(updatedTask!);
+      }
 
       return formatTask(task);
     },
@@ -892,6 +1063,10 @@ export const adminTaskResolvers = {
           taskId: number;
           action: string; // approve, reject, pending_documents, request_revision
           comment?: string;
+          // 要求修改專用欄位
+          revisionReason?: string;
+          revisionDetail?: string;
+          revisionDeadline?: string;
         };
       },
       context: Context
@@ -907,17 +1082,16 @@ export const adminTaskResolvers = {
         throw new Error("找不到該行政任務");
       }
 
-      // ADMIN 角色只能審批被分配的案件（需有 APPROVER 角色），SUPER_ADMIN 不受限制
+      // ADMIN 角色只能審批被分配的案件，SUPER_ADMIN 不受限制
       if (user.role === "ADMIN") {
-        const approverAssignment = await prisma.adminTaskAssignment.findFirst({
+        const assignment = await prisma.adminTaskAssignment.findFirst({
           where: {
             taskId: task.id,
             userId: user.id,
-            role: "APPROVER",
           },
         });
-        if (!approverAssignment) {
-          throw new Error("權限不足：您不是此案件的審批人");
+        if (!assignment) {
+          throw new Error("權限不足：您未被分配此案件");
         }
       }
       // SUPER_ADMIN 可以審批任何案件，不需要被分配
@@ -929,6 +1103,12 @@ export const adminTaskResolvers = {
           action: args.input.action,
           comment: args.input.comment,
           approverId: user.id,
+          // 要求修改專用欄位
+          revisionReason: args.input.action === "request_revision" ? args.input.revisionReason : null,
+          revisionDetail: args.input.action === "request_revision" ? args.input.revisionDetail : null,
+          revisionDeadline: args.input.action === "request_revision" && args.input.revisionDeadline
+            ? new Date(args.input.revisionDeadline)
+            : null,
         },
       });
 
@@ -1202,6 +1382,169 @@ export const adminTaskResolvers = {
       });
 
       return true;
+    },
+
+    // 提交複審（負責人完成處理後提交給複審人）
+    submitForReview: async (
+      _: unknown,
+      args: { taskId: number; notes?: string },
+      context: Context
+    ) => {
+      const user = requireAuth(context);
+
+      // 獲取任務
+      const task = await prisma.adminTask.findUnique({
+        where: { id: args.taskId },
+        include: {
+          assignments: {
+            include: {
+              user: { select: { id: true, name: true, email: true, role: true } },
+            },
+          },
+        },
+      });
+
+      if (!task) {
+        throw new Error("找不到該行政任務");
+      }
+
+      // 檢查是否為負責人（HANDLER）
+      const isHandler = task.assignments.some(
+        (a) => a.userId === user.id && a.role === "HANDLER"
+      );
+      const isSuperAdmin = user.role === "SUPER_ADMIN";
+
+      if (!isHandler && !isSuperAdmin) {
+        throw new Error("權限不足：只有負責人可以提交複審");
+      }
+
+      // 檢查任務狀態是否可提交複審（必須是處理中）
+      if (task.status !== "PROCESSING" && task.status !== "PENDING") {
+        throw new Error("任務狀態不允許提交複審");
+      }
+
+      // 檢查是否有複審人
+      const hasReviewer = task.assignments.some((a) => a.role === "REVIEWER");
+      if (!hasReviewer) {
+        throw new Error("此案件尚未分配複審人");
+      }
+
+      // 更新任務狀態為待複審
+      const updatedTask = await prisma.adminTask.update({
+        where: { id: args.taskId },
+        data: { status: "PENDING_REVIEW" },
+        include: taskInclude,
+      });
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "submit_for_review",
+          entity: "admin_task",
+          entityId: args.taskId.toString(),
+          details: {
+            taskNo: task.taskNo,
+            notes: args.notes,
+          },
+        },
+      });
+
+      return formatTask(updatedTask);
+    },
+
+    // 複審操作（複審人審核案件）
+    reviewTask: async (
+      _: unknown,
+      args: {
+        input: {
+          taskId: number;
+          action: string; // approve 或 reject
+          comment?: string;
+        };
+      },
+      context: Context
+    ) => {
+      const user = requireAuth(context);
+
+      // 獲取任務
+      const task = await prisma.adminTask.findUnique({
+        where: { id: args.input.taskId },
+        include: {
+          assignments: {
+            include: {
+              user: { select: { id: true, name: true, email: true, role: true } },
+            },
+          },
+        },
+      });
+
+      if (!task) {
+        throw new Error("找不到該行政任務");
+      }
+
+      // 檢查是否為複審人（REVIEWER）
+      const isReviewer = task.assignments.some(
+        (a) => a.userId === user.id && a.role === "REVIEWER"
+      );
+      const isSuperAdmin = user.role === "SUPER_ADMIN";
+
+      if (!isReviewer && !isSuperAdmin) {
+        throw new Error("權限不足：只有複審人可以審核此案件");
+      }
+
+      // 檢查任務狀態是否為待複審
+      if (task.status !== "PENDING_REVIEW") {
+        throw new Error("任務狀態不是待複審，無法進行複審");
+      }
+
+      // 根據操作更新狀態
+      let newStatus: AdminTaskStatus;
+      if (args.input.action === "approve") {
+        newStatus = "APPROVED";
+      } else if (args.input.action === "reject") {
+        newStatus = "PROCESSING"; // 駁回後回到處理中，讓負責人修改
+      } else {
+        throw new Error("無效的複審操作");
+      }
+
+      // 更新任務狀態
+      const updatedTask = await prisma.adminTask.update({
+        where: { id: args.input.taskId },
+        data: {
+          status: newStatus,
+          approverId: args.input.action === "approve" ? user.id : undefined,
+          completedAt: args.input.action === "approve" ? new Date() : undefined,
+        },
+        include: taskInclude,
+      });
+
+      // 創建審批記錄
+      await prisma.approvalRecord.create({
+        data: {
+          taskId: args.input.taskId,
+          action: args.input.action === "approve" ? "review_approve" : "review_reject",
+          comment: args.input.comment,
+          approverId: user.id,
+        },
+      });
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: args.input.action === "approve" ? "review_approve" : "review_reject",
+          entity: "admin_task",
+          entityId: args.input.taskId.toString(),
+          details: {
+            taskNo: task.taskNo,
+            action: args.input.action,
+            comment: args.input.comment,
+          },
+        },
+      });
+
+      return formatTask(updatedTask);
     },
   },
 };

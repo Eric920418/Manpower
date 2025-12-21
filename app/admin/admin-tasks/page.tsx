@@ -29,6 +29,10 @@ interface ApprovalRecord {
   id: number;
   action: string;
   comment: string | null;
+  // 要求修改專用欄位
+  revisionReason: string | null;
+  revisionDetail: string | null;
+  revisionDeadline: string | null;
   approver: TaskUser;
   createdAt: string;
 }
@@ -177,6 +181,7 @@ function AdminTasksContent() {
   const urlCreateTaskType = searchParams.get("createTask");
   const urlSourceTask = searchParams.get("sourceTask");
   const urlReminderId = searchParams.get("reminderId");
+  const urlViewTask = searchParams.get("viewTask");
 
   // 狀態
   const [tasks, setTasks] = useState<AdminTask[]>([]);
@@ -217,6 +222,10 @@ function AdminTasksContent() {
   const [approvalComment, setApprovalComment] = useState("");
   const [approvalProcessorName, setApprovalProcessorName] = useState(""); // 完成人
   const [approving, setApproving] = useState(false);
+  // 要求修改專用欄位
+  const [revisionReason, setRevisionReason] = useState("");
+  const [revisionDetail, setRevisionDetail] = useState("");
+  const [revisionDeadline, setRevisionDeadline] = useState("");
 
   // 觸發任務提示
   const [showTriggerModal, setShowTriggerModal] = useState(false);
@@ -381,6 +390,9 @@ function AdminTasksContent() {
                 id
                 action
                 comment
+                revisionReason
+                revisionDetail
+                revisionDeadline
                 approver {
                   id
                   name
@@ -508,6 +520,20 @@ function AdminTasksContent() {
       }
     }
   }, [urlCreateTaskType, urlSourceTask, taskTypes, showCreateModal, session?.user?.name, router]);
+
+  // 處理 viewTask URL 參數（從待修改通知跳轉過來時使用）
+  useEffect(() => {
+    if (urlViewTask && tasks.length > 0 && !showDetailModal) {
+      const taskId = parseInt(urlViewTask, 10);
+      const task = tasks.find((t) => Number(t.id) === taskId);
+      if (task) {
+        setSelectedTask(task);
+        setShowDetailModal(true);
+        // 清除 URL 參數
+        router.replace("/admin/admin-tasks", { scroll: false });
+      }
+    }
+  }, [urlViewTask, tasks, showDetailModal, router]);
 
   // 獲取當前選擇類型的問題（注意：GraphQL ID 可能是字符串）
   const selectedTaskType = taskTypes.find((t) => Number(t.id) === createForm.taskTypeId);
@@ -836,7 +862,7 @@ function AdminTasksContent() {
             query: updateMutation,
             variables: {
               input: {
-                id: selectedTask.id,
+                id: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
                 processorName: approvalProcessorName,
               },
             },
@@ -862,9 +888,13 @@ function AdminTasksContent() {
 
       const variables = {
         input: {
-          taskId: selectedTask.id,
+          taskId: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
           action: approvalAction,
           comment: approvalComment || null,
+          // 要求修改專用欄位
+          revisionReason: approvalAction === "request_revision" ? revisionReason || null : null,
+          revisionDetail: approvalAction === "request_revision" ? revisionDetail || null : null,
+          revisionDeadline: approvalAction === "request_revision" ? revisionDeadline || null : null,
         },
       };
 
@@ -886,6 +916,10 @@ function AdminTasksContent() {
       setApprovalAction("");
       setApprovalComment("");
       setApprovalProcessorName("");
+      // 清除要求修改專用欄位
+      setRevisionReason("");
+      setRevisionDetail("");
+      setRevisionDeadline("");
       fetchData();
     } catch (error) {
       console.error("審批失敗：", error);
@@ -1914,6 +1948,29 @@ function AdminTasksContent() {
                               {record.comment}
                             </p>
                           )}
+                          {/* 要求修改詳情 */}
+                          {record.action === "request_revision" && (record.revisionReason || record.revisionDetail || record.revisionDeadline) && (
+                            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              {record.revisionReason && (
+                                <div className="flex items-center gap-2 text-sm mb-1">
+                                  <span className="font-medium text-yellow-800">原因類別：</span>
+                                  <span className="text-gray-700">{record.revisionReason}</span>
+                                </div>
+                              )}
+                              {record.revisionDetail && (
+                                <div className="text-sm mb-1">
+                                  <span className="font-medium text-yellow-800">修改說明：</span>
+                                  <p className="text-gray-700 mt-1">{record.revisionDetail}</p>
+                                </div>
+                              )}
+                              {record.revisionDeadline && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="font-medium text-yellow-800">修改期限：</span>
+                                  <span className="text-gray-700">{formatDate(record.revisionDeadline)}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1981,6 +2038,58 @@ function AdminTasksContent() {
                           </button>
                         </div>
                       </div>
+
+                      {/* 要求修改專用欄位 */}
+                      {approvalAction === "request_revision" && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-4">
+                          <h4 className="font-medium text-yellow-800 flex items-center gap-2">
+                            <span>⚠️</span> 修改要求詳情
+                          </h4>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              修改原因類別 <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={revisionReason}
+                              onChange={(e) => setRevisionReason(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            >
+                              <option value="">請選擇原因類別</option>
+                              <option value="資料不完整">資料不完整</option>
+                              <option value="格式錯誤">格式錯誤</option>
+                              <option value="內容有誤">內容有誤</option>
+                              <option value="缺少附件">缺少附件</option>
+                              <option value="需補充說明">需補充說明</option>
+                              <option value="其他">其他</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              具體修改說明 <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                              value={revisionDetail}
+                              onChange={(e) => setRevisionDetail(e.target.value)}
+                              rows={3}
+                              placeholder="請詳細說明需要修改的內容..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              修改期限 <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="date"
+                              value={revisionDeadline}
+                              onChange={(e) => setRevisionDeadline(e.target.value)}
+                              min={new Date().toISOString().split("T")[0]}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           完成人
@@ -2009,7 +2118,11 @@ function AdminTasksContent() {
                       </div>
                       <button
                         onClick={handleApproval}
-                        disabled={!approvalAction || approving}
+                        disabled={
+                          !approvalAction ||
+                          approving ||
+                          (approvalAction === "request_revision" && (!revisionReason || !revisionDetail || !revisionDeadline))
+                        }
                         className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {approving ? "處理中..." : "確認審批"}

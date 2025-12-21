@@ -19,6 +19,44 @@ interface PendingReminder {
   updatedAt: string;
 }
 
+// 待修改案件通知類型
+interface RevisionRequestNotification {
+  taskId: number;
+  taskNo: string;
+  title: string;
+  revisionReason: string | null;
+  revisionDetail: string | null;
+  revisionDeadline: string | null;
+  requestedBy: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+  requestedAt: string;
+}
+
+// 待補件通知類型
+interface PendingDocumentNotification {
+  taskId: number;
+  taskNo: string;
+  title: string;
+  taskTypeName: string;
+  pendingReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 待處理任務通知類型
+interface PendingTaskNotification {
+  taskId: number;
+  taskNo: string;
+  title: string;
+  taskTypeName: string;
+  applicantName: string | null;
+  deadline: string | null;
+  createdAt: string;
+}
+
 // Context 類型
 interface TaskReminderContextType {
   pendingReminders: PendingReminder[];
@@ -121,6 +159,149 @@ export function TaskReminderProvider({ children }: { children: React.ReactNode }
             },
           });
         });
+      }
+
+      // 檢查待修改的案件
+      const revisionQuery = `
+        query {
+          checkRevisionRequests {
+            taskId
+            taskNo
+            title
+            revisionReason
+            revisionDetail
+            revisionDeadline
+            requestedBy {
+              id
+              name
+              email
+            }
+            requestedAt
+          }
+        }
+      `;
+
+      const revisionRes = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: revisionQuery }),
+      });
+
+      const revisionData = await revisionRes.json();
+
+      if (!revisionData.errors) {
+        const revisionRequests: RevisionRequestNotification[] = revisionData.data?.checkRevisionRequests || [];
+        console.log("[TaskReminder] 找到待修改案件數量:", revisionRequests.length);
+
+        revisionRequests.forEach((request) => {
+          const reasonText = request.revisionReason ? `【${request.revisionReason}】` : "";
+          const deadlineText = request.revisionDeadline ? `\n修改期限：${request.revisionDeadline}` : "";
+
+          addToast({
+            type: "revisionRequest",
+            title: "案件需要修改",
+            message: `${reasonText}${request.title}${deadlineText}`,
+            duration: 0, // 不自動關閉
+            action: {
+              label: "查看詳情",
+              onClick: () => {
+                router.push(`/admin/admin-tasks?viewTask=${request.taskId}`);
+              },
+            },
+          });
+        });
+      }
+
+      // 檢查待補件的任務
+      const pendingDocsQuery = `
+        query {
+          checkPendingDocuments {
+            taskId
+            taskNo
+            title
+            taskTypeName
+            pendingReason
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const pendingDocsRes = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: pendingDocsQuery }),
+      });
+
+      const pendingDocsData = await pendingDocsRes.json();
+
+      if (!pendingDocsData.errors) {
+        const pendingDocs: PendingDocumentNotification[] = pendingDocsData.data?.checkPendingDocuments || [];
+        console.log("[TaskReminder] 找到待補件任務數量:", pendingDocs.length);
+
+        pendingDocs.forEach((doc) => {
+          const reasonText = doc.pendingReason ? `\n${doc.pendingReason}` : "";
+
+          addToast({
+            type: "documentReminder",
+            title: "待補件提醒",
+            message: `【${doc.taskTypeName}】${doc.title}${reasonText}`,
+            duration: 0, // 不自動關閉
+            action: {
+              label: "查看詳情",
+              onClick: () => {
+                router.push(`/admin/admin-tasks?viewTask=${doc.taskId}`);
+              },
+            },
+          });
+        });
+      }
+
+      // 檢查待處理的任務
+      const pendingTasksQuery = `
+        query {
+          checkPendingTasks {
+            taskId
+            taskNo
+            title
+            taskTypeName
+            applicantName
+            deadline
+            createdAt
+          }
+        }
+      `;
+
+      const pendingTasksRes = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: pendingTasksQuery }),
+      });
+
+      const pendingTasksData = await pendingTasksRes.json();
+
+      if (!pendingTasksData.errors) {
+        const pendingTasks: PendingTaskNotification[] = pendingTasksData.data?.checkPendingTasks || [];
+        console.log("[TaskReminder] 找到待處理任務數量:", pendingTasks.length);
+
+        if (pendingTasks.length > 0) {
+          // 只顯示一個彙總通知，避免太多通知
+          addToast({
+            type: "info",
+            title: "待處理任務提醒",
+            message: `您有 ${pendingTasks.length} 個待處理任務`,
+            duration: 0, // 不自動關閉
+            action: {
+              label: "查看任務",
+              onClick: () => {
+                router.push(`/admin/admin-tasks?status=PENDING`);
+              },
+            },
+          });
+        }
       }
     } catch (error) {
       console.error("檢查提醒時發生錯誤:", error);

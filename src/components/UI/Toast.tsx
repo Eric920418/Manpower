@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // Toast 類型
 export interface ToastType {
   id: string;
-  type: "info" | "success" | "warning" | "error" | "reminder" | "documentReminder";
+  type: "info" | "success" | "warning" | "error" | "reminder" | "documentReminder" | "revisionRequest";
   title: string;
   message?: string;
   duration?: number; // 毫秒，0 表示不自動關閉
@@ -109,6 +109,11 @@ function ToastItem({ toast, onRemove }: { toast: ToastType; onRemove: () => void
       icon: "text-orange-500",
       iconPath: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
     },
+    revisionRequest: {
+      bg: "bg-yellow-50 border-yellow-200",
+      icon: "text-yellow-600",
+      iconPath: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z",
+    },
   };
 
   const style = typeStyles[toast.type];
@@ -172,7 +177,7 @@ function ToastContainer({
 }) {
   return (
     <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2">
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem
             key={toast.id}

@@ -109,6 +109,10 @@ model User {
   taskAssignments       AdminTaskAssignment[] @relation("TaskAssignments")
   taskAssignmentsGiven  AdminTaskAssignment[] @relation("TaskAssigner")
 
+  // 關聯 - 全局分配設定
+  taskTypeDefaultAssignments        TaskTypeDefaultAssignment[] @relation("TaskTypeDefaultAssignments")
+  taskTypeDefaultAssignmentsCreated TaskTypeDefaultAssignment[] @relation("TaskTypeDefaultAssignmentCreator")
+
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -225,8 +229,30 @@ model TaskType {
   // 流程關聯
   outgoingFlows  TaskTypeFlow[] @relation("FlowFrom")  // 從此類型出發的流程
   incomingFlows  TaskTypeFlow[] @relation("FlowTo")    // 到達此類型的流程
+  // 全局分配設定
+  defaultAssignments TaskTypeDefaultAssignment[]
 
   @@index([isActive, order])
+}
+
+// 全局分配設定（依案件類型自動分配管理員）
+model TaskTypeDefaultAssignment {
+  id          Int            @id @default(autoincrement())
+  taskTypeId  Int            // 案件類型 ID
+  userId      String         // 被分配的管理員 ID
+  role        AssignmentRole @default(HANDLER)  // 分配角色：負責人或複審人
+  createdAt   DateTime       @default(now())
+  createdBy   String?        // 設定者 ID
+
+  // 關聯
+  taskType    TaskType       @relation(fields: [taskTypeId], references: [id], onDelete: Cascade)
+  user        User           @relation("TaskTypeDefaultAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  creator     User?          @relation("TaskTypeDefaultAssignmentCreator", fields: [createdBy], references: [id])
+
+  @@unique([taskTypeId, userId, role])  // 同一用戶在同一類型中同一角色只能有一個分配
+  @@index([taskTypeId])
+  @@index([userId])
+  @@index([role])
 }
 
 // 任務類型流程關聯（支援多重後續、線性和分支流程）
@@ -256,16 +282,16 @@ enum AdminTaskStatus {
   PENDING            // 待處理
   PROCESSING         // 處理中
   PENDING_DOCUMENTS  // 待補件
+  PENDING_REVIEW     // 待複審
   APPROVED           // 已批准
   REJECTED           // 已退回
   COMPLETED          // 已完成
 }
 
-// 案件分配角色
+// 分配角色
 enum AssignmentRole {
-  PRIMARY     // 主要負責人
-  ASSISTANT   // 協助者
-  APPROVER    // 審批人
+  HANDLER   // 負責人（處理案件）
+  REVIEWER  // 複審人（審核案件）
 }
 
 // 審批路線
@@ -338,12 +364,12 @@ model AdminTask {
   @@index([groupId])
 }
 
-// 案件分配（多對多關聯表）- 取代 AdminTaskTypeAssignment
+// 案件分配（多對多關聯表）
 model AdminTaskAssignment {
   id          Int            @id @default(autoincrement())
   taskId      Int            // 案件 ID
   userId      String         // 被分配的用戶 ID
-  role        AssignmentRole // 分配角色
+  role        AssignmentRole @default(HANDLER)  // 分配角色：負責人或複審人
   assignedAt  DateTime       @default(now())  // 分配時間
   assignedBy  String?        // 分配者（SUPER_ADMIN）ID
   notes       String?        // 分配備註
@@ -353,10 +379,10 @@ model AdminTaskAssignment {
   user        User           @relation("TaskAssignments", fields: [userId], references: [id], onDelete: Cascade)
   assigner    User?          @relation("TaskAssigner", fields: [assignedBy], references: [id])
 
-  @@unique([taskId, userId, role])  // 同一用戶在同一案件中只能有一個特定角色
+  @@unique([taskId, userId, role])  // 同一用戶在同一案件中同一角色只能有一個分配
   @@index([taskId])
   @@index([userId])
-  @@index([userId, role])
+  @@index([role])
 }
 
 // 審批記錄
@@ -365,8 +391,13 @@ model ApprovalRecord {
   taskId      Int
   task        AdminTask        @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  action      String           // approve, reject, request_revision, add_signer
+  action      String           // approve, reject, request_revision, add_signer, pending_documents
   comment     String?          @db.Text
+
+  // 要求修改專用欄位
+  revisionReason   String?     // 修改原因類別
+  revisionDetail   String?     @db.Text // 具體修改說明
+  revisionDeadline DateTime?   // 修改期限
 
   approverId  String
   approver    User             @relation("ApprovalActor", fields: [approverId], references: [id])

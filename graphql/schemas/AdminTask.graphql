@@ -5,6 +5,7 @@ enum AdminTaskStatus {
   PENDING            # 待處理
   PROCESSING         # 處理中
   PENDING_DOCUMENTS  # 待補件
+  PENDING_REVIEW     # 待複審
   APPROVED           # 已批准
   REJECTED           # 已退回
   COMPLETED          # 已完成
@@ -43,6 +44,10 @@ type ApprovalRecord {
   taskId: Int!
   action: String!
   comment: String
+  # 要求修改專用欄位
+  revisionReason: String      # 修改原因類別
+  revisionDetail: String      # 具體修改說明
+  revisionDeadline: String    # 修改期限
   approver: TaskUser!
   createdAt: String!
 }
@@ -90,11 +95,10 @@ type AdminTask {
   # 審批記錄
   approvalRecords: [ApprovalRecord!]!
 
-  # 案件分配（新機制）
+  # 案件分配
   assignments: [AdminTaskAssignment!]!
-  primaryAssignees: [TaskUser!]!
-  assistants: [TaskUser!]!
-  assignedApprovers: [TaskUser!]!
+  handlers: [TaskUser!]!    # 負責人列表
+  reviewers: [TaskUser!]!   # 複審人列表
 
   createdAt: String!
   updatedAt: String!
@@ -120,6 +124,7 @@ type AdminTaskStats {
   pending: Int!
   processing: Int!
   pendingDocuments: Int!
+  pendingReview: Int!
   approved: Int!
   rejected: Int!
   completed: Int!
@@ -172,6 +177,49 @@ extend type Query {
     page: Int
     pageSize: Int
   ): AdminTaskConnection!
+
+  # 檢查待修改的案件（申請人收到要求修改通知）
+  checkRevisionRequests: [RevisionRequestNotification!]!
+
+  # 檢查待補件的任務
+  checkPendingDocuments: [PendingDocumentNotification!]!
+
+  # 檢查待處理的任務（分配給當前用戶但尚未處理）
+  checkPendingTasks: [PendingTaskNotification!]!
+}
+
+# 待修改案件通知
+type RevisionRequestNotification {
+  taskId: Int!
+  taskNo: String!
+  title: String!
+  revisionReason: String
+  revisionDetail: String
+  revisionDeadline: String
+  requestedBy: TaskUser!
+  requestedAt: String!
+}
+
+# 待補件通知
+type PendingDocumentNotification {
+  taskId: Int!
+  taskNo: String!
+  title: String!
+  taskTypeName: String!
+  pendingReason: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+# 待處理任務通知
+type PendingTaskNotification {
+  taskId: Int!
+  taskNo: String!
+  title: String!
+  taskTypeName: String!
+  applicantName: String
+  deadline: String
+  createdAt: String!
 }
 
 # ==================== Inputs ====================
@@ -282,6 +330,10 @@ input ApprovalInput {
   taskId: Int!
   action: String!  # approve, reject, pending_documents, request_revision
   comment: String
+  # 要求修改專用欄位
+  revisionReason: String      # 修改原因類別
+  revisionDetail: String      # 具體修改說明
+  revisionDeadline: String    # 修改期限 (ISO 日期字串)
 }
 
 # 更新任務狀態輸入
@@ -289,6 +341,13 @@ input UpdateTaskStatusInput {
   taskId: Int!
   status: AdminTaskStatus!
   notes: String
+}
+
+# 複審輸入
+input ReviewTaskInput {
+  taskId: Int!
+  action: String!  # approve (通過), reject (駁回)
+  comment: String
 }
 
 # ==================== Mutations ====================
@@ -320,4 +379,10 @@ extend type Mutation {
 
   # 刪除附件
   deleteTaskAttachment(attachmentId: Int!): Boolean!
+
+  # 提交複審（負責人完成處理後提交給複審人）
+  submitForReview(taskId: Int!, notes: String): AdminTask!
+
+  # 複審操作（複審人審核案件）
+  reviewTask(input: ReviewTaskInput!): AdminTask!
 }

@@ -53,6 +53,7 @@ interface Talent {
   experience: string;
   location: string;
   skills: string[];
+  detailUrl?: string;
 }
 
 interface SocialMedia {
@@ -452,6 +453,7 @@ export const HomePage = () => {
             experience: "",
             location: "",
             skills: [],
+            detailUrl: "",
           },
         ],
       },
@@ -839,6 +841,18 @@ export const HomePage = () => {
                           </div>
                         ))}
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">詳細資料網址 (QR Code)</label>
+                      <input
+                        type="text"
+                        value={talent.detailUrl || ""}
+                        onChange={(e) => updateTalent(talentIndex, "detailUrl", e.target.value)}
+                        placeholder="https://example.com/talent-detail"
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">用戶點擊「查看詳細資料」時會顯示此網址的 QR Code</p>
                     </div>
 
                     <button
