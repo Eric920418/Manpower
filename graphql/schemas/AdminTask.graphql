@@ -352,6 +352,13 @@ input ReviewTaskInput {
   comment: String
 }
 
+# 重新送出輸入（申請人修改後重新提交）
+input ResubmitTaskInput {
+  taskId: Int!
+  payload: JSON       # 更新的表單資料
+  notes: String       # 備註說明
+}
+
 # ==================== Mutations ====================
 
 extend type Mutation {
@@ -387,4 +394,7 @@ extend type Mutation {
 
   # 複審操作（複審人審核案件）
   reviewTask(input: ReviewTaskInput!): AdminTask!
+
+  # 重新送出案件（申請人修改後重新提交）
+  resubmitTask(input: ResubmitTaskInput!): AdminTask!
 }

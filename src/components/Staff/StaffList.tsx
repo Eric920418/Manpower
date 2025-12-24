@@ -1,6 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Staff {
   id: string;
@@ -12,6 +14,7 @@ interface Staff {
   line: string;
   bio: string;
   specialties: string[];
+  detailUrl?: string;
 }
 
 interface Props {
@@ -19,6 +22,21 @@ interface Props {
 }
 
 export default function StaffList({ staffList }: Props) {
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+
+  const handleViewDetail = (staff: Staff) => {
+    if (staff.detailUrl) {
+      setSelectedStaff(staff);
+      setQrModalOpen(true);
+    }
+  };
+
+  const closeModal = () => {
+    setQrModalOpen(false);
+    setSelectedStaff(null);
+  };
+
   return (
     <section className="py-24 bg-gray-50">
       <div className="container mx-auto px-6">
@@ -117,14 +135,21 @@ export default function StaffList({ staffList }: Props) {
                   )}
                 </div>
 
-                {/* 聯絡按鈕 */}
-                <a
-                  href={`tel:${staff.phone?.replace(/-/g, "")}`}
-                  className="mt-4 w-full py-3 bg-brand-primary text-white rounded-lg font-medium hover:bg-brand-accent transition-colors flex items-center justify-center gap-2"
+                {/* 查看詳細資料按鈕 */}
+                <button
+                  onClick={() => handleViewDetail(staff)}
+                  disabled={!staff.detailUrl}
+                  className={`mt-4 w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    staff.detailUrl
+                      ? "bg-brand-primary text-white hover:bg-brand-accent cursor-pointer"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
                 >
-                  <span className="material-symbols-outlined text-sm">call</span>
-                  <span>立即聯絡</span>
-                </a>
+                  <span className="material-symbols-outlined text-sm">
+                    {staff.detailUrl ? "qr_code_2" : "person"}
+                  </span>
+                  <span>{staff.detailUrl ? "查看詳細資料" : "暫無詳細資料"}</span>
+                </button>
               </div>
             </motion.div>
           ))}
@@ -139,6 +164,65 @@ export default function StaffList({ staffList }: Props) {
           </div>
         )}
       </div>
+
+      {/* QR Code 彈窗 */}
+      {qrModalOpen && selectedStaff && selectedStaff.detailUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={closeModal}
+        >
+          <div
+            className="relative bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 關閉按鈕 */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            {/* 標題 */}
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-1">
+                {selectedStaff.name}
+              </h3>
+              <p className="text-sm text-gray-500">{selectedStaff.position}</p>
+            </div>
+
+            {/* QR Code */}
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-white rounded-xl shadow-inner border-2 border-gray-100">
+                <QRCodeSVG
+                  value={selectedStaff.detailUrl}
+                  size={200}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+            </div>
+
+            {/* 提示文字 */}
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                掃描 QR Code 查看詳細資料
+              </p>
+              <p className="text-xs text-gray-400 break-all">
+                {selectedStaff.detailUrl}
+              </p>
+            </div>
+
+            {/* 關閉按鈕 */}
+            <button
+              onClick={closeModal}
+              className="w-full mt-6 py-3 bg-brand-primary hover:bg-brand-accent text-white font-semibold rounded-lg transition-colors"
+            >
+              關閉
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

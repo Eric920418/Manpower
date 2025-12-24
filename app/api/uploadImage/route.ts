@@ -16,10 +16,10 @@ const UPLOAD_DIR =
 
 // 圖片壓縮設定
 const IMAGE_CONFIG = {
-  maxWidth: 1920,      // 最大寬度
-  maxHeight: 1080,     // 最大高度
-  quality: 85,         // JPEG/WebP 品質 (1-100)
-  pngCompressionLevel: 9, // PNG 壓縮等級 (0-9)
+  maxWidth: 2400,      // 最大寬度（適合橫式照片）
+  maxHeight: 3200,     // 最大高度（適合 3:4 直式人物照片）
+  quality: 93,         // JPEG/WebP 品質 (1-100)
+  pngCompressionLevel: 6, // PNG 壓縮等級 (0-9)，降低以保持品質
 };
 
 /**
@@ -65,15 +65,24 @@ async function compressImage(
       })
       .toBuffer();
     outputExt = 'png';
-  } else {
-    // JPEG/WebP 統一轉為 WebP（更好的壓縮率）
+  } else if (mimeType === 'image/webp') {
+    // WebP 保持原格式
     outputBuffer = await image
       .webp({
         quality: IMAGE_CONFIG.quality,
-        effort: 4, // 壓縮努力程度 (0-6)
+        effort: 4,
       })
       .toBuffer();
     outputExt = 'webp';
+  } else {
+    // JPEG 保持原格式（不轉換為 WebP，保持最佳品質）
+    outputBuffer = await image
+      .jpeg({
+        quality: IMAGE_CONFIG.quality,
+        mozjpeg: true, // 使用 mozjpeg 壓縮，品質更好
+      })
+      .toBuffer();
+    outputExt = 'jpg';
   }
 
   // 生成新檔名

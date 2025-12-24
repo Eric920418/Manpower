@@ -423,8 +423,12 @@ export const adminTaskResolvers = {
         }
         where.id = { in: assignedTaskIds };
       } else {
-        // STAFF/OWNER 被授予權限後，只能看到自己創建的任務
-        where.applicantId = user.id;
+        // STAFF/OWNER 可以看到：1. 自己創建的任務 2. 被分配給自己的任務
+        const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
+        where.OR = [
+          { applicantId: user.id },
+          ...(assignedTaskIds.length > 0 ? [{ id: { in: assignedTaskIds } }] : []),
+        ];
       }
 
       if (args.status) where.status = args.status;
@@ -501,8 +505,14 @@ export const adminTaskResolvers = {
         }
         taskTypeFilter = { id: { in: assignedTaskIds } };
       } else {
-        // STAFF/OWNER 只統計自己創建的任務
-        taskTypeFilter = { applicantId: user.id };
+        // STAFF/OWNER 統計：1. 自己創建的任務 2. 被分配給自己的任務
+        const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
+        taskTypeFilter = {
+          OR: [
+            { applicantId: user.id },
+            ...(assignedTaskIds.length > 0 ? [{ id: { in: assignedTaskIds } }] : []),
+          ],
+        };
       }
 
       const [total, pending, processing, pendingDocuments, pendingReview, revisionRequested, approved, rejected, completed, overdue] = await Promise.all([
@@ -1522,7 +1532,7 @@ export const adminTaskResolvers = {
       // 根據操作更新狀態
       let newStatus: AdminTaskStatus;
       if (args.input.action === "approve") {
-        newStatus = "APPROVED";
+        newStatus = "COMPLETED"; // 複審通過後狀態變成已完成
       } else if (args.input.action === "reject") {
         newStatus = "PROCESSING"; // 駁回後回到處理中，讓負責人修改
       } else {
@@ -1561,6 +1571,95 @@ export const adminTaskResolvers = {
             taskNo: task.taskNo,
             action: args.input.action,
             comment: args.input.comment,
+          },
+        },
+      });
+
+      return formatTask(updatedTask);
+    },
+
+    // 重新送出案件（申請人修改後重新提交）
+    resubmitTask: async (
+      _: unknown,
+      args: {
+        input: {
+          taskId: number;
+          payload?: Record<string, unknown>;
+          notes?: string;
+        };
+      },
+      context: Context
+    ) => {
+      const user = requireAuth(context);
+
+      // 獲取任務
+      const task = await prisma.adminTask.findUnique({
+        where: { id: args.input.taskId },
+        include: {
+          approvalRecords: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+        },
+      });
+
+      if (!task) {
+        throw new Error("找不到該行政任務");
+      }
+
+      // 檢查是否為申請人
+      if (task.applicantId !== user.id && user.role !== "SUPER_ADMIN") {
+        throw new Error("權限不足：只有申請人可以重新送出案件");
+      }
+
+      // 檢查狀態是否允許重新送出（要求修改 或 待補件）
+      if (task.status !== "REVISION_REQUESTED" && task.status !== "PENDING_DOCUMENTS") {
+        throw new Error("案件狀態不允許重新送出，只有「要求修改」或「待補件」的案件可以重新送出");
+      }
+
+      // 更新任務
+      const updateData: Prisma.AdminTaskUpdateInput = {
+        status: "PENDING", // 重新送出後狀態變回待處理
+        approvalMark: null, // 清除審批標記
+      };
+
+      // 如果有更新 payload
+      if (args.input.payload !== undefined) {
+        updateData.payload = args.input.payload as Prisma.InputJsonValue;
+      }
+
+      // 如果有更新備註
+      if (args.input.notes !== undefined) {
+        updateData.notes = args.input.notes;
+      }
+
+      const updatedTask = await prisma.adminTask.update({
+        where: { id: args.input.taskId },
+        data: updateData,
+        include: taskInclude,
+      });
+
+      // 創建審批記錄（記錄重新送出）
+      await prisma.approvalRecord.create({
+        data: {
+          taskId: args.input.taskId,
+          action: "resubmit",
+          comment: args.input.notes || "申請人已修改並重新送出",
+          approverId: user.id,
+        },
+      });
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "resubmit",
+          entity: "admin_task",
+          entityId: args.input.taskId.toString(),
+          details: {
+            taskNo: task.taskNo,
+            previousStatus: task.status,
+            newStatus: "PENDING",
           },
         },
       });

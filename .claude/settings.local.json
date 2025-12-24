@@ -25,7 +25,9 @@
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
       "Bash(pm2 flush:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

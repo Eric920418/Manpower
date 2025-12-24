@@ -36,6 +36,7 @@ interface Staff {
   line: string;
   bio: string;
   specialties: string[];
+  detailUrl?: string;
 }
 
 interface PageData {
@@ -189,6 +190,7 @@ export const StaffPage = () => {
                     line: "",
                     bio: "",
                     specialties: [],
+                    detailUrl: "",
                   },
                 ],
               }))
@@ -332,6 +334,22 @@ export const StaffPage = () => {
                     setPageData((prev) => ({ ...prev, staffList: newStaffList }));
                   }}
                 />
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">詳細資料網址 (QR Code)</label>
+                <input
+                  type="text"
+                  value={staff.detailUrl || ""}
+                  onChange={(e) => {
+                    const newStaffList = [...pageData.staffList];
+                    newStaffList[index] = { ...newStaffList[index], detailUrl: e.target.value };
+                    setPageData((prev) => ({ ...prev, staffList: newStaffList }));
+                  }}
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                  placeholder="https://example.com/staff-detail"
+                />
+                <p className="text-xs text-gray-500 mt-1">用戶點擊「查看詳細資料」時會顯示此網址的 QR Code</p>
               </div>
 
               <button

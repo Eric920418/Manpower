@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useCallback, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "@/components/UI/Toast";
 
 // 提醒類型
@@ -75,14 +75,18 @@ export function TaskReminderProvider({ children }: { children: React.ReactNode }
   const { status } = useSession();
   const { addToast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
   const [pendingReminders, setPendingReminders] = useState<PendingReminder[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownInitialReminder = useRef(false);
 
+  // 檢查是否在登入頁面
+  const isLoginPage = pathname === "/admin/login";
+
   // 檢查並顯示提醒
   const checkAndShowReminders = useCallback(async () => {
-    if (status !== "authenticated") {
-      console.log("[TaskReminder] 未登入，跳過檢查");
+    if (status !== "authenticated" || isLoginPage) {
+      console.log("[TaskReminder] 未登入或在登入頁面，跳過檢查");
       return;
     }
 
@@ -306,7 +310,7 @@ export function TaskReminderProvider({ children }: { children: React.ReactNode }
     } catch (error) {
       console.error("檢查提醒時發生錯誤:", error);
     }
-  }, [status, addToast, router]);
+  }, [status, addToast, router, isLoginPage]);
 
   // 獲取所有待處理提醒（用於內部狀態管理）
   const refreshReminders = useCallback(async () => {
@@ -479,9 +483,9 @@ export function TaskReminderProvider({ children }: { children: React.ReactNode }
     }
   }, [status, refreshReminders]);
 
-  // 登入時檢查提醒
+  // 登入時檢查提醒（排除登入頁面）
   useEffect(() => {
-    if (status === "authenticated" && !hasShownInitialReminder.current) {
+    if (status === "authenticated" && !hasShownInitialReminder.current && !isLoginPage) {
       hasShownInitialReminder.current = true;
       // 延遲一下再顯示，讓頁面先載入完成
       const timer = setTimeout(() => {
@@ -490,11 +494,11 @@ export function TaskReminderProvider({ children }: { children: React.ReactNode }
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [status, checkAndShowReminders, refreshReminders]);
+  }, [status, checkAndShowReminders, refreshReminders, isLoginPage]);
 
-  // 每 10 分鐘檢查一次
+  // 每 10 分鐘檢查一次（排除登入頁面）
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" && !isLoginPage) {
       intervalRef.current = setInterval(checkAndShowReminders, REMINDER_INTERVAL_MS);
       return () => {
         if (intervalRef.current) {
@@ -502,7 +506,7 @@ export function TaskReminderProvider({ children }: { children: React.ReactNode }
         }
       };
     }
-  }, [status, checkAndShowReminders]);
+  }, [status, checkAndShowReminders, isLoginPage]);
 
   return (
     <TaskReminderContext.Provider

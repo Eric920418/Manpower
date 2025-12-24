@@ -5,6 +5,7 @@ type FranchisePage {
   partnershipAdvantages: JSON
   franchiseProcess: JSON
   cta: JSON
+  franchiseeSharing: JSON
 }
 
 extend type Query {
@@ -17,6 +18,7 @@ input UpdateFranchisePageInput {
   partnershipAdvantages: JSON
   franchiseProcess: JSON
   cta: JSON
+  franchiseeSharing: JSON
 }
 
 extend type Mutation {

@@ -5,6 +5,7 @@ import FranchiseNavButtons from "@/components/Franchise/FranchiseNavButtons";
 import MarketOpportunity from "@/components/Franchise/MarketOpportunity";
 import PartnershipAdvantages from "@/components/Franchise/PartnershipAdvantages";
 import FranchiseProcess from "@/components/Franchise/FranchiseProcess";
+import FranchiseeSharing from "@/components/Franchise/FranchiseeSharing";
 import FranchiseCTA from "@/components/Franchise/FranchiseCTA";
 
 // 強制動態渲染，避免 build 時 fetch 失敗
@@ -22,6 +23,7 @@ async function getPageData() {
         marketOpportunity
         partnershipAdvantages
         franchiseProcess
+        franchiseeSharing
         cta
       }
       activeNavigations {
@@ -84,6 +86,7 @@ export default async function FranchisePage() {
       <MarketOpportunity data={franchisePage?.marketOpportunity} />
       <PartnershipAdvantages data={franchisePage?.partnershipAdvantages} />
       <FranchiseProcess data={franchisePage?.franchiseProcess} />
+      <FranchiseeSharing data={franchisePage?.franchiseeSharing} />
       <FranchiseCTA data={franchisePage?.cta} />
 
       <Footer

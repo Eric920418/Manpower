@@ -75,6 +75,7 @@ export default async function StaffPage() {
     line: string;
     bio: string;
     specialties: string[];
+    detailUrl?: string;
   }) => ({
     id: staff.id,
     name: staff.name,
@@ -85,6 +86,7 @@ export default async function StaffPage() {
     line: staff.line || '',
     bio: staff.bio || '',
     specialties: staff.specialties || [],
+    detailUrl: staff.detailUrl || '',
   }));
 
   return (

@@ -240,6 +240,10 @@ function AdminTasksContent() {
   // 刪除確認狀態
   const [deleting, setDeleting] = useState(false);
 
+  // 重新送出狀態
+  const [resubmitting, setResubmitting] = useState(false);
+  const [resubmitNotes, setResubmitNotes] = useState("");
+
   // 獲取資料
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -931,6 +935,57 @@ function AdminTasksContent() {
     }
   };
 
+  // 重新送出案件（申請人修改後重新提交）
+  const handleResubmit = async () => {
+    if (!selectedTask) return;
+
+    if (!confirm("確定要重新送出此案件嗎？案件將重新進入審批流程。")) {
+      return;
+    }
+
+    setResubmitting(true);
+    try {
+      const mutation = `
+        mutation ResubmitTask($input: ResubmitTaskInput!) {
+          resubmitTask(input: $input) {
+            id
+            status
+          }
+        }
+      `;
+
+      const variables = {
+        input: {
+          taskId: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
+          notes: resubmitNotes || null,
+        },
+      };
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: mutation, variables }),
+      });
+
+      const data = await res.json();
+
+      if (data.errors) {
+        throw new Error(data.errors[0].message);
+      }
+
+      alert("案件已重新送出！");
+      setShowDetailModal(false);
+      setResubmitNotes("");
+      fetchData();
+    } catch (error) {
+      console.error("重新送出失敗：", error);
+      alert(`重新送出失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
+    } finally {
+      setResubmitting(false);
+    }
+  };
+
   // 刪除任務
   const handleDeleteTask = async (taskId: number) => {
     if (!confirm("確定要刪除此任務嗎？此操作無法復原。")) {
@@ -992,31 +1047,31 @@ function AdminTasksContent() {
     });
   };
 
-  // 計算期限緊急程度
-  const getDeadlineUrgency = (deadline: string | null): "overdue" | "today" | "3days" | "week" | "normal" | null => {
+  // 計算期限緊急程度（動態計算，每次渲染都會重新計算）
+  // 1-2天內 → 紅色, 2-3天 → 黃色, 3天以上 → 藍色
+  const getDeadlineUrgency = (deadline: string | null): "urgent" | "warning" | "normal" | null => {
     if (!deadline) return null;
     const now = new Date();
     const deadlineDate = new Date(deadline);
     const diffTime = deadlineDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
-    if (diffDays < 0) return "overdue";
-    if (diffDays === 0) return "today";
-    if (diffDays <= 3) return "3days";
-    if (diffDays <= 7) return "week";
+    // 2天內（包含已過期）→ 紅色
+    if (diffDays <= 2) return "urgent";
+    // 2-3天 → 黃色
+    if (diffDays <= 3) return "warning";
+    // 3天以上 → 藍色
     return "normal";
   };
 
   // 獲取期限樣式
-  const getDeadlineStyle = (urgency: "overdue" | "today" | "3days" | "week" | "normal" | null) => {
+  const getDeadlineStyle = (urgency: "urgent" | "warning" | "normal" | null) => {
     switch (urgency) {
-      case "overdue":
-        return "bg-red-600 text-white";
-      case "today":
+      case "urgent":
         return "bg-red-100 text-red-800";
-      case "3days":
+      case "warning":
         return "bg-yellow-100 text-yellow-800";
-      case "week":
+      case "normal":
         return "bg-blue-100 text-blue-800";
       default:
         return "text-gray-600";
@@ -2208,6 +2263,84 @@ function AdminTasksContent() {
                         className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {approving ? "處理中..." : "確認審批"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 重新送出區塊（申請人可見，當狀態為要求修改或待補件時） */}
+                {selectedTask.applicant?.id === session?.user?.id &&
+                  (selectedTask.status === "REVISION_REQUESTED" ||
+                  selectedTask.status === "PENDING_DOCUMENTS") && (
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                      重新送出案件
+                    </h3>
+                    <div className="bg-pink-50 border border-pink-200 p-4 rounded-lg space-y-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">📝</span>
+                        <div>
+                          <p className="font-medium text-pink-800">
+                            {selectedTask.status === "REVISION_REQUESTED"
+                              ? "此案件需要修改後重新送出"
+                              : "此案件需要補件後重新送出"}
+                          </p>
+                          <p className="text-sm text-pink-600 mt-1">
+                            請確認已完成必要的修改或補件，然後點擊下方按鈕重新送出案件。
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 顯示最新的修改要求（如果有） */}
+                      {selectedTask.approvalRecords && selectedTask.approvalRecords.length > 0 && (
+                        (() => {
+                          const latestRevision = selectedTask.approvalRecords.find(
+                            (r: ApprovalRecord) => r.action === "request_revision" || r.action === "pending_documents"
+                          );
+                          if (latestRevision) {
+                            return (
+                              <div className="bg-white border border-pink-100 rounded-lg p-3 text-sm">
+                                <p className="font-medium text-gray-700 mb-2">審批意見：</p>
+                                {latestRevision.revisionReason && (
+                                  <p className="text-gray-600">原因類別：{latestRevision.revisionReason}</p>
+                                )}
+                                {latestRevision.revisionDetail && (
+                                  <p className="text-gray-600 mt-1">修改說明：{latestRevision.revisionDetail}</p>
+                                )}
+                                {latestRevision.revisionDeadline && (
+                                  <p className="text-gray-600 mt-1">
+                                    期限：{new Date(latestRevision.revisionDeadline).toLocaleDateString("zh-TW")}
+                                  </p>
+                                )}
+                                {latestRevision.comment && !latestRevision.revisionDetail && (
+                                  <p className="text-gray-600">{latestRevision.comment}</p>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          備註說明（選填）
+                        </label>
+                        <textarea
+                          value={resubmitNotes}
+                          onChange={(e) => setResubmitNotes(e.target.value)}
+                          rows={3}
+                          placeholder="說明您所做的修改或補件內容..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleResubmit}
+                        disabled={resubmitting}
+                        className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                      >
+                        {resubmitting ? "送出中..." : "確認重新送出"}
                       </button>
                     </div>
                   </div>

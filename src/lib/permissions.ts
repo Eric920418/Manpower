@@ -147,6 +147,8 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'admin_task:read',
     'admin_task:update',
     'admin_task:approve',
+    // 案件分配管理（可指派任務給下級）
+    'task_assignment:assign',
     // 儀表板
     'dashboard:view',
     'dashboard:stats',
@@ -155,11 +157,11 @@ export const RolePermissions: Record<Role, Permission[]> = {
   /**
    * 業主 - 公司經營者
    * 可以：
-   * - 管理所有內容和頁面
    * - 查看所有表單
    * - 查看系統分析和日誌
    * - 管理一般用戶（不能管理超級管理員）
    * 不可以：
+   * - 管理網站內容
    * - 修改系統核心設定
    * - 刪除用戶
    * - 審批行政事務（目前僅 SUPER_ADMIN）
@@ -169,9 +171,6 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'user:read',
     'user:create',
     'user:update',
-    // 網頁內容（完整）
-    'web_content:read',
-    'web_content:update',
     // 表單管理（完整）
     'form:create',
     'form:read',
@@ -194,13 +193,12 @@ export const RolePermissions: Record<Role, Permission[]> = {
   /**
    * 業務人員 - 一般員工
    * 可以：
-   * - 查看網頁內容
    * - 查看和處理表單
    * - 創建行政任務（作為申請人）
    * - 查看基本儀表板
    * 不可以：
    * - 管理用戶
-   * - 編輯網頁內容
+   * - 查看或編輯網頁內容
    * - 刪除任何資料
    * - 修改系統設定
    * - 審批行政事務
@@ -208,8 +206,6 @@ export const RolePermissions: Record<Role, Permission[]> = {
   STAFF: [
     // 用戶管理（僅查看自己）
     'user:read',
-    // 網頁內容（僅查看）
-    'web_content:read',
     // 表單管理（受限）
     'form:read',
     'form:process',

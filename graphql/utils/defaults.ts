@@ -553,6 +553,7 @@ const staffPageDefaults = {
       line: "@youshi_chen",
       bio: "擁有10年以上人力仲介經驗，專精於製造業與營建業人才媒合。",
       specialties: ["製造業", "營建業", "大型企業專案"],
+      detailUrl: "",
     },
     {
       id: "staff-002",
@@ -564,6 +565,7 @@ const staffPageDefaults = {
       line: "@youshi_lin",
       bio: "專注於家庭看護與養護機構人力配置，細心服務每一位客戶。",
       specialties: ["家庭看護", "養護機構", "長照服務"],
+      detailUrl: "",
     },
     {
       id: "staff-003",
@@ -575,6 +577,7 @@ const staffPageDefaults = {
       line: "@youshi_wang",
       bio: "熱情積極，致力於為中小企業提供最適合的人力解決方案。",
       specialties: ["中小企業", "服務業", "農漁業"],
+      detailUrl: "",
     },
   ],
   ctaSection: {
@@ -692,6 +695,21 @@ const franchisePageDefaults = {
     contactInfo: [
       { icon: "phone", label: "免付費專線", value: "0800-600-885" },
       { icon: "schedule", label: "服務時間", value: "週一至週五 09:00-18:00" },
+    ],
+  },
+  // 加盟主分享區塊
+  franchiseeSharing: {
+    title: "加盟主分享",
+    subtitle: "聽聽我們的加盟夥伴怎麼說",
+    videos: [
+      {
+        id: "1",
+        title: "加盟主分享影片",
+        youtubeUrl: "",
+        description: "加盟主分享創業心得",
+        franchiseeName: "",
+        location: "",
+      },
     ],
   },
 };

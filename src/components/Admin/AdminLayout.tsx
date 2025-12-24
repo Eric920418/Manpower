@@ -26,10 +26,11 @@ const menuGroups: MenuGroup[] = [
   {
     title: "管理員操作",
     roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'], // 所有角色都可能看到此分組，但顯示哪些項目取決於權限
-    permissions: ['dashboard:view', 'admin_task:read', 'admin_task:create', 'form:read', 'user:read'],
+    permissions: ['dashboard:view', 'admin_task:read', 'admin_task:create', 'task_assignment:assign', 'form:read', 'user:read'],
     items: [
       { label: "儀表板", href: "/admin/dashboard", permission: 'dashboard:view' },
       { label: "行政事務", href: "/admin/admin-tasks", permission: 'admin_task:read' },
+      { label: "任務指派", href: "/admin/assign-task", permission: 'task_assignment:assign' },
       { label: "人力需求", href: "/admin/manpower-requests", permission: 'form:read' },
       { label: "用戶管理", href: "/admin/users", permission: 'user:read' },
     ],

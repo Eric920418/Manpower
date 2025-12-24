@@ -51,6 +51,7 @@ const actionLabels: Record<string, string> = {
   reject: "退回",
   pending_documents: "待補件",
   request_revision: "要求修改",
+  resubmit: "重新送出",
   upload: "上傳",
   upload_attachment: "上傳附件",
   delete_attachment: "刪除附件",
@@ -123,6 +124,7 @@ const formatDetails = (action: string, entity: string, details: Record<string, u
           reject: "退回",
           pending_documents: "待補件",
           request_revision: "要求修改",
+          resubmit: "重新送出",
         };
         parts.push(`審批動作：${actionMap[details.action as string] || details.action}`);
       }

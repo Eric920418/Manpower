@@ -144,13 +144,19 @@ export default function UserPermissionsPage() {
 
   // 根據角色過濾權限類別
   // 儀表板對所有人隱藏（所有角色都有此權限）
-  // OWNER 和 STAFF 不顯示：網頁內容、案件分配管理、系統設定
   const hiddenCategoriesForAll = ["dashboard"];
-  const hiddenCategoriesForOwnerStaff = ["web_content", "task_assignment", "system"];
+  // OWNER 和 STAFF 不顯示：網頁內容、系統設定
+  const hiddenCategoriesForOwnerStaff = ["web_content", "system"];
+  // STAFF 額外不顯示：案件分配管理（task_assignment:assign 只能給 ADMIN 和 OWNER）
+  const hiddenCategoriesForStaff = ["task_assignment"];
 
   let categories = allCategories.filter((cat) => !hiddenCategoriesForAll.includes(cat.key));
   if (selectedUser && (selectedUser.role === "OWNER" || selectedUser.role === "STAFF")) {
     categories = categories.filter((cat) => !hiddenCategoriesForOwnerStaff.includes(cat.key));
+  }
+  // STAFF 永遠不能有任務指派權限
+  if (selectedUser && selectedUser.role === "STAFF") {
+    categories = categories.filter((cat) => !hiddenCategoriesForStaff.includes(cat.key));
   }
 
   // 當選擇用戶變更時，載入其權限設定

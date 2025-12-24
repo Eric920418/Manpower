@@ -31,11 +31,15 @@ const query = `
 interface Worker {
   id: string;
   name: string;
+  foreignId: string;
   age: number;
   gender: string;
   country: string;
   photo: string;
   experience: string;
+  education: string;
+  height: number;
+  weight: number;
   skills: string[];
   languages: string[];
   availability: string;
@@ -274,11 +278,15 @@ export const WorkersPage = () => {
                   {
                     id: `worker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     name: "",
+                    foreignId: "",
                     age: 25,
                     gender: "男",
                     country: "",
                     photo: "",
                     experience: "",
+                    education: "",
+                    height: 0,
+                    weight: 0,
                     skills: [],
                     languages: [],
                     availability: "",
@@ -320,6 +328,20 @@ export const WorkersPage = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">外國人編號</label>
+                  <input
+                    type="text"
+                    value={worker.foreignId || ""}
+                    onChange={(e) => {
+                      const newWorkers = [...pageData.workers];
+                      newWorkers[index] = { ...newWorkers[index], foreignId: e.target.value };
+                      setPageData((prev) => ({ ...prev, workers: newWorkers }));
+                    }}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                    placeholder="例: A123456789"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">年齡</label>
                   <input
                     type="number"
@@ -330,6 +352,48 @@ export const WorkersPage = () => {
                       setPageData((prev) => ({ ...prev, workers: newWorkers }));
                     }}
                     className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">學歷</label>
+                  <input
+                    type="text"
+                    value={worker.education || ""}
+                    onChange={(e) => {
+                      const newWorkers = [...pageData.workers];
+                      newWorkers[index] = { ...newWorkers[index], education: e.target.value };
+                      setPageData((prev) => ({ ...prev, workers: newWorkers }));
+                    }}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                    placeholder="例: 高中、大學"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">身高 (cm)</label>
+                  <input
+                    type="number"
+                    value={worker.height || ""}
+                    onChange={(e) => {
+                      const newWorkers = [...pageData.workers];
+                      newWorkers[index] = { ...newWorkers[index], height: parseInt(e.target.value) || 0 };
+                      setPageData((prev) => ({ ...prev, workers: newWorkers }));
+                    }}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                    placeholder="例: 170"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">體重 (kg)</label>
+                  <input
+                    type="number"
+                    value={worker.weight || ""}
+                    onChange={(e) => {
+                      const newWorkers = [...pageData.workers];
+                      newWorkers[index] = { ...newWorkers[index], weight: parseInt(e.target.value) || 0 };
+                      setPageData((prev) => ({ ...prev, workers: newWorkers }));
+                    }}
+                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                    placeholder="例: 65"
                   />
                 </div>
                 <div>

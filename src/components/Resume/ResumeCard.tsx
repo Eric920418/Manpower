@@ -64,7 +64,7 @@ const ResumeCard = memo(function ResumeCard({
   return (
     <>
       <div
-        className={`group bg-white rounded-xl shadow-md border overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 relative ${
+        className={`group bg-white rounded-xl shadow-md border overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 relative w-full max-w-[280px] mx-auto ${
           isSelected
             ? "border-brand-primary border-2 ring-2 ring-brand-primary/30"
             : "border-gray-200 hover:border-brand-primary"
@@ -89,7 +89,7 @@ const ResumeCard = memo(function ResumeCard({
               alt={`${resume.name} 的照片`}
               fill
               className="object-cover object-top hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              sizes="280px"
               onError={() => setImageError(true)}
               onClick={(e) => {
                 e.preventDefault();
@@ -134,9 +134,9 @@ const ResumeCard = memo(function ResumeCard({
 
           {/* 詳細資訊 */}
           <div className="space-y-1.5 text-sm text-gray-700 mb-4">
-            <div className="flex">
-              <span className="text-gray-500 w-20 shrink-0">外國人編號：</span>
-              <span className="font-medium">{resume.foreignId}</span>
+            <div className="flex items-center">
+              <span className="text-gray-500 shrink-0 whitespace-nowrap">外國人編號：</span>
+              <span className="font-medium truncate" title={resume.foreignId}>{resume.foreignId}</span>
             </div>
             <div className="flex">
               <span className="text-gray-500 w-20 shrink-0">年齡：</span>
