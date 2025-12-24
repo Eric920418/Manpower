@@ -73,15 +73,6 @@ interface ContactInfo {
   value: string;
 }
 
-interface SharingVideo {
-  id: string;
-  title: string;
-  youtubeUrl: string;
-  description: string;
-  franchiseeName: string;
-  location: string;
-}
-
 interface SharingStory {
   id: string;
   image: string;
@@ -128,7 +119,6 @@ interface PageData {
   franchiseeSharing: {
     title: string;
     subtitle: string;
-    videos: SharingVideo[];
     stories: SharingStory[];
   };
 }
@@ -139,7 +129,7 @@ const defaultPageData: PageData = {
   partnershipAdvantages: { title: "", subtitle: "", advantages: [], ctaButton: { text: "", link: "" } },
   franchiseProcess: { title: "", subtitle: "", steps: [] },
   cta: { title: "", subtitle: "", backgroundImage: "", buttons: [], contactInfo: [] },
-  franchiseeSharing: { title: "", subtitle: "", videos: [], stories: [] },
+  franchiseeSharing: { title: "", subtitle: "", stories: [] },
 };
 
 export const FranchisePage = () => {
@@ -869,154 +859,8 @@ export const FranchisePage = () => {
               />
             </div>
 
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold">影片列表</h3>
-                <button
-                  onClick={() =>
-                    setPageData((prev) => ({
-                      ...prev,
-                      franchiseeSharing: {
-                        ...prev.franchiseeSharing,
-                        videos: [
-                          ...(prev.franchiseeSharing?.videos || []),
-                          {
-                            id: Date.now().toString(),
-                            title: "",
-                            youtubeUrl: "",
-                            description: "",
-                            franchiseeName: "",
-                            location: "",
-                          },
-                        ],
-                      },
-                    }))
-                  }
-                  className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                >
-                  新增影片
-                </button>
-              </div>
-              {(pageData.franchiseeSharing?.videos || []).map((video, index) => (
-                <div key={video.id || index} className="bg-white p-4 rounded-lg border mb-4">
-                  <h4 className="font-medium mb-3">影片 #{index + 1}</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">影片標題</label>
-                      <input
-                        type="text"
-                        value={video.title}
-                        onChange={(e) => {
-                          const newVideos = [...(pageData.franchiseeSharing?.videos || [])];
-                          newVideos[index] = { ...newVideos[index], title: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, videos: newVideos },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">加盟主姓名</label>
-                      <input
-                        type="text"
-                        value={video.franchiseeName}
-                        onChange={(e) => {
-                          const newVideos = [...(pageData.franchiseeSharing?.videos || [])];
-                          newVideos[index] = { ...newVideos[index], franchiseeName: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, videos: newVideos },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">地區</label>
-                      <input
-                        type="text"
-                        value={video.location}
-                        onChange={(e) => {
-                          const newVideos = [...(pageData.franchiseeSharing?.videos || [])];
-                          newVideos[index] = { ...newVideos[index], location: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, videos: newVideos },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">YouTube 網址</label>
-                      <input
-                        type="text"
-                        value={video.youtubeUrl}
-                        onChange={(e) => {
-                          const newVideos = [...(pageData.franchiseeSharing?.videos || [])];
-                          newVideos[index] = { ...newVideos[index], youtubeUrl: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, videos: newVideos },
-                          }));
-                        }}
-                        placeholder="例如: https://www.youtube.com/watch?v=xxxxx"
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">描述</label>
-                      <textarea
-                        value={video.description}
-                        onChange={(e) => {
-                          const newVideos = [...(pageData.franchiseeSharing?.videos || [])];
-                          newVideos[index] = { ...newVideos[index], description: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, videos: newVideos },
-                          }));
-                        }}
-                        rows={3}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    {video.youtubeUrl && (
-                      <div className="col-span-2">
-                        <label className="block text-sm font-medium mb-1">影片預覽</label>
-                        <div className="aspect-video w-full max-w-md rounded-lg overflow-hidden bg-gray-200">
-                          <iframe
-                            width="100%"
-                            height="100%"
-                            src={`https://www.youtube.com/embed/${video.youtubeUrl.includes('watch?v=') ? video.youtubeUrl.split('watch?v=')[1]?.split('&')[0] : video.youtubeUrl.includes('youtu.be/') ? video.youtubeUrl.split('youtu.be/')[1]?.split('?')[0] : ''}`}
-                            title={video.title}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => {
-                      const newVideos = (pageData.franchiseeSharing?.videos || []).filter((_, i) => i !== index);
-                      setPageData((prev) => ({
-                        ...prev,
-                        franchiseeSharing: { ...prev.franchiseeSharing, videos: newVideos },
-                      }));
-                    }}
-                    className="mt-3 bg-red-500 text-white px-3 py-1 rounded text-sm"
-                  >
-                    刪除影片
-                  </button>
-                </div>
-              ))}
-            </div>
-
             {/* 故事列表 */}
-            <div className="mt-8 pt-6 border-t border-gray-300">
+            <div className="mt-6">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold text-lg">加盟主分享文章</h3>
                 <button
