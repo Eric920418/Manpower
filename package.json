@@ -49,6 +49,7 @@
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "^5.13.1",
     "isomorphic-dompurify": "^2.33.0",
+    "jsdom": "^27.3.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.482.0",
     "next": "16.0.7",

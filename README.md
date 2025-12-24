@@ -405,7 +405,8 @@ DEBUG_GRAPHQL         # 顯示所有 GraphQL 操作
 - `/staff` - 業務人員
 - `/news` - 最新消息
 - `/news/[slug]` - 新聞詳情
-- `/franchise` - 創業加盟
+- `/franchise` - 創業加盟（分頁切換、加盟主分享卡片列表）
+- `/franchise/stories/[id]` - 加盟主分享文章詳情
 - `/faq` - 常見問題
 
 ## 📚 相關文檔

@@ -720,6 +720,8 @@ const franchisePageDefaults = {
         date: "December 24, 2025",
         category: "萬達人力 行銷課",
         description: "從保險到照護，用專業走進人生最需要的時刻",
+        content: "<p>這是文章內容...</p>",
+        youtubeUrl: "",
       },
       {
         id: "2",
@@ -729,6 +731,8 @@ const franchisePageDefaults = {
         date: "September 18, 2025",
         category: "萬達人力 行銷課",
         description: "業務跑出創業路，開啟斜槓新人生",
+        content: "<p>這是文章內容...</p>",
+        youtubeUrl: "",
       },
       {
         id: "3",
@@ -738,6 +742,8 @@ const franchisePageDefaults = {
         date: "August 28, 2025",
         category: "萬達人力 行銷課",
         description: "從照服員到創業者，用心打造「助人事業」",
+        content: "<p>這是文章內容...</p>",
+        youtubeUrl: "",
       },
       {
         id: "4",
@@ -746,7 +752,9 @@ const franchisePageDefaults = {
         subtitle: "加盟主分享｜萬達人力行銷課",
         date: "August 15, 2025",
         category: "萬達人力 行銷課",
-        description: "從員工到老闆，新的挑戰與機會",
+        description: "從員工到老闘，新的挑戰與機會",
+        content: "<p>這是文章內容...</p>",
+        youtubeUrl: "",
       },
       {
         id: "5",
@@ -756,6 +764,8 @@ const franchisePageDefaults = {
         date: "August 07, 2025",
         category: "萬達人力 行銷課",
         description: "用經營超商的精神投資新人生",
+        content: "<p>這是文章內容...</p>",
+        youtubeUrl: "",
       },
       {
         id: "6",
@@ -765,6 +775,8 @@ const franchisePageDefaults = {
         date: "July 11, 2025",
         category: "萬達人力 行銷課",
         description: "退休後的新征程，服務再出發",
+        content: "<p>這是文章內容...</p>",
+        youtubeUrl: "",
       },
     ],
   },
