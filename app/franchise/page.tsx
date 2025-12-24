@@ -1,12 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FranchiseHero from "@/components/Franchise/FranchiseHero";
-import FranchiseNavButtons from "@/components/Franchise/FranchiseNavButtons";
-import MarketOpportunity from "@/components/Franchise/MarketOpportunity";
-import PartnershipAdvantages from "@/components/Franchise/PartnershipAdvantages";
-import FranchiseProcess from "@/components/Franchise/FranchiseProcess";
-import FranchiseeSharing from "@/components/Franchise/FranchiseeSharing";
-import FranchiseCTA from "@/components/Franchise/FranchiseCTA";
+import FranchisePageContent from "@/components/Franchise/FranchisePageContent";
 
 // 強制動態渲染，避免 build 時 fetch 失敗
 export const dynamic = 'force-dynamic';
@@ -82,12 +77,7 @@ export default async function FranchisePage() {
       />
 
       <FranchiseHero data={franchisePage?.hero} />
-      <FranchiseNavButtons />
-      <MarketOpportunity data={franchisePage?.marketOpportunity} />
-      <PartnershipAdvantages data={franchisePage?.partnershipAdvantages} />
-      <FranchiseProcess data={franchisePage?.franchiseProcess} />
-      <FranchiseeSharing data={franchisePage?.franchiseeSharing} />
-      <FranchiseCTA data={franchisePage?.cta} />
+      <FranchisePageContent franchisePage={franchisePage} />
 
       <Footer
         logo={footer.logo}

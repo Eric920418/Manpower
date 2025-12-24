@@ -2,21 +2,25 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 
-// 導航按鈕為頁面結構性元素，對應固定的 section ID，不需要後台編輯
-const navItems = [
-  { id: "market", label: "市場趨勢", icon: "trending_up" },
+// 導航按鈕為頁面結構性元素
+export const navItems = [
+  { id: "main", label: "市場趨勢", icon: "trending_up" },
   { id: "details", label: "加盟詳情", icon: "description" },
   { id: "seminar", label: "報名加盟說明會", icon: "event" },
-  { id: "testimonials", label: "加盟主分享", icon: "forum" },
+  { id: "stories", label: "加盟主分享", icon: "forum" },
 ];
 
-export default function FranchiseNavButtons() {
-  const [activeId, setActiveId] = useState("market");
+interface FranchiseNavButtonsProps {
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+}
+
+export default function FranchiseNavButtons({ activeTab, onTabChange }: FranchiseNavButtonsProps) {
   const [isFixed, setIsFixed] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Hero 區塊高度 + Header 高度 (400px + 80px = 480px)
+      // Hero 區塊高度 + Header 高度
       const scrollThreshold = 600;
       setIsFixed(window.scrollY > scrollThreshold);
     };
@@ -25,18 +29,13 @@ export default function FranchiseNavButtons() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleScroll = (id: string) => {
-    setActiveId(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 100;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
+  const handleClick = (id: string) => {
+    onTabChange(id);
+    // 切換分頁時滾動到內容區頂部
+    window.scrollTo({
+      top: 600,
+      behavior: "smooth",
+    });
   };
 
   return (
@@ -50,9 +49,9 @@ export default function FranchiseNavButtons() {
             {navItems.map((item, index) => (
               <motion.button
                 key={item.id}
-                onClick={() => handleScroll(item.id)}
+                onClick={() => handleClick(item.id)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-300 ${
-                  activeId === item.id
+                  activeTab === item.id
                     ? "bg-brand-primary text-white shadow-lg scale-105"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105"
                 }`}

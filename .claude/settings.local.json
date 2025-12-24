@@ -27,7 +27,8 @@
       "Bash(pm2 flush:*)",
       "Bash(grep:*)",
       "Bash(ls:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(pnpm next build:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,8 +6,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false, // ✅ 啟用 TypeScript 型別檢查
   },
   reactStrictMode: true, // ✅ 啟用 React Strict Mode 以提早發現問題
-  // Next.js 16: skipProxyUrlNormalize (原 skipMiddlewareUrlNormalize)
-  skipProxyUrlNormalize: true,
+  // Next.js 16 Turbopack 配置
+  turbopack: {},
   // 添加 images 配置
   images: {
     remotePatterns: [
