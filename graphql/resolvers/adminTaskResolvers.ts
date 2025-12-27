@@ -411,23 +411,17 @@ export const adminTaskResolvers = {
       // 根據角色設定不同的資料訪問範圍
       if (user.role === "SUPER_ADMIN") {
         // SUPER_ADMIN 可以看到所有任務
-      } else if (user.role === "ADMIN") {
-        // ADMIN 只能看到被分配的案件（新機制）
-        const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
-        if (assignedTaskIds.length === 0) {
-          // 沒有被分配任何案件，返回空列表
-          return {
-            items: [],
-            pageInfo: { total: 0, page, pageSize, totalPages: 0 },
-          };
-        }
-        where.id = { in: assignedTaskIds };
       } else {
-        // STAFF/OWNER 可以看到：1. 自己創建的任務 2. 被分配給自己的任務
+        // ADMIN/OWNER/STAFF 可以看到：1. 自己創建的任務 2. 被分配給自己的任務
         const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
-        where.OR = [
-          { applicantId: user.id },
-          ...(assignedTaskIds.length > 0 ? [{ id: { in: assignedTaskIds } }] : []),
+        // 使用 AND 來確保權限過濾不會被其他條件覆蓋
+        where.AND = [
+          {
+            OR: [
+              { applicantId: user.id },
+              ...(assignedTaskIds.length > 0 ? [{ id: { in: assignedTaskIds } }] : []),
+            ],
+          },
         ];
       }
 
@@ -441,11 +435,19 @@ export const adminTaskResolvers = {
       if (args.approverId) where.approverId = args.approverId;
 
       if (args.search) {
-        where.OR = [
-          { taskNo: { contains: args.search, mode: "insensitive" } },
-          { title: { contains: args.search, mode: "insensitive" } },
-          { notes: { contains: args.search, mode: "insensitive" } },
-        ];
+        // 搜尋條件使用 OR，並加入到 AND 陣列中（如果存在的話）
+        const searchCondition = {
+          OR: [
+            { taskNo: { contains: args.search, mode: "insensitive" as const } },
+            { title: { contains: args.search, mode: "insensitive" as const } },
+            { notes: { contains: args.search, mode: "insensitive" as const } },
+          ],
+        };
+        if (where.AND) {
+          (where.AND as any[]).push(searchCondition);
+        } else {
+          where.AND = [searchCondition];
+        }
       }
 
       const sortBy = args.sortBy || "applicationDate";
@@ -497,15 +499,8 @@ export const adminTaskResolvers = {
       let taskTypeFilter: Prisma.AdminTaskWhereInput = {};
       if (user.role === "SUPER_ADMIN") {
         // SUPER_ADMIN 統計所有任務
-      } else if (user.role === "ADMIN") {
-        // ADMIN 只統計被分配的案件（新機制）
-        const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
-        if (assignedTaskIds.length === 0) {
-          return { total: 0, pending: 0, processing: 0, pendingDocuments: 0, pendingReview: 0, revisionRequested: 0, approved: 0, rejected: 0, completed: 0, overdue: 0 };
-        }
-        taskTypeFilter = { id: { in: assignedTaskIds } };
       } else {
-        // STAFF/OWNER 統計：1. 自己創建的任務 2. 被分配給自己的任務
+        // ADMIN/OWNER/STAFF 統計：1. 自己創建的任務 2. 被分配給自己的任務
         const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
         taskTypeFilter = {
           OR: [
