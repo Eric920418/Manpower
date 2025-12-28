@@ -49,6 +49,7 @@ const menuGroups: MenuGroup[] = [
       { label: "主力人力", href: "/admin/staff", permission: 'web_content:read' },
       { label: "創業加盟", href: "/admin/franchise", permission: 'web_content:read' },
       { label: "導航選單", href: "/admin/navigation", permission: 'web_content:read' },
+      { label: "懸浮連結", href: "/admin/floating-links", permission: 'web_content:read' },
     ],
   },
   {

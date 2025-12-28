@@ -1,0 +1,20 @@
+type FloatingLinks {
+  id: ID!
+  enabled: Boolean
+  position: String
+  links: JSON
+}
+
+extend type Query {
+  floatingLinks: [FloatingLinks!]!
+}
+
+input UpdateFloatingLinksInput {
+  enabled: Boolean
+  position: String
+  links: JSON
+}
+
+extend type Mutation {
+  updateFloatingLinks(input: UpdateFloatingLinksInput!): FloatingLinks
+}

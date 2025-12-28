@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { Noto_Sans_TC } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { FloatingLinksWrapper } from "@/components/FloatingLinksWrapper";
 
 const notoSansTC = Noto_Sans_TC({
   weight: ["400", "500", "700", "900"],
@@ -31,7 +32,10 @@ export default function RootLayout({
         />
       </head>
       <body className={`min-h-screen bg-white text-slate-900 ${notoSansTC.variable} font-sans`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <FloatingLinksWrapper />
+        </Providers>
         <Analytics />
         <SpeedInsights />
       </body>

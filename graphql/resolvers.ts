@@ -70,6 +70,7 @@ const pageLabels: Record<BlockKey, string> = {
   newsPage: "最新消息頁",
   staffPage: "業務人員頁",
   franchisePage: "創業加盟頁",
+  floatingLinks: "懸浮連結",
 };
 
 interface MutationContext {
@@ -140,6 +141,7 @@ const Query = {
   newsPage: createQueryResolver("newsPage"),
   staffPage: createQueryResolver("staffPage"),
   franchisePage: createQueryResolver("franchisePage"),
+  floatingLinks: createQueryResolver("floatingLinks"),
   // 用戶管理 queries
   ...userResolvers.Query,
   // 導航管理 queries
@@ -172,6 +174,7 @@ const Mutation = {
   updateNewsPage: createMutationResolver("newsPage"),
   updateStaffPage: createMutationResolver("staffPage"),
   updateFranchisePage: createMutationResolver("franchisePage"),
+  updateFloatingLinks: createMutationResolver("floatingLinks"),
   // 用戶管理 mutations
   ...userResolvers.Mutation,
   // 導航管理 mutations

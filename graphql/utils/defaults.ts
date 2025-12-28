@@ -782,6 +782,38 @@ const franchisePageDefaults = {
   },
 };
 
+// 懸浮連結預設值
+const floatingLinksDefaults = {
+  enabled: true,
+  position: "right", // "left" 或 "right"
+  links: [
+    {
+      id: "fl-001",
+      icon: "/uploads/line-icon.png",
+      label: "Line",
+      url: "https://line.me/",
+      isActive: true,
+      order: 1,
+    },
+    {
+      id: "fl-002",
+      icon: "/uploads/facebook-icon.png",
+      label: "Facebook",
+      url: "https://facebook.com/",
+      isActive: true,
+      order: 2,
+    },
+    {
+      id: "fl-003",
+      icon: "/uploads/phone-icon.png",
+      label: "電話諮詢",
+      url: "tel:+886-2-1234-5678",
+      isActive: true,
+      order: 3,
+    },
+  ],
+};
+
 // 最新消息頁面預設值
 const newsPageDefaults = {
   hero: {
@@ -831,6 +863,7 @@ export const blockDefaults = {
   newsPage: () => clone(newsPageDefaults),
   staffPage: () => clone(staffPageDefaults),
   franchisePage: () => clone(franchisePageDefaults),
+  floatingLinks: () => clone(floatingLinksDefaults),
 } as const;
 
 export type BlockKey = keyof typeof blockDefaults;
