@@ -91,26 +91,6 @@ export default function Footer({
               </div>
             </div>
 
-            {/* 社交媒體圖標 */}
-            <div className="flex gap-4 mt-2">
-              {socialMedia.map((social, index) => (
-                <a
-                  key={index}
-                  href={social.link}
-                  aria-label={social.platform}
-                  className="text-text-on-brand/80 hover:text-brand-primary transition-colors"
-                >
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d={social.svgPath} />
-                  </svg>
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* 快速連結 */}
