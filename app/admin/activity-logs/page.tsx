@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useSession } from "next-auth/react";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { usePermission } from "@/hooks/usePermission";
@@ -47,6 +47,7 @@ const actionLabels: Record<string, string> = {
   create: "新增",
   update: "更新",
   delete: "刪除",
+  restore: "復原",
   approve: "審批通過",
   reject: "退回",
   pending_documents: "待補件",
@@ -69,6 +70,7 @@ const entityLabels: Record<string, string> = {
   admin_task: "行政任務",
   admin_task_attachment: "任務附件",
   task_type: "任務類型",
+  task_assignment: "任務分配",
   page: "頁面內容",
   navigation: "導航選單",
   manpower_request: "人力需求",
@@ -261,10 +263,11 @@ const formatDetails = (action: string, entity: string, details: Record<string, u
 };
 
 export default function ActivityLogsPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const { can } = usePermission();
   const permissionLoading = status === "loading";
   const hasAccess = !permissionLoading && can("system:logs");
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [stats, setStats] = useState<ActivityStats | null>(null);
@@ -284,6 +287,13 @@ export default function ActivityLogsPage() {
   const [filterEntity, setFilterEntity] = useState("");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
+
+  // 展開詳情的日誌 ID
+  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
+
+  // 復原操作狀態
+  const [restoringLogId, setRestoringLogId] = useState<number | null>(null);
+  const [restoreMessage, setRestoreMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // 載入用戶列表
   const fetchUsers = useCallback(async () => {
@@ -468,6 +478,145 @@ export default function ActivityLogsPage() {
       minute: "2-digit",
       second: "2-digit",
     });
+  };
+
+  // 復原刪除的項目
+  const handleRestore = async (logId: number) => {
+    if (!confirm("確定要復原這個被刪除的項目嗎？")) {
+      return;
+    }
+
+    setRestoringLogId(logId);
+    setRestoreMessage(null);
+
+    try {
+      const mutation = `
+        mutation RestoreDeletedItem($logId: Int!) {
+          restoreDeletedItem(logId: $logId) {
+            success
+            message
+            restoredId
+          }
+        }
+      `;
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: mutation, variables: { logId } }),
+      });
+
+      const json = await res.json();
+
+      if (json.errors) {
+        throw new Error(json.errors[0]?.message || "復原失敗");
+      }
+
+      const result = json.data?.restoreDeletedItem;
+      if (result?.success) {
+        setRestoreMessage({ type: "success", text: result.message });
+        // 重新載入日誌列表
+        fetchLogs();
+        fetchStats();
+      } else {
+        setRestoreMessage({ type: "error", text: result?.message || "復原失敗" });
+      }
+    } catch (err) {
+      setRestoreMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "復原失敗"
+      });
+    } finally {
+      setRestoringLogId(null);
+      // 3秒後自動清除訊息
+      setTimeout(() => setRestoreMessage(null), 5000);
+    }
+  };
+
+  // 判斷是否可以復原
+  const canRestore = (log: ActivityLog): boolean => {
+    if (log.action !== "delete") return false;
+    if (!log.details) return false;
+    const details = log.details as Record<string, unknown>;
+    return !!details.snapshot;
+  };
+
+  // 格式化快照詳情
+  const formatSnapshotDetails = (entity: string, snapshot: Record<string, unknown>): { label: string; value: string }[] => {
+    const details: { label: string; value: string }[] = [];
+
+    switch (entity) {
+      case "admin_task":
+        if (snapshot.taskNo) details.push({ label: "任務編號", value: String(snapshot.taskNo) });
+        if (snapshot.title) details.push({ label: "標題", value: String(snapshot.title) });
+        if (snapshot.status) {
+          const statusMap: Record<string, string> = {
+            PENDING: "待處理",
+            PROCESSING: "處理中",
+            PENDING_DOCUMENTS: "待補件",
+            PENDING_REVIEW: "待複審",
+            REVISION_REQUESTED: "要求修改",
+            APPROVED: "已批准",
+            REJECTED: "已退回",
+            COMPLETED: "已完成",
+          };
+          details.push({ label: "狀態", value: statusMap[snapshot.status as string] || String(snapshot.status) });
+        }
+        if (snapshot.notes) details.push({ label: "備註", value: String(snapshot.notes) });
+        if (snapshot.attachments && Array.isArray(snapshot.attachments) && snapshot.attachments.length > 0) {
+          details.push({ label: "附件數量", value: `${snapshot.attachments.length} 個` });
+        }
+        break;
+
+      case "user":
+        if (snapshot.email) details.push({ label: "信箱", value: String(snapshot.email) });
+        if (snapshot.name) details.push({ label: "姓名", value: String(snapshot.name) });
+        if (snapshot.role) details.push({ label: "角色", value: roleLabels[snapshot.role as string] || String(snapshot.role) });
+        if (snapshot.department) details.push({ label: "部門", value: String(snapshot.department) });
+        if (snapshot.phone) details.push({ label: "電話", value: String(snapshot.phone) });
+        break;
+
+      case "navigation":
+        if (snapshot.label) details.push({ label: "名稱", value: String(snapshot.label) });
+        if (snapshot.url) details.push({ label: "連結", value: String(snapshot.url) });
+        if (snapshot.icon) details.push({ label: "圖示", value: String(snapshot.icon) });
+        break;
+
+      case "task_type":
+        if (snapshot.code) details.push({ label: "代碼", value: String(snapshot.code) });
+        if (snapshot.label) details.push({ label: "名稱", value: String(snapshot.label) });
+        if (snapshot.description) details.push({ label: "說明", value: String(snapshot.description) });
+        if (snapshot.order !== undefined) details.push({ label: "排序", value: String(snapshot.order) });
+        if (snapshot.isActive !== undefined) details.push({ label: "狀態", value: snapshot.isActive ? "啟用" : "停用" });
+        break;
+
+      case "task_assignment":
+        if (snapshot.taskId) details.push({ label: "任務 ID", value: String(snapshot.taskId) });
+        if (snapshot.role) details.push({ label: "角色", value: snapshot.role === "HANDLER" ? "負責人" : "複審人" });
+        if (snapshot.notes) details.push({ label: "備註", value: String(snapshot.notes) });
+        break;
+
+      case "manpower_request":
+        if (snapshot.requestNo) details.push({ label: "需求編號", value: String(snapshot.requestNo) });
+        if (snapshot.contactPerson) details.push({ label: "聯絡人", value: String(snapshot.contactPerson) });
+        if (snapshot.companyName) details.push({ label: "公司名稱", value: String(snapshot.companyName) });
+        if (snapshot.contactPhone) details.push({ label: "電話", value: String(snapshot.contactPhone) });
+        if (snapshot.positionTitle) details.push({ label: "職位名稱", value: String(snapshot.positionTitle) });
+        if (snapshot.quantity) details.push({ label: "需求人數", value: String(snapshot.quantity) });
+        if (snapshot.workLocation) details.push({ label: "工作地點", value: String(snapshot.workLocation) });
+        break;
+
+      default:
+        // 顯示所有可用的欄位
+        Object.entries(snapshot).forEach(([key, value]) => {
+          if (value && typeof value !== "object") {
+            details.push({ label: key, value: String(value) });
+          }
+        });
+    }
+
+    return details;
   };
 
   // 權限檢查
@@ -684,6 +833,19 @@ export default function ActivityLogsPage() {
           </div>
         </div>
 
+        {/* 復原操作訊息 */}
+        {restoreMessage && (
+          <div
+            className={`p-4 rounded-lg ${
+              restoreMessage.type === "success"
+                ? "bg-green-50 text-green-800 border border-green-200"
+                : "bg-red-50 text-red-800 border border-red-200"
+            }`}
+          >
+            {restoreMessage.text}
+          </div>
+        )}
+
         {/* 日誌列表 */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {error && (
@@ -718,70 +880,144 @@ export default function ActivityLogsPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         IP 位址
                       </th>
+                      {isSuperAdmin && (
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          操作
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                          {formatTime(log.createdAt)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {log.user.name || "未命名"}
-                          </div>
-                          <div className="text-xs text-gray-500">{log.user.email}</div>
-                          <div className="text-xs text-gray-400">
-                            {roleLabels[log.user.role] || log.user.role}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                              log.action === "login"
-                                ? "bg-green-100 text-green-800"
-                                : log.action === "logout"
-                                ? "bg-gray-100 text-gray-800"
-                                : log.action === "create"
-                                ? "bg-blue-100 text-blue-800"
-                                : log.action === "update"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : log.action === "delete"
-                                ? "bg-red-100 text-red-800"
-                                : log.action === "approve"
-                                ? "bg-green-100 text-green-800"
-                                : log.action === "reject"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {actionLabels[log.action] || log.action}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-gray-900">
-                            {entityLabels[log.entity] || log.entity}
-                          </div>
-                          {log.entityId && (
-                            <div className="text-xs text-gray-500">ID: {log.entityId}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 max-w-md">
-                          {log.details ? (
-                            <div className="space-y-1">
-                              <div className="text-gray-800">
-                                {formatDetails(log.action, log.entity, log.details) || "操作已完成"}
+                    {logs.map((log) => {
+                      const isExpanded = expandedLogId === log.id;
+                      const details = log.details as Record<string, unknown> | null;
+                      const snapshot = details?.snapshot as Record<string, unknown> | undefined;
+                      const showRestoreButton = isSuperAdmin && canRestore(log);
+
+                      return (
+                        <Fragment key={log.id}>
+                          <tr className={`hover:bg-gray-50 ${log.action === "delete" ? "bg-red-50/30" : ""}`}>
+                            <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                              {formatTime(log.createdAt)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="text-sm font-medium text-gray-900">
+                                {log.user.name || "未命名"}
                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
+                              <div className="text-xs text-gray-500">{log.user.email}</div>
+                              <div className="text-xs text-gray-400">
+                                {roleLabels[log.user.role] || log.user.role}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                  log.action === "login"
+                                    ? "bg-green-100 text-green-800"
+                                    : log.action === "logout"
+                                    ? "bg-gray-100 text-gray-800"
+                                    : log.action === "create"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : log.action === "update"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : log.action === "delete"
+                                    ? "bg-red-100 text-red-800"
+                                    : log.action === "restore"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : log.action === "approve"
+                                    ? "bg-green-100 text-green-800"
+                                    : log.action === "reject"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {actionLabels[log.action] || log.action}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="text-sm text-gray-900">
+                                {entityLabels[log.entity] || log.entity}
+                              </div>
+                              {log.entityId && (
+                                <div className="text-xs text-gray-500">ID: {log.entityId}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 max-w-md">
+                              {log.details ? (
+                                <div className="space-y-1">
+                                  <div className="text-gray-800">
+                                    {formatDetails(log.action, log.entity, log.details) || "操作已完成"}
+                                  </div>
+                                  {/* 刪除操作且有快照時顯示展開按鈕 */}
+                                  {log.action === "delete" && snapshot && (
+                                    <button
+                                      onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                    >
+                                      <span>{isExpanded ? "▼ 收合詳情" : "▶ 查看被刪除的內容"}</span>
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {log.ipAddress || "-"}
+                            </td>
+                            {isSuperAdmin && (
+                              <td className="px-4 py-3">
+                                {showRestoreButton && (
+                                  <button
+                                    onClick={() => handleRestore(log.id)}
+                                    disabled={restoringLogId === log.id}
+                                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {restoringLogId === log.id ? "復原中..." : "復原"}
+                                  </button>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                          {/* 展開的詳情列 */}
+                          {isExpanded && snapshot && (
+                            <tr className="bg-gray-50">
+                              <td colSpan={isSuperAdmin ? 7 : 6} className="px-4 py-4">
+                                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                                  <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                                    <span className="text-red-500">🗑</span>
+                                    被刪除的{entityLabels[log.entity] || log.entity}詳細資料
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {formatSnapshotDetails(log.entity, snapshot).map((item, index) => (
+                                      <div key={index} className="bg-gray-50 rounded px-3 py-2">
+                                        <div className="text-xs text-gray-500 mb-1">{item.label}</div>
+                                        <div className="text-sm text-gray-900 break-all">{item.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {showRestoreButton && (
+                                    <div className="mt-4 pt-3 border-t border-gray-200">
+                                      <button
+                                        onClick={() => handleRestore(log.id)}
+                                        disabled={restoringLogId === log.id}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                      >
+                                        <span>↩️</span>
+                                        {restoringLogId === log.id ? "復原中..." : "復原此項目"}
+                                      </button>
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        點擊復原將重新創建此項目，原始 ID 可能會改變
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {log.ipAddress || "-"}
-                        </td>
-                      </tr>
-                    ))}
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

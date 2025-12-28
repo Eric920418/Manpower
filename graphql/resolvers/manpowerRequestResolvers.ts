@@ -429,7 +429,7 @@ export const manpowerRequestResolvers = {
           where: { id },
         });
 
-        // 記錄活動日誌
+        // 記錄活動日誌（保存完整資料快照以便復原）
         if (request) {
           await prisma.activityLog.create({
             data: {
@@ -438,8 +438,33 @@ export const manpowerRequestResolvers = {
               entity: "manpower_request",
               entityId: id.toString(),
               details: {
+                // 顯示用的摘要資訊
                 requestNo: request.requestNo,
                 contactPerson: request.contactPerson,
+                // 完整的資料快照（用於復原）
+                snapshot: {
+                  requestNo: request.requestNo,
+                  selectedResumeIds: request.selectedResumeIds,
+                  companyName: request.companyName,
+                  contactPerson: request.contactPerson,
+                  contactPhone: request.contactPhone,
+                  contactEmail: request.contactEmail,
+                  lineId: request.lineId,
+                  qualifications: request.qualifications,
+                  positionTitle: request.positionTitle,
+                  jobDescription: request.jobDescription,
+                  quantity: request.quantity,
+                  salaryRange: request.salaryRange,
+                  expectedStartDate: request.expectedStartDate,
+                  workLocation: request.workLocation,
+                  additionalRequirements: request.additionalRequirements,
+                  status: request.status,
+                  invitationCode: request.invitationCode,
+                  invitedBy: request.invitedBy,
+                  notes: request.notes,
+                  processedBy: request.processedBy,
+                  processedAt: request.processedAt,
+                },
               },
             },
           });

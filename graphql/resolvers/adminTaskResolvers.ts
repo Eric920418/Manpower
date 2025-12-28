@@ -409,10 +409,10 @@ export const adminTaskResolvers = {
       const where: Prisma.AdminTaskWhereInput = {};
 
       // 根據角色設定不同的資料訪問範圍
-      if (user.role === "SUPER_ADMIN") {
-        // SUPER_ADMIN 可以看到所有任務
+      if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
+        // SUPER_ADMIN 和 ADMIN 可以看到所有任務
       } else {
-        // ADMIN/OWNER/STAFF 可以看到：1. 自己創建的任務 2. 被分配給自己的任務
+        // OWNER/STAFF 可以看到：1. 自己創建的任務 2. 被分配給自己的任務
         const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
         // 使用 AND 來確保權限過濾不會被其他條件覆蓋
         where.AND = [
@@ -497,10 +497,10 @@ export const adminTaskResolvers = {
 
       // 根據角色設定不同的統計範圍
       let taskTypeFilter: Prisma.AdminTaskWhereInput = {};
-      if (user.role === "SUPER_ADMIN") {
-        // SUPER_ADMIN 統計所有任務
+      if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") {
+        // SUPER_ADMIN 和 ADMIN 統計所有任務
       } else {
-        // ADMIN/OWNER/STAFF 統計：1. 自己創建的任務 2. 被分配給自己的任務
+        // OWNER/STAFF 統計：1. 自己創建的任務 2. 被分配給自己的任務
         const assignedTaskIds = await getAdminAssignedTaskIds(user.id);
         taskTypeFilter = {
           OR: [
@@ -1045,8 +1045,26 @@ export const adminTaskResolvers = {
     deleteAdminTask: async (_: unknown, args: { id: number }, context: Context) => {
       const user = requireSuperAdmin(context);
 
+      // 取得完整的任務資料作為刪除前備份
       const task = await prisma.adminTask.findUnique({
         where: { id: args.id },
+        include: {
+          taskType: { select: { id: true, code: true, label: true } },
+          applicant: { select: { id: true, name: true, email: true } },
+          processor: { select: { id: true, name: true, email: true } },
+          approver: { select: { id: true, name: true, email: true } },
+          attachments: true,
+          approvalRecords: {
+            include: {
+              approver: { select: { id: true, name: true, email: true } },
+            },
+          },
+          assignments: {
+            include: {
+              user: { select: { id: true, name: true, email: true } },
+            },
+          },
+        },
       });
 
       if (!task) {
@@ -1067,14 +1085,66 @@ export const adminTaskResolvers = {
         where: { id: args.id },
       });
 
-      // 記錄活動日誌
+      // 記錄活動日誌（保存完整的任務資料快照以便復原）
       await prisma.activityLog.create({
         data: {
           userId: user.id,
           action: "delete",
           entity: "admin_task",
           entityId: args.id.toString(),
-          details: { taskNo: task.taskNo },
+          details: {
+            // 顯示用的摘要資訊
+            taskNo: task.taskNo,
+            title: task.title,
+            taskType: task.taskType.label,
+            applicantName: task.applicant.name || task.applicant.email,
+            status: task.status,
+            // 完整的資料快照（用於復原）
+            snapshot: {
+              taskNo: task.taskNo,
+              taskTypeId: task.taskTypeId,
+              title: task.title,
+              parentTaskId: task.parentTaskId,
+              groupId: task.groupId,
+              applicantId: task.applicantId,
+              applicantName: task.applicantName,
+              processorId: task.processorId,
+              processorName: task.processorName,
+              approverId: task.approverId,
+              applicationDate: task.applicationDate,
+              deadline: task.deadline,
+              receivedAt: task.receivedAt,
+              completedAt: task.completedAt,
+              status: task.status,
+              approvalRoute: task.approvalRoute,
+              approvalMark: task.approvalMark,
+              payload: task.payload,
+              notes: task.notes,
+              attachments: task.attachments.map(a => ({
+                filename: a.filename,
+                originalName: a.originalName,
+                mimeType: a.mimeType,
+                size: a.size,
+                path: a.path,
+                url: a.url,
+              })),
+              approvalRecords: task.approvalRecords.map(r => ({
+                action: r.action,
+                comment: r.comment,
+                revisionReason: r.revisionReason,
+                revisionDetail: r.revisionDetail,
+                revisionDeadline: r.revisionDeadline,
+                approverId: r.approverId,
+                approverName: r.approver.name || r.approver.email,
+              })),
+              assignments: task.assignments.map(a => ({
+                userId: a.userId,
+                userName: a.user.name || a.user.email,
+                role: a.role,
+                notes: a.notes,
+              })),
+            },
+          },
         },
       });
 
@@ -1108,19 +1178,24 @@ export const adminTaskResolvers = {
         throw new Error("找不到該行政任務");
       }
 
-      // ADMIN 角色只能審批被分配的案件，SUPER_ADMIN 不受限制
-      if (user.role === "ADMIN") {
+      // SUPER_ADMIN 和 ADMIN 可以審批任何案件
+      // OWNER/STAFF 只能審批被分配給自己的案件或自己創建的案件
+      if (user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
+        // 檢查是否為創建者
+        const isCreator = task.applicantId === user.id;
+
+        // 檢查是否被分配
         const assignment = await prisma.adminTaskAssignment.findFirst({
           where: {
             taskId: task.id,
             userId: user.id,
           },
         });
-        if (!assignment) {
-          throw new Error("權限不足：您未被分配此案件");
+
+        if (!isCreator && !assignment) {
+          throw new Error("權限不足：您未被分配此案件且非創建者");
         }
       }
-      // SUPER_ADMIN 可以審批任何案件，不需要被分配
 
       // 創建審批記錄
       await prisma.approvalRecord.create({

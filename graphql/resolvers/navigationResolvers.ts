@@ -310,7 +310,7 @@ export const navigationResolvers = {
         where: { id },
       });
 
-      // 記錄活動日誌
+      // 記錄活動日誌（保存完整資料快照以便復原）
       if (context.user) {
         await prisma.activityLog.create({
           data: {
@@ -319,8 +319,19 @@ export const navigationResolvers = {
             entity: "navigation",
             entityId: id.toString(),
             details: {
+              // 顯示用的摘要資訊
               label: existing.label,
               url: existing.url,
+              // 完整的資料快照（用於復原）
+              snapshot: {
+                label: existing.label,
+                url: existing.url,
+                order: existing.order,
+                isActive: existing.isActive,
+                parentId: existing.parentId,
+                icon: existing.icon,
+                target: existing.target,
+              },
             },
           },
         });

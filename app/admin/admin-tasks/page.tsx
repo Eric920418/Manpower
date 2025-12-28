@@ -1048,19 +1048,23 @@ function AdminTasksContent() {
   };
 
   // 計算期限緊急程度（動態計算，每次渲染都會重新計算）
-  // 1-2天內 → 紅色, 2-3天 → 黃色, 3天以上 → 藍色
+  // 2天內 → 紅色, 2-3天 → 黃色, 3天以上 → 藍色
   const getDeadlineUrgency = (deadline: string | null): "urgent" | "warning" | "normal" | null => {
     if (!deadline) return null;
-    const now = new Date();
-    const deadlineDate = new Date(deadline);
-    const diffTime = deadlineDate.getTime() - now.getTime();
-    const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
-    // 2天內（包含已過期）→ 紅色
-    if (diffDays <= 2) return "urgent";
-    // 2-3天 → 黃色
+    // 只比較日期，不考慮時間
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const deadlineDate = new Date(deadline);
+    const deadlineStart = new Date(deadlineDate.getFullYear(), deadlineDate.getMonth(), deadlineDate.getDate());
+
+    const diffDays = Math.round((deadlineStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
+
+    // 2天內（包含已過期、今天、明天）→ 紅色
+    if (diffDays < 2) return "urgent";
+    // 2-3天（後天、大後天）→ 黃色
     if (diffDays <= 3) return "warning";
-    // 3天以上 → 藍色
+    // 4天以上 → 藍色
     return "normal";
   };
 

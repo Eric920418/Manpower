@@ -455,7 +455,7 @@ export const adminTaskAssignmentResolvers = {
         where: { id: args.assignmentId },
       });
 
-      // 記錄活動日誌
+      // 記錄活動日誌（保存完整資料快照以便復原）
       await prisma.activityLog.create({
         data: {
           userId: currentUser.id,
@@ -463,10 +463,19 @@ export const adminTaskAssignmentResolvers = {
           entity: "task_assignment",
           entityId: args.assignmentId.toString(),
           details: {
+            // 顯示用的摘要資訊
             taskId: assignment.taskId,
             taskNo: assignment.task.taskNo,
             removedUserId: assignment.userId,
             removedUserEmail: assignment.user.email,
+            // 完整的資料快照（用於復原）
+            snapshot: {
+              taskId: assignment.taskId,
+              userId: assignment.userId,
+              role: assignment.role,
+              notes: assignment.notes,
+              assignedBy: assignment.assignedBy,
+            },
           },
         },
       });

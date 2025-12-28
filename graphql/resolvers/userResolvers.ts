@@ -635,7 +635,7 @@ export const userResolvers = {
         );
       }
 
-      // 記錄操作日誌（在刪除前，用當前用戶的 ID）
+      // 記錄操作日誌（在刪除前，保存完整的用戶資料快照以便復原）
       await prisma.activityLog.create({
         data: {
           userId: context.user.id,
@@ -643,8 +643,22 @@ export const userResolvers = {
           entity: 'user',
           entityId: targetUser.id,
           details: {
+            // 顯示用的摘要資訊
             targetEmail: targetUser.email,
+            targetName: targetUser.name,
             targetRole: targetUser.role,
+            department: targetUser.department,
+            // 完整的資料快照（用於復原）
+            snapshot: {
+              email: targetUser.email,
+              name: targetUser.name,
+              role: targetUser.role,
+              department: targetUser.department,
+              phone: targetUser.phone,
+              isActive: targetUser.isActive,
+              avatar: targetUser.avatar,
+              invitationCode: targetUser.invitationCode,
+            },
           },
         },
       });

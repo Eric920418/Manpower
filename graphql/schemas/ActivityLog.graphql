@@ -54,3 +54,15 @@ extend type Query {
   # 獲取活動統計（僅 SUPER_ADMIN）
   activityStats: ActivityStats!
 }
+
+# 復原刪除操作的結果
+type RestoreResult {
+  success: Boolean!
+  message: String!
+  restoredId: String
+}
+
+extend type Mutation {
+  # 復原刪除的項目（僅 SUPER_ADMIN）
+  restoreDeletedItem(logId: Int!): RestoreResult!
+}

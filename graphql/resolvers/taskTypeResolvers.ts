@@ -548,7 +548,7 @@ export const taskTypeResolvers = {
         });
       }
 
-      // 記錄活動日誌
+      // 記錄活動日誌（保存完整資料快照以便復原）
       const user = requireSuperAdmin(context);
       await prisma.activityLog.create({
         data: {
@@ -557,9 +557,21 @@ export const taskTypeResolvers = {
           entity: "task_type",
           entityId: args.id.toString(),
           details: {
+            // 顯示用的摘要資訊
             code: existing.code,
             label: existing.label,
             softDelete: existing.tasks.length > 0,
+            // 完整的資料快照（用於復原）
+            snapshot: {
+              code: existing.code,
+              label: existing.label,
+              description: existing.description,
+              order: existing.order,
+              isActive: existing.isActive,
+              questions: existing.questions,
+              positionX: existing.positionX,
+              positionY: existing.positionY,
+            },
           },
         },
       });
