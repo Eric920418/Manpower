@@ -16,9 +16,6 @@ export default function NewsHero({ title, description }: Props) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <span className="material-symbols-outlined text-6xl text-white mb-4 block">
-            newspaper
-          </span>
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
             {title}
           </h1>
