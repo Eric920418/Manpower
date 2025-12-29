@@ -516,31 +516,6 @@ export const HomePage = () => {
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-xl font-semibold">導航選單</h3>
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-800">
-              導航選單已移至獨立的「導航管理」功能進行編輯。
-              請使用側邊欄的「導航管理」來新增、編輯或排序導航項目。
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold mb-3">聯絡按鈕</h3>
-          <div>
-            <label className="block text-sm font-medium mb-1">按鈕文字</label>
-            <input
-              type="text"
-              value={pageData.header.contactButton.text}
-              onChange={(e) => updateContactButton("text", e.target.value)}
-              className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-            />
-            <p className="text-xs text-gray-500 mt-1">按鈕會自動連結到聯絡我們頁面 (/contact)</p>
-          </div>
-        </div>
       </div>
 
       {/* Hero 設定 - 保持原樣但簡化 */}
