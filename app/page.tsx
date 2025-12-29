@@ -110,10 +110,10 @@ export default async function Home() {
     }
 
     return (
-      <main className="relative flex min-h-screen w-full flex-col">
+      <main className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
         {/* 固定背景 Logo - 视差效果 */}
         <div
-          className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"
+          className="fixed inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden"
           style={{ opacity: 0.05 }}
         >
           <Image

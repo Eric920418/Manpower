@@ -3,6 +3,7 @@ type ContactPage {
   badge: String
   title: String
   description: String
+  questionTypes: JSON
   formFields: JSON
   submitButton: JSON
   contactInfo: JSON
@@ -16,6 +17,7 @@ input UpdateContactPageInput {
   badge: String
   title: String
   description: String
+  questionTypes: JSON
   formFields: JSON
   submitButton: JSON
   contactInfo: JSON

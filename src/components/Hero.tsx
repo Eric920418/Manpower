@@ -40,16 +40,16 @@ export default function Hero({
             <p className="mt-6 max-w-xl text-lg text-text-secondary">
               {description}
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
               <Link
                 href={primaryCTA.link}
-                className="inline-flex h-12 items-center justify-center rounded-md bg-brand-primary px-8 text-base font-bold text-text-on-brand shadow-lg transition-all hover:scale-105 hover:bg-brand-accent"
+                className="inline-flex h-12 items-center justify-center rounded-md bg-brand-primary px-6 sm:px-8 text-sm sm:text-base font-bold text-text-on-brand shadow-lg transition-all hover:scale-105 hover:bg-brand-accent text-center"
               >
                 {primaryCTA.text}
               </Link>
               <Link
                 href={secondaryCTA.link}
-                className="inline-flex h-12 items-center justify-center rounded-md bg-transparent px-8 text-base font-bold text-brand-secondary shadow-lg ring-2 ring-brand-secondary transition-all hover:scale-105 hover:bg-brand-secondary/5"
+                className="inline-flex h-12 items-center justify-center rounded-md bg-transparent px-6 sm:px-8 text-sm sm:text-base font-bold text-brand-secondary shadow-lg ring-2 ring-brand-secondary transition-all hover:scale-105 hover:bg-brand-secondary/5 text-center"
               >
                 {secondaryCTA.text}
               </Link>

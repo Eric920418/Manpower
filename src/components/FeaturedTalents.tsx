@@ -77,7 +77,7 @@ export default function FeaturedTalents({
         </div>
 
         {/* 統計數字區塊 */}
-        <div className="grid grid-cols-3 gap-8 mb-16 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 mb-16 max-w-3xl mx-auto">
           {stats.map((stat, index) => (
             <div
               key={index}

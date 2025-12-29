@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 interface FormField {
   label: string;
   placeholder: string;
@@ -16,11 +18,18 @@ interface ContactInfo {
   link: string;
 }
 
+interface QuestionType {
+  id: string;
+  label: string;
+}
+
 interface ContactSectionProps {
   badge: string;
   title: string;
   description: string;
+  questionTypes?: QuestionType[];
   formFields: {
+    questionType?: FormField;
     name: FormField;
     email: FormField;
     phone: FormField;
@@ -37,14 +46,44 @@ export default function ContactSection({
   badge,
   title,
   description,
+  questionTypes = [],
   formFields,
   submitButton,
   contactInfo,
 }: ContactSectionProps) {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [formData, setFormData] = useState({
+    questionType: "",
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // 表單提交邏輯（未來可接 API）
-    console.log("表單已提交");
+    setIsSubmitting(true);
+    setSubmitStatus("idle");
+
+    try {
+      const response = await fetch("/api/contact-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setSubmitStatus("success");
+        setFormData({ questionType: "", name: "", email: "", phone: "", message: "" });
+      } else {
+        setSubmitStatus("error");
+      }
+    } catch {
+      setSubmitStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -74,7 +113,51 @@ export default function ContactSection({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* 左側：聯絡表單 */}
           <div className="bg-bg-primary border border-border rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300">
+            {submitStatus === "success" && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700">
+                  <span className="material-symbols-outlined">check_circle</span>
+                  <span className="font-semibold">感謝您的來信！我們會盡快與您聯繫。</span>
+                </div>
+              </div>
+            )}
+            {submitStatus === "error" && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2 text-red-700">
+                  <span className="material-symbols-outlined">error</span>
+                  <span className="font-semibold">送出失敗，請稍後再試。</span>
+                </div>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* 問題類型欄位 */}
+              {formFields.questionType && questionTypes.length > 0 && (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                    <span className="material-symbols-outlined text-brand-primary text-base">
+                      {formFields.questionType.icon}
+                    </span>
+                    {formFields.questionType.label}
+                    {formFields.questionType.required && (
+                      <span className="text-red-500">*</span>
+                    )}
+                  </label>
+                  <select
+                    required={formFields.questionType.required}
+                    value={formData.questionType}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, questionType: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all duration-200 bg-bg-primary text-text-primary"
+                  >
+                    <option value="">{formFields.questionType.placeholder}</option>
+                    {questionTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* 姓名欄位 */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-semibold text-text-primary">
@@ -90,6 +173,8 @@ export default function ContactSection({
                   type="text"
                   required={formFields.name.required}
                   placeholder={formFields.name.placeholder}
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all duration-200 bg-bg-primary text-text-primary placeholder:text-text-secondary/50"
                 />
               </div>
@@ -109,6 +194,8 @@ export default function ContactSection({
                   type="email"
                   required={formFields.email.required}
                   placeholder={formFields.email.placeholder}
+                  value={formData.email}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all duration-200 bg-bg-primary text-text-primary placeholder:text-text-secondary/50"
                 />
               </div>
@@ -128,6 +215,8 @@ export default function ContactSection({
                   type="tel"
                   required={formFields.phone.required}
                   placeholder={formFields.phone.placeholder}
+                  value={formData.phone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all duration-200 bg-bg-primary text-text-primary placeholder:text-text-secondary/50"
                 />
               </div>
@@ -147,6 +236,8 @@ export default function ContactSection({
                   required={formFields.message.required}
                   rows={formFields.message.rows || 5}
                   placeholder={formFields.message.placeholder}
+                  value={formData.message}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all duration-200 bg-bg-primary text-text-primary placeholder:text-text-secondary/50 resize-none"
                 />
               </div>
@@ -154,12 +245,22 @@ export default function ContactSection({
               {/* 送出按鈕 */}
               <button
                 type="submit"
-                className="w-full py-4 bg-brand-primary hover:bg-brand-accent text-text-on-brand font-bold text-lg rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                disabled={isSubmitting}
+                className="w-full py-4 bg-brand-primary hover:bg-brand-accent text-text-on-brand font-bold text-lg rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <span>{submitButton.text}</span>
-                <span className="material-symbols-outlined text-xl">
-                  {submitButton.icon}
-                </span>
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin material-symbols-outlined text-xl">sync</span>
+                    <span>送出中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{submitButton.text}</span>
+                    <span className="material-symbols-outlined text-xl">
+                      {submitButton.icon}
+                    </span>
+                  </>
+                )}
               </button>
             </form>
           </div>
@@ -170,6 +271,8 @@ export default function ContactSection({
               <a
                 key={index}
                 href={info.link}
+                target={info.link.startsWith("http") ? "_blank" : undefined}
+                rel={info.link.startsWith("http") ? "noopener noreferrer" : undefined}
                 className="block bg-gradient-to-br from-brand-primary/5 to-brand-accent/5 border border-brand-primary/20 rounded-2xl p-6 hover:shadow-xl hover:scale-[1.02] hover:border-brand-primary transition-all duration-300 group"
               >
                 <div className="flex items-start gap-4">

@@ -32,6 +32,7 @@ const menuGroups: MenuGroup[] = [
       { label: "行政事務", href: "/admin/admin-tasks", permission: 'admin_task:read' },
       { label: "任務指派", href: "/admin/assign-task", permission: 'task_assignment:assign' },
       { label: "人力需求", href: "/admin/manpower-requests", permission: 'form:read' },
+      { label: "聯絡表單", href: "/admin/contact-submissions", permission: 'form:read' },
       { label: "用戶管理", href: "/admin/users", permission: 'user:read' },
     ],
   },

@@ -87,6 +87,10 @@ type AdminTask {
   # 動態表單資料
   payload: JSON!
 
+  # 複審確認
+  reviewedAt: String          # 複審確認時間
+  reviewedBy: String          # 複審確認人 ID
+
   # 備註
   notes: String
 
@@ -397,4 +401,7 @@ extend type Mutation {
 
   # 重新送出案件（申請人修改後重新提交）
   resubmitTask(input: ResubmitTaskInput!): AdminTask!
+
+  # 複審確認打勾（只有複審人可操作）
+  toggleReviewCheck(taskId: Int!, checked: Boolean!): AdminTask!
 }

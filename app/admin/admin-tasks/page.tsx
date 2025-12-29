@@ -122,6 +122,10 @@ interface AdminTask {
   approvalRoute: string;
   approvalMark: string | null;
   payload: Record<string, unknown>;
+  // 複審確認
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  reviewers: TaskUser[];
   notes: string | null;
   attachments: AdminTaskAttachment[];
   approvalRecords: ApprovalRecord[];
@@ -225,7 +229,7 @@ function AdminTasksContent() {
   // 審批狀態
   const [approvalAction, setApprovalAction] = useState("");
   const [approvalComment, setApprovalComment] = useState("");
-  const [approvalProcessorName, setApprovalProcessorName] = useState(""); // 完成人
+  const [approvalProcessorName, setApprovalProcessorName] = useState(""); // 負責人
   const [approving, setApproving] = useState(false);
   // 要求修改專用欄位
   const [revisionReason, setRevisionReason] = useState("");
@@ -246,6 +250,9 @@ function AdminTasksContent() {
   // 重新送出狀態
   const [resubmitting, setResubmitting] = useState(false);
   const [resubmitNotes, setResubmitNotes] = useState("");
+
+  // 複審確認狀態
+  const [togglingReviewId, setTogglingReviewId] = useState<number | null>(null);
 
   // 獲取資料
   const fetchData = useCallback(async () => {
@@ -398,6 +405,14 @@ function AdminTasksContent() {
               status
               approvalRoute
               approvalMark
+              reviewedAt
+              reviewedBy
+              reviewers {
+                id
+                name
+                email
+                role
+              }
               payload
               notes
               attachments {
@@ -884,38 +899,6 @@ function AdminTasksContent() {
 
     setApproving(true);
     try {
-      // 如果有填寫完成人，先更新完成人
-      if (approvalProcessorName.trim()) {
-        const updateMutation = `
-          mutation UpdateAdminTask($input: UpdateAdminTaskInput!) {
-            updateAdminTask(input: $input) {
-              id
-              processorName
-            }
-          }
-        `;
-
-        const updateRes = await fetch("/api/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            query: updateMutation,
-            variables: {
-              input: {
-                id: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
-                processorName: approvalProcessorName,
-              },
-            },
-          }),
-        });
-
-        const updateData = await updateRes.json();
-        if (updateData.errors) {
-          throw new Error(updateData.errors[0].message);
-        }
-      }
-
       // 執行審批操作
       const mutation = `
         mutation ApproveTask($input: ApprovalInput!) {
@@ -1056,6 +1039,85 @@ function AdminTasksContent() {
       alert(`刪除失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // 處理複審確認打勾
+  const handleToggleReviewCheck = async (task: AdminTask, checked: boolean) => {
+    setTogglingReviewId(task.id);
+    try {
+      const mutation = `
+        mutation ToggleReviewCheck($taskId: Int!, $checked: Boolean!) {
+          toggleReviewCheck(taskId: $taskId, checked: $checked) {
+            id
+            reviewedAt
+            reviewedBy
+            status
+            completedAt
+          }
+        }
+      `;
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query: mutation,
+          variables: { taskId: Number(task.id), checked },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.errors) {
+        throw new Error(data.errors[0].message);
+      }
+
+      // 更新本地狀態（包含狀態變更）
+      const oldStatus = task.status;
+      const newStatus = data.data.toggleReviewCheck.status;
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? {
+                ...t,
+                reviewedAt: data.data.toggleReviewCheck.reviewedAt,
+                reviewedBy: data.data.toggleReviewCheck.reviewedBy,
+                status: newStatus,
+                completedAt: data.data.toggleReviewCheck.completedAt,
+              }
+            : t
+        )
+      );
+
+      // 更新統計數據
+      if (oldStatus !== newStatus && stats) {
+        setStats((prev) => {
+          if (!prev) return prev;
+          const updated = { ...prev };
+
+          // 減少舊狀態計數
+          if (oldStatus === "APPROVED") updated.approved = Math.max(0, updated.approved - 1);
+          else if (oldStatus === "COMPLETED") updated.completed = Math.max(0, updated.completed - 1);
+          else if (oldStatus === "PENDING") updated.pending = Math.max(0, updated.pending - 1);
+          else if (oldStatus === "PROCESSING") updated.processing = Math.max(0, updated.processing - 1);
+
+          // 增加新狀態計數
+          if (newStatus === "APPROVED") updated.approved = updated.approved + 1;
+          else if (newStatus === "COMPLETED") updated.completed = updated.completed + 1;
+          else if (newStatus === "PENDING") updated.pending = updated.pending + 1;
+          else if (newStatus === "PROCESSING") updated.processing = updated.processing + 1;
+
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error("複審確認失敗：", error);
+      alert(`操作失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
+    } finally {
+      setTogglingReviewId(null);
     }
   };
 
@@ -1453,6 +1515,9 @@ function AdminTasksContent() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       申請時間
                     </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                      複審
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       操作
                     </th>
@@ -1526,6 +1591,53 @@ function AdminTasksContent() {
                           <div className="text-sm text-gray-600">
                             {formatDeadlineDate(item.task.applicationDate)}
                           </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-center">
+                          {/* 複審確認 checkbox */}
+                          {(() => {
+                            const isReviewer = item.task.reviewers?.some(
+                              (r) => r.id === session?.user?.id
+                            );
+                            const isSuperAdmin = userRole === "SUPER_ADMIN";
+                            const isChecked = !!item.task.reviewedAt;
+                            const isLoading = togglingReviewId === item.task.id;
+                            // 只有已批准或已完成狀態才能操作 checkbox
+                            const isApprovedOrCompleted = item.task.status === "APPROVED" || item.task.status === "COMPLETED";
+                            const canCheck = (isReviewer || isSuperAdmin) && isApprovedOrCompleted;
+
+                            // 沒有複審人時不顯示
+                            if (!item.task.reviewers || item.task.reviewers.length === 0) {
+                              return <span className="text-gray-300">-</span>;
+                            }
+
+                            // 顯示 checkbox（有複審人就顯示，但只有已批准狀態才能操作）
+                            return (
+                              <div className="flex items-center justify-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  disabled={!canCheck || isLoading}
+                                  onChange={(e) =>
+                                    handleToggleReviewCheck(item.task, e.target.checked)
+                                  }
+                                  className={`w-5 h-5 rounded border-2 ${
+                                    canCheck
+                                      ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
+                                      : "cursor-not-allowed text-gray-400 border-gray-300"
+                                  } ${isLoading ? "opacity-50" : ""}`}
+                                  title={
+                                    !isApprovedOrCompleted
+                                      ? "只有已批准狀態才能複審"
+                                      : canCheck
+                                        ? isChecked
+                                          ? "點擊取消複審確認"
+                                          : "點擊確認複審"
+                                        : "只有複審人可以操作"
+                                  }
+                                />
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
@@ -1609,6 +1721,52 @@ function AdminTasksContent() {
                               <div className="text-sm text-gray-500">
                                 {formatDeadlineDate(childTask.createdAt)}
                               </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              {/* 子任務複審確認 checkbox */}
+                              {(() => {
+                                if (!fullChildTask) return <span className="text-gray-300">-</span>;
+                                const isReviewer = fullChildTask.reviewers?.some(
+                                  (r) => r.id === session?.user?.id
+                                );
+                                const isSuperAdmin = userRole === "SUPER_ADMIN";
+                                const isChecked = !!fullChildTask.reviewedAt;
+                                const isLoading = togglingReviewId === fullChildTask.id;
+                                // 只有已批准或已完成狀態才能操作 checkbox
+                                const isApprovedOrCompleted = fullChildTask.status === "APPROVED" || fullChildTask.status === "COMPLETED";
+                                const canCheck = (isReviewer || isSuperAdmin) && isApprovedOrCompleted;
+
+                                if (!fullChildTask.reviewers || fullChildTask.reviewers.length === 0) {
+                                  return <span className="text-gray-300">-</span>;
+                                }
+
+                                return (
+                                  <div className="flex items-center justify-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      disabled={!canCheck || isLoading}
+                                      onChange={(e) =>
+                                        handleToggleReviewCheck(fullChildTask, e.target.checked)
+                                      }
+                                      className={`w-5 h-5 rounded border-2 ${
+                                        canCheck
+                                          ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
+                                          : "cursor-not-allowed text-gray-400 border-gray-300"
+                                      } ${isLoading ? "opacity-50" : ""}`}
+                                      title={
+                                        !isApprovedOrCompleted
+                                          ? "只有已批准狀態才能複審"
+                                          : canCheck
+                                            ? isChecked
+                                              ? "點擊取消複審確認"
+                                              : "點擊確認複審"
+                                            : "只有複審人可以操作"
+                                      }
+                                    />
+                                  </div>
+                                );
+                              })()}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center gap-2">
@@ -2087,7 +2245,7 @@ function AdminTasksContent() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 mb-1">完成人</p>
+                      <p className="text-xs text-gray-600 mb-1">負責人</p>
                       <p className="text-sm font-medium text-gray-900">
                         {selectedTask.processorName ||
                           selectedTask.processor?.name ||
@@ -2369,20 +2527,6 @@ function AdminTasksContent() {
                         </div>
                       )}
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          完成人
-                        </label>
-                        <input
-                          type="text"
-                          value={approvalProcessorName}
-                          onChange={(e) =>
-                            setApprovalProcessorName(e.target.value)
-                          }
-                          placeholder="請輸入完成人名稱"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           審批意見

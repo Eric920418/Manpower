@@ -373,6 +373,10 @@ model AdminTask {
   // 動態表單資料（根據 taskType 不同結構）
   payload         Json             @default("{}")
 
+  // 複審確認（由複審人打勾確認）
+  reviewedAt      DateTime?        // 複審確認時間
+  reviewedBy      String?          // 複審確認人 ID
+
   // 備註
   notes           String?          @db.Text
 
@@ -480,6 +484,30 @@ model PendingTaskReminder {
   @@index([userId, isCompleted])
   @@index([userId, isCompleted, lastRemindedAt])
   @@index([sourceTaskId])
+}
+
+// ==================== 聯絡表單提交 ====================
+model ContactSubmission {
+  id            Int       @id @default(autoincrement())
+  questionType  String    // 問題類型 ID
+  questionLabel String?   // 問題類型顯示名稱（快取）
+  name          String    // 姓名
+  email         String    // 電子信箱
+  phone         String    // 聯絡電話
+  message       String    @db.Text // 訊息內容
+  status        String    @default("pending") // pending, read, replied, archived
+  notes         String?   @db.Text // 管理員備註
+  repliedAt     DateTime? // 回覆時間
+  repliedBy     String?   // 回覆人員 ID
+  ipAddress     String?   // IP 地址
+  userAgent     String?   // 瀏覽器資訊
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([questionType, status])
+  @@index([email])
+  @@index([createdAt(sort: Desc)])
 }
 
 // ==================== 分析與報表 ====================

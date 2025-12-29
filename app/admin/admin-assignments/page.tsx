@@ -727,6 +727,37 @@ export default function AdminAssignmentsPage() {
         {/* 全局分配視角 */}
         {viewMode === "global" && (
           <>
+            {/* 全局分配說明與操作按鈕 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-blue-900">全局分配設定</h3>
+                  <p className="text-blue-700 text-sm mt-1">
+                    設定各案件類型的預設負責人和複審人。此設定只會套用到<strong>新建的案件</strong>。
+                  </p>
+                </div>
+                {canAssign && (
+                  <button
+                    onClick={handleApplyGlobalToExisting}
+                    disabled={applyingGlobal}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                  >
+                    {applyingGlobal ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        套用中...
+                      </>
+                    ) : (
+                      <>
+                        <span>🔄</span>
+                        套用到現有案件
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
             {loading ? (
               <div className="text-center py-16">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>

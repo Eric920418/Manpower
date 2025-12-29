@@ -22,6 +22,7 @@ export default function ContactPage() {
             badge
             title
             description
+            questionTypes
             formFields
             submitButton
             contactInfo
@@ -87,6 +88,7 @@ export default function ContactPage() {
         badge={pageData.badge}
         title={pageData.title}
         description={pageData.description}
+        questionTypes={pageData.questionTypes}
         formFields={pageData.formFields}
         submitButton={pageData.submitButton}
         contactInfo={pageData.contactInfo}

@@ -269,6 +269,9 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
   approvalRoute: task.approvalRoute,
   approvalMark: task.approvalMark,
   payload: task.payload,
+  // 複審確認
+  reviewedAt: formatDate(task.reviewedAt),
+  reviewedBy: task.reviewedBy,
   notes: task.notes,
   attachments: task.attachments.map((att) => ({
     id: att.id,
@@ -1730,6 +1733,67 @@ export const adminTaskResolvers = {
             taskNo: task.taskNo,
             previousStatus: task.status,
             newStatus: "PENDING",
+          },
+        },
+      });
+
+      return formatTask(updatedTask);
+    },
+
+    // 複審確認打勾（只有複審人可操作）
+    toggleReviewCheck: async (
+      _: unknown,
+      args: { taskId: number; checked: boolean },
+      context: Context
+    ) => {
+      const user = requireAuth(context);
+
+      // 獲取任務
+      const task = await prisma.adminTask.findUnique({
+        where: { id: args.taskId },
+        include: {
+          assignments: {
+            where: { role: "REVIEWER" },
+            select: { userId: true },
+          },
+        },
+      });
+
+      if (!task) {
+        throw new Error("找不到該行政任務");
+      }
+
+      // 檢查是否為複審人（只有複審人可以打勾）
+      const isReviewer = task.assignments.some((a) => a.userId === user.id);
+      const isSuperAdmin = user.role === "SUPER_ADMIN";
+
+      if (!isReviewer && !isSuperAdmin) {
+        throw new Error("權限不足：只有被指定的複審人可以進行複審確認");
+      }
+
+      // 更新複審確認狀態，打勾時同時將狀態改為已完成
+      const updatedTask = await prisma.adminTask.update({
+        where: { id: args.taskId },
+        data: {
+          reviewedAt: args.checked ? new Date() : null,
+          reviewedBy: args.checked ? user.id : null,
+          // 打勾時狀態改為已完成，取消打勾時改回已批准
+          status: args.checked ? "COMPLETED" : "APPROVED",
+          completedAt: args.checked ? new Date() : null,
+        },
+        include: taskInclude,
+      });
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: args.checked ? "review_check" : "review_uncheck",
+          entity: "admin_task",
+          entityId: args.taskId.toString(),
+          details: {
+            taskNo: task.taskNo,
+            checked: args.checked,
           },
         },
       });

@@ -787,7 +787,20 @@ const contactPageDefaults = {
   badge: "聯絡我們",
   title: "與我們取得聯繫",
   description: "有任何問題或需要協助？請填寫表單，我們的專業團隊將盡快與您聯繫。",
+  questionTypes: [
+    { id: "general", label: "一般諮詢" },
+    { id: "employer", label: "雇主服務" },
+    { id: "worker", label: "求職諮詢" },
+    { id: "franchise", label: "加盟合作" },
+    { id: "other", label: "其他問題" },
+  ],
   formFields: {
+    questionType: {
+      label: "問題類型",
+      placeholder: "請選擇問題類型",
+      icon: "category",
+      required: true,
+    },
     name: {
       label: "姓名",
       placeholder: "請輸入您的姓名",
@@ -838,7 +851,7 @@ const contactPageDefaults = {
       title: "辦公地點",
       content: "新北市永和區永貞路107號3樓",
       description: "歡迎預約參訪",
-      link: "#",
+      link: "https://www.google.com/maps/search/?api=1&query=%E6%96%B0%E5%8C%97%E5%B8%82%E6%B0%B8%E5%92%8C%E5%8D%80%E6%B0%B8%E8%B2%9E%E8%B7%AF107%E8%99%9F3%E6%A8%93",
     },
   ],
 };

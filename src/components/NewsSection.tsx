@@ -45,7 +45,7 @@ export default function NewsSection({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* 標題區塊 */}
         <div className="flex flex-wrap justify-between gap-3 mb-8">
-          <div className="flex min-w-72 flex-col gap-3">
+          <div className="flex w-full sm:min-w-72 flex-col gap-3">
             <h2 className="text-text-primary text-4xl font-black leading-tight tracking-tight">
               {title}
             </h2>
