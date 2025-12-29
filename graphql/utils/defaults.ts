@@ -782,6 +782,67 @@ const franchisePageDefaults = {
   },
 };
 
+// 聯絡我們頁面預設值
+const contactPageDefaults = {
+  badge: "聯絡我們",
+  title: "與我們取得聯繫",
+  description: "有任何問題或需要協助？請填寫表單，我們的專業團隊將盡快與您聯繫。",
+  formFields: {
+    name: {
+      label: "姓名",
+      placeholder: "請輸入您的姓名",
+      icon: "person",
+      required: true,
+    },
+    email: {
+      label: "電子信箱",
+      placeholder: "example@email.com",
+      icon: "mail",
+      required: true,
+    },
+    phone: {
+      label: "聯絡電話",
+      placeholder: "+886 912 345 678",
+      icon: "phone",
+      required: true,
+    },
+    message: {
+      label: "訊息內容",
+      placeholder: "請告訴我們您的需求...",
+      icon: "chat_bubble",
+      required: true,
+      rows: 5,
+    },
+  },
+  submitButton: {
+    text: "送出訊息",
+    icon: "send",
+  },
+  contactInfo: [
+    {
+      icon: "mail",
+      title: "電子信箱",
+      content: "info@youshi-hr.com",
+      description: "週一至週五 9:00-18:00 回覆",
+      link: "mailto:info@youshi-hr.com",
+    },
+    {
+      icon: "phone",
+      title: "聯絡電話",
+      content: "+886-2-1234-5678",
+      description: "服務時間：週一至週五 9:00-18:00",
+      link: "tel:+886-2-1234-5678",
+    },
+    {
+      icon: "location_on",
+      title: "辦公地點",
+      content: "新北市永和區永貞路107號3樓",
+      description: "歡迎預約參訪",
+      link: "#",
+    },
+  ],
+};
+
 // 懸浮連結預設值
 const floatingLinksDefaults = {
   enabled: true,
@@ -863,6 +924,7 @@ export const blockDefaults = {
   newsPage: () => clone(newsPageDefaults),
   staffPage: () => clone(staffPageDefaults),
   franchisePage: () => clone(franchisePageDefaults),
+  contactPage: () => clone(contactPageDefaults),
   floatingLinks: () => clone(floatingLinksDefaults),
 } as const;
 

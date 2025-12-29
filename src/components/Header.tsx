@@ -58,7 +58,7 @@ export default function Header({ navigation, contactButton }: HeaderProps) {
           {/* Contact Button & Mobile Menu Toggle */}
           <div className="flex items-center gap-4">
             <Link
-              href={contactButton.link}
+              href="/contact"
               className="hidden items-center justify-center rounded-full border-2 border-brand-primary bg-brand-primary px-5 py-2 text-sm font-medium text-text-on-brand transition-all hover:bg-brand-primary/90 hover:scale-105 sm:flex"
             >
               {contactButton.text}
@@ -87,7 +87,7 @@ export default function Header({ navigation, contactButton }: HeaderProps) {
                 </Link>
               ))}
               <Link
-                href={contactButton.link}
+                href="/contact"
                 className="mx-4 mt-2 text-center rounded-full border-2 border-brand-primary bg-brand-primary px-5 py-2 text-sm font-medium text-text-on-brand hover:bg-brand-primary/90"
                 onClick={() => setMobileMenuOpen(false)}
               >

@@ -1170,12 +1170,12 @@ function AdminTasksContent() {
     <AdminLayout>
       <div className="max-w-7xl mx-auto">
         {/* 頁面標題 */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-4 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
               行政事務管理
             </h1>
-            <p className="text-gray-600">管理所有行政申請單與審批流程</p>
+            <p className="text-sm md:text-base text-gray-600">管理所有行政申請單與審批流程</p>
           </div>
           <button
             onClick={() => {
@@ -1186,7 +1186,7 @@ function AdminTasksContent() {
               }));
               setShowCreateModal(true);
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-2 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
           >
             <span>+</span>
             新增申請
@@ -1195,50 +1195,50 @@ function AdminTasksContent() {
 
         {/* 統計卡片 */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500">
-              <p className="text-sm text-gray-600 mb-1">總計</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 md:gap-4 mb-4 md:mb-8">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">總計</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500">
-              <p className="text-sm text-gray-600 mb-1">待處理</p>
-              <p className="text-2xl font-bold text-yellow-600">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-yellow-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待處理</p>
+              <p className="text-lg md:text-2xl font-bold text-yellow-600">
                 {stats.pending}
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-600">
-              <p className="text-sm text-gray-600 mb-1">處理中</p>
-              <p className="text-2xl font-bold text-blue-600">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-600">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">處理中</p>
+              <p className="text-lg md:text-2xl font-bold text-blue-600">
                 {stats.processing}
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-orange-400">
-              <p className="text-sm text-gray-600 mb-1">待補件</p>
-              <p className="text-2xl font-bold text-orange-500">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待補件</p>
+              <p className="text-lg md:text-2xl font-bold text-orange-500">
                 {stats.pendingDocuments}
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-green-500">
-              <p className="text-sm text-gray-600 mb-1">已批准</p>
-              <p className="text-2xl font-bold text-green-600">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已批准</p>
+              <p className="text-lg md:text-2xl font-bold text-green-600">
                 {stats.approved}
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500">
-              <p className="text-sm text-gray-600 mb-1">已退回</p>
-              <p className="text-2xl font-bold text-red-600">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-red-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已退回</p>
+              <p className="text-lg md:text-2xl font-bold text-red-600">
                 {stats.rejected}
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-gray-500">
-              <p className="text-sm text-gray-600 mb-1">已完成</p>
-              <p className="text-2xl font-bold text-gray-600">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-gray-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已完成</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-600">
                 {stats.completed}
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-purple-500">
-              <p className="text-sm text-gray-600 mb-1">逾期</p>
-              <p className="text-2xl font-bold text-purple-600">
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-purple-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">逾期</p>
+              <p className="text-lg md:text-2xl font-bold text-purple-600">
                 {stats.overdue}
               </p>
             </div>
@@ -1246,18 +1246,18 @@ function AdminTasksContent() {
         )}
 
         {/* 篩選器 */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-          <div className="flex flex-wrap gap-4">
+        <div className="bg-white rounded-xl shadow-md p-3 md:p-4 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             {/* 狀態篩選 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">狀態：</span>
+            <div>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">狀態</label>
               <select
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 md:py-1.5 border border-gray-300 rounded-lg text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">全部</option>
                 <option value="PENDING">待處理</option>
@@ -1272,15 +1272,15 @@ function AdminTasksContent() {
             </div>
 
             {/* 類型篩選 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">類型：</span>
+            <div>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">類型</label>
               <select
                 value={typeFilter}
                 onChange={(e) => {
                   setTypeFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 md:py-1.5 border border-gray-300 rounded-lg text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">全部</option>
                 {taskTypes.map((type) => (
@@ -1292,15 +1292,15 @@ function AdminTasksContent() {
             </div>
 
             {/* 申請人篩選 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">申請人：</span>
+            <div>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">申請人</label>
               <select
                 value={applicantFilter}
                 onChange={(e) => {
                   setApplicantFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 md:py-1.5 border border-gray-300 rounded-lg text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">全部</option>
                 {applicants.map((user) => (

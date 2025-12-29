@@ -71,6 +71,7 @@ const pageLabels: Record<BlockKey, string> = {
   newsPage: "最新消息頁",
   staffPage: "業務人員頁",
   franchisePage: "創業加盟頁",
+  contactPage: "聯絡我們頁",
   floatingLinks: "懸浮連結",
 };
 
@@ -142,6 +143,7 @@ const Query = {
   newsPage: createQueryResolver("newsPage"),
   staffPage: createQueryResolver("staffPage"),
   franchisePage: createQueryResolver("franchisePage"),
+  contactPage: createQueryResolver("contactPage"),
   floatingLinks: createQueryResolver("floatingLinks"),
   // 用戶管理 queries
   ...userResolvers.Query,
@@ -177,6 +179,7 @@ const Mutation = {
   updateNewsPage: createMutationResolver("newsPage"),
   updateStaffPage: createMutationResolver("staffPage"),
   updateFranchisePage: createMutationResolver("franchisePage"),
+  updateContactPage: createMutationResolver("contactPage"),
   updateFloatingLinks: createMutationResolver("floatingLinks"),
   // 用戶管理 mutations
   ...userResolvers.Mutation,

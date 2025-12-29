@@ -3,7 +3,6 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import FeaturedTalents from "@/components/FeaturedTalents";
 import NewsSection from "@/components/NewsSection";
-import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 
 // 強制動態渲染，避免 build 時 fetch 失敗
@@ -17,7 +16,6 @@ async function getHomePageData() {
         hero
         featuredTalents
         newsSection
-        contactSection
         footer
       }
       activeNavigations {
@@ -159,14 +157,6 @@ export default async function Home() {
           categories={pageData.newsSection.categories}
           featuredArticle={pageData.newsSection.featuredArticle}
           articles={pageData.newsSection.articles}
-        />
-        <ContactSection
-          badge={pageData.contactSection.badge}
-          title={pageData.contactSection.title}
-          description={pageData.contactSection.description}
-          formFields={pageData.contactSection.formFields}
-          submitButton={pageData.contactSection.submitButton}
-          contactInfo={pageData.contactSection.contactInfo}
         />
         <Footer
           logo={pageData.footer.logo}

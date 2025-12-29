@@ -42,6 +42,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       // 有 web_content:read 權限就能看到所有項目，有 web_content:update 才能編輯
       { label: "首頁內容", href: "/admin/home-page", permission: 'web_content:read' },
+      { label: "聯絡我們", href: "/admin/contact-page", permission: 'web_content:read' },
       { label: "申請流程", href: "/admin/application-process", permission: 'web_content:read' },
       { label: "移工列表", href: "/admin/workers", permission: 'web_content:read' },
       { label: "常見問題", href: "/admin/faq", permission: 'web_content:read' },

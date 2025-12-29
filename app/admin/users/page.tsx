@@ -358,15 +358,15 @@ export default function UsersPage() {
     <AdminLayout>
       <div>
         {/* 頁面標題 */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">用戶管理</h1>
-            <p className="text-gray-500 mt-1">管理系統用戶帳號與權限</p>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">用戶管理</h1>
+            <p className="text-sm md:text-base text-gray-500 mt-1">管理系統用戶帳號與權限</p>
           </div>
           {can(PermissionEnum.USER_CREATE) && (
             <button
               onClick={handleCreateUser}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
             >
               ➕ 新增用戶
             </button>

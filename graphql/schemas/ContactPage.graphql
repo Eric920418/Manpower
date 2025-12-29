@@ -1,0 +1,26 @@
+type ContactPage {
+  id: ID!
+  badge: String
+  title: String
+  description: String
+  formFields: JSON
+  submitButton: JSON
+  contactInfo: JSON
+}
+
+extend type Query {
+  contactPage: [ContactPage!]!
+}
+
+input UpdateContactPageInput {
+  badge: String
+  title: String
+  description: String
+  formFields: JSON
+  submitButton: JSON
+  contactInfo: JSON
+}
+
+extend type Mutation {
+  updateContactPage(input: UpdateContactPageInput!): ContactPage
+}
