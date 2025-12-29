@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 interface StaffMember {
   id: string;
   name: string;
+  role: 'OWNER' | 'STAFF';
 }
 
 // 快取變數（模組級別）
@@ -42,7 +43,7 @@ export function useStaffList() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: `query GetStaffList { staffList { id name } }`,
+          query: `query GetStaffList { staffList { id name role } }`,
         }),
       });
 

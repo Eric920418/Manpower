@@ -81,6 +81,7 @@ interface TaskType {
   code: string;
   label: string;
   description: string | null;
+  titlePlaceholder: string | null;
   order: number;
   isActive: boolean;
   questions: Question[];
@@ -194,6 +195,8 @@ function AdminTasksContent() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [applicantFilter, setApplicantFilter] = useState<string>("all");
+  const [applicants, setApplicants] = useState<{ id: string; name: string | null; email: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   // 模態框狀態
@@ -273,6 +276,7 @@ function AdminTasksContent() {
             code
             label
             description
+            titlePlaceholder
             order
             isActive
             outgoingFlows {
@@ -308,10 +312,23 @@ function AdminTasksContent() {
         }
       `;
 
+      // 獲取用戶列表（用於申請人篩選）
+      const usersQuery = `
+        query {
+          users {
+            users {
+              id
+              name
+              email
+            }
+          }
+        }
+      `;
+
       // 獲取任務列表
       const tasksQuery = `
-        query AdminTasks($page: Int, $pageSize: Int, $status: AdminTaskStatus, $taskTypeId: Int) {
-          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId) {
+        query AdminTasks($page: Int, $pageSize: Int, $status: AdminTaskStatus, $taskTypeId: Int, $applicantId: String) {
+          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId, applicantId: $applicantId) {
             items {
               id
               taskNo
@@ -426,10 +443,11 @@ function AdminTasksContent() {
       };
       if (statusFilter !== "all") variables.status = statusFilter;
       if (typeFilter !== "all") variables.taskTypeId = parseInt(typeFilter, 10);
+      if (applicantFilter !== "all") variables.applicantId = applicantFilter;
 
       // 添加時間戳防止緩存
       const timestamp = Date.now();
-      const [statsRes, taskTypesRes, tasksRes] = await Promise.all([
+      const [statsRes, taskTypesRes, usersRes, tasksRes] = await Promise.all([
         fetch(`/api/graphql?_t=${timestamp}`, {
           method: "POST",
           headers: {
@@ -461,17 +479,29 @@ function AdminTasksContent() {
           },
           credentials: "include",
           cache: "no-store",
+          body: JSON.stringify({ query: usersQuery }),
+        }),
+        fetch(`/api/graphql?_t=${timestamp}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+          },
+          credentials: "include",
+          cache: "no-store",
           body: JSON.stringify({ query: tasksQuery, variables }),
         }),
       ]);
 
-      if (!statsRes.ok || !taskTypesRes.ok || !tasksRes.ok) {
-        throw new Error(`HTTP 錯誤: ${statsRes.status || taskTypesRes.status || tasksRes.status}`);
+      if (!statsRes.ok || !taskTypesRes.ok || !usersRes.ok || !tasksRes.ok) {
+        throw new Error(`HTTP 錯誤: ${statsRes.status || taskTypesRes.status || usersRes.status || tasksRes.status}`);
       }
 
-      const [statsData, taskTypesData, tasksData] = await Promise.all([
+      const [statsData, taskTypesData, usersData, tasksData] = await Promise.all([
         statsRes.json(),
         taskTypesRes.json(),
+        usersRes.json(),
         tasksRes.json(),
       ]);
 
@@ -483,6 +513,10 @@ function AdminTasksContent() {
         console.error("GraphQL TaskTypes Error:", taskTypesData.errors);
         throw new Error(taskTypesData.errors[0].message);
       }
+      if (usersData.errors) {
+        console.error("GraphQL Users Error:", usersData.errors);
+        throw new Error(usersData.errors[0].message);
+      }
       if (tasksData.errors) {
         console.error("GraphQL Tasks Error:", tasksData.errors);
         throw new Error(tasksData.errors[0].message);
@@ -490,6 +524,7 @@ function AdminTasksContent() {
 
       setStats(statsData.data.adminTaskStats);
       setTaskTypes(taskTypesData.data.taskTypes);
+      setApplicants(usersData.data.users.users);
       setTasks(tasksData.data.adminTasks.items);
       setPageInfo(tasksData.data.adminTasks.pageInfo);
     } catch (err) {
@@ -499,7 +534,7 @@ function AdminTasksContent() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, typeFilter, currentPage]);
+  }, [statusFilter, typeFilter, applicantFilter, currentPage]);
 
   // 使用穩定的依賴項避免無限循環
   useEffect(() => {
@@ -1255,6 +1290,26 @@ function AdminTasksContent() {
                 ))}
               </select>
             </div>
+
+            {/* 申請人篩選 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">申請人：</span>
+              <select
+                value={applicantFilter}
+                onChange={(e) => {
+                  setApplicantFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">全部</option>
+                {applicants.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name || user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1293,7 +1348,90 @@ function AdminTasksContent() {
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* 手機版卡片視圖 */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {groupedTasks.map((item) => (
+                <div key={`mobile-${item.task.id}`} className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {item.type === "group" && item.children && item.children.length > 0 && (
+                          <button
+                            onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500 text-xs"
+                          >
+                            {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
+                          </button>
+                        )}
+                        <span className="text-base font-medium text-gray-900 truncate">{item.task.title}</span>
+                      </div>
+                      {item.type === "group" && item.children && item.children.length > 0 && (
+                        <span className="text-xs text-blue-600 font-medium">📎 {item.children.length + 1} 個關聯</span>
+                      )}
+                    </div>
+                    {getStatusBadge(item.task.status)}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                    <div>
+                      <span className="text-gray-500">類型：</span>
+                      <span className="text-gray-900">{item.task.taskType?.label || "未知"}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">申請人：</span>
+                      <span className="text-gray-900">{item.task.applicantName || item.task.applicant?.name || "-"}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => {
+                        setSelectedTask(item.task);
+                        setApprovalProcessorName(item.task.processorName || "");
+                        setShowDetailModal(true);
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg min-h-[44px] active:bg-blue-100"
+                    >
+                      查看詳情
+                    </button>
+                    {userRole === "SUPER_ADMIN" && (
+                      <button
+                        onClick={() => handleDeleteTask(item.task.id)}
+                        disabled={deleting}
+                        className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg min-h-[44px] active:bg-red-100 disabled:opacity-50"
+                      >
+                        刪除
+                      </button>
+                    )}
+                  </div>
+                  {/* 展開的子任務 */}
+                  {item.type === "group" && item.task.groupId && expandedGroups.has(item.task.groupId) && item.children?.map((childTask) => {
+                    const fullChildTask = tasks.find(t => t.id === childTask.id) as AdminTask | undefined;
+                    return (
+                      <div key={`mobile-child-${childTask.id}`} className="mt-3 ml-4 p-3 bg-gray-50 rounded-lg border-l-2 border-gray-300">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">{childTask.title}</span>
+                          {getStatusBadge(childTask.status)}
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (fullChildTask) {
+                              setSelectedTask(fullChildTask);
+                              setApprovalProcessorName(fullChildTask.processorName || "");
+                              setShowDetailModal(true);
+                            }
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          查看詳情
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* 桌面版表格 */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -1507,16 +1645,16 @@ function AdminTasksContent() {
 
             {/* 分頁 */}
             {pageInfo && pageInfo.totalPages > 1 && (
-              <div className="px-6 py-4 border-t flex items-center justify-between">
-                <p className="text-sm text-gray-600">
+              <div className="px-4 md:px-6 py-4 border-t flex flex-col md:flex-row items-center justify-between gap-3">
+                <p className="text-sm text-gray-600 order-2 md:order-1">
                   共 {pageInfo.total} 筆，第 {pageInfo.page} /{" "}
                   {pageInfo.totalPages} 頁
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 order-1 md:order-2 w-full md:w-auto justify-center">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="flex-1 md:flex-none px-4 py-2.5 md:py-1.5 border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 min-h-[44px] md:min-h-0"
                   >
                     上一頁
                   </button>
@@ -1527,7 +1665,7 @@ function AdminTasksContent() {
                       )
                     }
                     disabled={currentPage === pageInfo.totalPages}
-                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="flex-1 md:flex-none px-4 py-2.5 md:py-1.5 border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 min-h-[44px] md:min-h-0"
                   >
                     下一頁
                   </button>
@@ -1609,7 +1747,7 @@ function AdminTasksContent() {
                       onChange={(e) =>
                         setCreateForm({ ...createForm, title: e.target.value })
                       }
-                      placeholder="請輸入任務標題"
+                      placeholder={selectedTaskType?.titlePlaceholder || "請輸入任務標題"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>

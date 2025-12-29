@@ -46,6 +46,7 @@ type TaskType {
   order: Int!
   isActive: Boolean!
   questions: [TaskTypeQuestion!]!  # 自訂問題列表
+  titlePlaceholder: String  # 任務標題 placeholder（用於新增行政任務時的輸入提示）
   # 節點位置（用於流程圖顯示）
   positionX: Float
   positionY: Float
@@ -104,6 +105,7 @@ input CreateTaskTypeInput {
   description: String
   order: Int
   questions: [TaskTypeQuestionInput!]
+  titlePlaceholder: String
   positionX: Float
   positionY: Float
 }
@@ -116,6 +118,7 @@ input UpdateTaskTypeInput {
   order: Int
   isActive: Boolean
   questions: [TaskTypeQuestionInput!]
+  titlePlaceholder: String
   positionX: Float
   positionY: Float
 }

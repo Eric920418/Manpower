@@ -13,6 +13,7 @@ import { taskTypeFlowResolvers } from "./resolvers/taskTypeFlowResolvers";
 import { dashboardResolvers } from "./resolvers/dashboardResolvers";
 import { activityLogResolvers } from "./resolvers/activityLogResolvers";
 import { pendingTaskReminderResolvers } from "./resolvers/pendingTaskReminderResolvers";
+import { franchiseResolvers } from "./resolvers/franchiseResolvers";
 import { hasPermissionWithCustom, type CustomPermissions } from "@/lib/permissions";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -164,6 +165,8 @@ const Query = {
   ...activityLogResolvers.Query,
   // 待處理任務提醒 queries
   ...pendingTaskReminderResolvers.Query,
+  // 加盟店管理 queries
+  ...franchiseResolvers.Query,
 };
 
 const Mutation = {
@@ -193,6 +196,8 @@ const Mutation = {
   ...taskTypeDefaultAssignmentResolvers.Mutation,
   // 待處理任務提醒 mutations
   ...pendingTaskReminderResolvers.Mutation,
+  // 加盟店管理 mutations
+  ...franchiseResolvers.Mutation,
 };
 
 const resolvers = {

@@ -1793,7 +1793,34 @@ export const HomePage = () => {
                 placeholder="https://www.google.com/maps/embed?pb=..."
                 className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300 font-mono text-sm"
               />
+              <p className="text-xs text-gray-500 mt-2">
+                可輸入純 URL（以 https:// 開頭）或 Google Maps 產生的完整 iframe HTML 代碼
+              </p>
             </div>
+            {/* 地圖預覽 */}
+            {pageData.footer.map.embedUrl && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-2">地圖預覽</label>
+                <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-300">
+                  <iframe
+                    src={(() => {
+                      const url = pageData.footer.map.embedUrl.trim();
+                      if (url.startsWith('https://')) {
+                        return url;
+                      }
+                      const match = url.match(/src="([^"]+)"/);
+                      return match ? match[1] : '';
+                    })()}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 版權與底部連結 */}

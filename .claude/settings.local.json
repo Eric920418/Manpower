@@ -28,7 +28,8 @@
       "Bash(grep:*)",
       "Bash(ls:*)",
       "Bash(rm:*)",
-      "Bash(pnpm next build:*)"
+      "Bash(pnpm next build:*)",
+      "Bash(pnpm prisma migrate dev:*)"
     ],
     "deny": [],
     "ask": []

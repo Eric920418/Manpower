@@ -59,6 +59,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { label: "申請類型管理", href: "/admin/task-types", permission: 'system:config' },
       { label: "案件分配管理", href: "/admin/admin-assignments", permission: 'task_assignment:read' },
+      { label: "加盟店管理", href: "/admin/franchises", permission: 'system:config' },
       { label: "用戶權限管理", href: "/admin/user-permissions", permission: 'user:manage_roles' },
       { label: "活動日誌", href: "/admin/activity-logs", permission: 'system:logs' },
       { label: "數據分析", href: "/admin/analytics", permission: 'system:analytics' },
@@ -139,6 +140,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const userRole = getRole();
+
+  // 根據路徑獲取當前頁面標題
+  const getCurrentPageTitle = () => {
+    for (const group of menuGroups) {
+      for (const item of group.items) {
+        if (pathname === item.href) {
+          return item.label;
+        }
+      }
+    }
+    return "管理後台";
+  };
+
+  const currentPageTitle = getCurrentPageTitle();
 
   // 過濾分組，只顯示用戶有權限的分組
   // 每個項目都會根據其 permission 進行檢查
@@ -275,41 +290,42 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <aside
         className={`${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } fixed inset-y-0 left-0 w-64 bg-gray-900 text-white transition-transform duration-300 z-50 lg:hidden`}
+        } fixed inset-y-0 left-0 w-72 bg-gray-900 text-white transition-transform duration-300 z-50 lg:hidden`}
       >
         <div className="flex flex-col h-full">
           {/* Logo 區域 */}
           <div className="p-4 border-b border-gray-800 flex justify-between items-center">
             <div>
-              <h1 className="text-xl font-bold">佑羲人力系統</h1>
+              <h1 className="text-lg font-bold">佑羲人力系統</h1>
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 hover:bg-gray-800 rounded"
+              className="p-3 hover:bg-gray-800 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center text-xl"
+              aria-label="關閉選單"
             >
               ✕
             </button>
           </div>
 
           {/* 用戶資訊 */}
-          <div className="p-4 border-b border-gray-800">
+          <div className="px-4 py-3 border-b border-gray-800 bg-gray-800/50">
             <p className="text-sm font-semibold truncate">
               {session.user.name || session.user.email}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400 mt-0.5">
               {userRole && RoleNames[userRole]}
             </p>
           </div>
 
           {/* 選單項目 */}
-          <nav className="flex-1 overflow-y-auto py-4">
+          <nav className="flex-1 overflow-y-auto py-2">
             {visibleMenuGroups.map((group, groupIndex) => {
               const isExpanded = expandedGroups[group.title] !== false;
               return (
-                <div key={group.title} className={groupIndex > 0 ? "mt-2" : ""}>
+                <div key={group.title} className={groupIndex > 0 ? "mt-1" : ""}>
                   <button
                     onClick={() => toggleGroup(group.title)}
-                    className="w-full px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-800/50 transition"
+                    className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-800/50 transition min-h-[44px]"
                   >
                     <span>{group.title}</span>
                     <span
@@ -322,10 +338,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   </button>
                   <div
                     className={`overflow-hidden transition-all duration-200 ${
-                      isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                      isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
                     }`}
                   >
-                    <ul className="space-y-1 px-2">
+                    <ul className="space-y-0.5 px-2 pb-2">
                       {group.items.map((item) => {
                         const isActive = pathname === item.href;
                         return (
@@ -333,13 +349,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <Link
                               href={item.href}
                               onClick={() => setMobileMenuOpen(false)}
-                              className={`flex items-center px-3 py-2.5 rounded-lg transition ${
+                              className={`flex items-center px-4 py-3 rounded-lg transition min-h-[48px] ${
                                 isActive
                                   ? "bg-blue-600 text-white"
-                                  : "text-gray-300 hover:bg-gray-800"
+                                  : "text-gray-300 hover:bg-gray-800 active:bg-gray-700"
                               }`}
                             >
-                              <span className="text-sm font-medium">
+                              <span className="text-base font-medium">
                                 {item.label}
                               </span>
                             </Link>
@@ -357,9 +373,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="p-4 border-t border-gray-800">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-900/20 transition"
+              className="w-full flex items-center justify-center px-4 py-3 rounded-lg text-red-400 hover:bg-red-900/20 active:bg-red-900/30 transition min-h-[48px]"
             >
-              <span className="text-sm font-medium">登出</span>
+              <span className="text-base font-medium">登出</span>
             </button>
           </div>
         </div>
@@ -373,10 +389,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       >
         {/* 頂部導航欄（移動版） */}
         <header className="bg-white shadow-sm border-b lg:hidden sticky top-0 z-20">
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-3 py-2">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-3 hover:bg-gray-100 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="開啟選單"
             >
               <svg
                 className="w-6 h-6"
@@ -392,10 +409,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 />
               </svg>
             </button>
-            <h1 className="text-lg font-bold">佑羲人力系統</h1>
+            <div className="flex-1 text-center px-2">
+              <h1 className="text-base font-bold text-gray-900 truncate">{currentPageTitle}</h1>
+              <p className="text-xs text-gray-500">佑羲人力系統</p>
+            </div>
             <button
               onClick={handleLogout}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+              className="p-3 text-red-600 hover:bg-red-50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center text-sm font-medium"
             >
               登出
             </button>

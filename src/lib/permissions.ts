@@ -129,9 +129,9 @@ export const RolePermissions: Record<Role, Permission[]> = {
    * - 處理被分配的任務類型案件
    * - 審批行政事務
    * - 查看基本儀表板
+   * - 管理加盟店設定
    * 不可以：
    * - 管理用戶
-   * - 管理系統設定
    * - 管理申請類型
    */
   ADMIN: [
@@ -149,6 +149,8 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'admin_task:approve',
     // 案件分配管理（可指派任務給下級）
     'task_assignment:assign',
+    // 系統設定（加盟店管理）
+    'system:config',
     // 儀表板
     'dashboard:view',
     'dashboard:stats',

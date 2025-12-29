@@ -116,6 +116,24 @@ export const userResolvers = {
       // 建立查詢條件
       const where: any = {};
 
+      // 資料隔離：業主和業務人員只能看到同一加盟店的人員
+      if (context.user.role === 'OWNER' || context.user.role === 'STAFF') {
+        // 先獲取當前用戶的加盟店資訊
+        const currentUser = await prisma.user.findUnique({
+          where: { id: context.user.id },
+          select: { franchiseId: true },
+        });
+
+        if (currentUser?.franchiseId) {
+          // 只能看到同一加盟店的 OWNER 和 STAFF
+          where.franchiseId = currentUser.franchiseId;
+          where.role = { in: ['OWNER', 'STAFF'] };
+        } else {
+          // 如果自己沒有加盟店，只能看到自己
+          where.id = context.user.id;
+        }
+      }
+
       if (args.filter) {
         // 搜尋（email 或 name）
         if (args.filter.search) {
@@ -125,9 +143,17 @@ export const userResolvers = {
           ];
         }
 
-        // 角色篩選
+        // 角色篩選（對於 OWNER/STAFF，限制只能篩選 OWNER 和 STAFF）
         if (args.filter.role) {
-          where.role = args.filter.role;
+          if (context.user.role === 'OWNER' || context.user.role === 'STAFF') {
+            // 只有當篩選的角色是 OWNER 或 STAFF 時才套用
+            if (args.filter.role === 'OWNER' || args.filter.role === 'STAFF') {
+              where.role = args.filter.role;
+            }
+            // 如果篩選 ADMIN 或 SUPER_ADMIN，維持原有的 role: { in: ['OWNER', 'STAFF'] } 條件
+          } else {
+            where.role = args.filter.role;
+          }
         }
 
         // 狀態篩選
@@ -162,6 +188,12 @@ export const userResolvers = {
           lastLoginAt: true,
           invitationCode: true,
           invitationCount: true,
+          franchiseId: true,
+          franchise: {
+            select: {
+              name: true,
+            },
+          },
           position: true,
           bio: true,
           specialties: true,
@@ -176,6 +208,7 @@ export const userResolvers = {
       // 格式化用戶資料（包含自訂權限和日期轉換）
       const safeUsers = users.map(user => ({
         ...user,
+        franchiseName: user.franchise?.name ?? null,
         lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
         createdAt: user.createdAt?.toISOString() ?? null,
         updatedAt: user.updatedAt?.toISOString() ?? null,
@@ -303,26 +336,30 @@ export const userResolvers = {
 
     /**
      * 獲取所有業務人員列表（公開 API，用於表單選擇介紹人）
+     * 包含 STAFF 和 OWNER 角色
      */
     staffList: async () => {
       const staffMembers = await prisma.user.findMany({
         where: {
-          role: 'STAFF',
+          role: { in: ['STAFF', 'OWNER'] },
           isActive: true,
         },
         select: {
           id: true,
           name: true,
+          role: true,
         },
-        orderBy: {
-          name: 'asc',
-        },
+        orderBy: [
+          { role: 'asc' }, // OWNER 排在前面
+          { name: 'asc' },
+        ],
       });
 
       // 確保 name 不為 null，使用 email 的前綴作為備用
       return staffMembers.map(staff => ({
         id: staff.id,
         name: staff.name || '未命名業務',
+        role: staff.role,
       }));
     },
 
@@ -556,10 +593,15 @@ export const userResolvers = {
         updateData.password = await bcrypt.hash(args.input.password, 10);
       }
 
-      // 更新用戶
+      // 更新用戶（包含加盟店資訊）
       const user = await prisma.user.update({
         where: { id: args.id },
         data: updateData,
+        include: {
+          franchise: {
+            select: { name: true },
+          },
+        },
       });
 
       // 記錄操作日誌（排除敏感資訊）
@@ -581,6 +623,7 @@ export const userResolvers = {
       const { password: _pwd, ...safeUser } = user;
       return {
         ...safeUser,
+        franchiseName: user.franchise?.name ?? null,
         lastLoginAt: safeUser.lastLoginAt?.toISOString() ?? null,
         createdAt: safeUser.createdAt?.toISOString() ?? null,
         updatedAt: safeUser.updatedAt?.toISOString() ?? null,

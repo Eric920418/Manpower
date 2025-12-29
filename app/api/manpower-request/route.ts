@@ -68,13 +68,18 @@ export async function POST(request: NextRequest) {
 
     // 驗證介紹人 ID（如果有提供）
     let invitedByUserId: string | null = null;
+    let franchiseId: number | null = null;
     if (body.referrerId && body.referrerId.trim()) {
-      // 驗證該業務人員是否存在且為 STAFF 角色
+      // 驗證該介紹人是否存在且為 STAFF 或 OWNER 角色
       const staff = await prisma.user.findFirst({
         where: {
           id: body.referrerId,
-          role: 'STAFF',
+          role: { in: ['STAFF', 'OWNER'] },
           isActive: true,
+        },
+        select: {
+          id: true,
+          franchiseId: true, // 取得介紹人的加盟店 ID
         },
       });
 
@@ -89,6 +94,7 @@ export async function POST(request: NextRequest) {
       }
 
       invitedByUserId = staff.id;
+      franchiseId = staff.franchiseId; // 記錄介紹人的加盟店 ID
     }
 
     // 獲取客戶端資訊
@@ -133,6 +139,11 @@ export async function POST(request: NextRequest) {
     // 添加介紹人資訊
     if (invitedByUserId) {
       createData.invitedBy = invitedByUserId;
+    }
+
+    // 添加加盟店 ID（用於資料隔離）
+    if (franchiseId) {
+      createData.franchiseId = franchiseId;
     }
 
     // 只在欄位存在時才加入（避免傳遞 null 導致 Prisma 錯誤）

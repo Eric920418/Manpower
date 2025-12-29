@@ -23,6 +23,8 @@ const GET_USERS = gql`
         lastLoginAt
         invitationCode
         invitationCount
+        franchiseId
+        franchiseName
         createdAt
         position
         bio
@@ -35,6 +37,16 @@ const GET_USERS = gql`
       page
       pageSize
       totalPages
+    }
+  }
+`;
+
+const GET_FRANCHISE_OPTIONS = gql`
+  query GetFranchiseOptions {
+    franchiseOptions {
+      id
+      name
+      code
     }
   }
 `;
@@ -93,6 +105,8 @@ interface User {
   lastLoginAt: string | null;
   invitationCode: string | null;
   invitationCount: number;
+  franchiseId: number | null;
+  franchiseName: string | null;
   createdAt: string;
   position: string | null;
   bio: string | null;
@@ -100,6 +114,12 @@ interface User {
   lineId: string | null;
   isPublic: boolean;
   avatar: string | null;
+}
+
+interface FranchiseOption {
+  id: number;
+  name: string;
+  code: string;
 }
 
 export default function UsersPage() {
@@ -121,6 +141,7 @@ export default function UsersPage() {
     department: "",
     phone: "",
     isActive: true,
+    franchiseId: null as number | null,
     position: "",
     bio: "",
     specialties: [] as string[],
@@ -141,6 +162,10 @@ export default function UsersPage() {
     },
     fetchPolicy: "network-only",
   });
+
+  // 查詢加盟店選項
+  const { data: franchiseData } = useQuery(GET_FRANCHISE_OPTIONS);
+  const franchiseOptions: FranchiseOption[] = franchiseData?.franchiseOptions || [];
 
   // 刪除用戶
   const [deleteUser, { loading: deleting }] = useMutation(DELETE_USER, {
@@ -217,6 +242,7 @@ export default function UsersPage() {
       department: "",
       phone: "",
       isActive: true,
+      franchiseId: null,
       position: "",
       bio: "",
       specialties: [],
@@ -243,6 +269,7 @@ export default function UsersPage() {
       department: user.department || "",
       phone: user.phone || "",
       isActive: user.isActive,
+      franchiseId: user.franchiseId,
       position: user.position || "",
       bio: user.bio || "",
       specialties: user.specialties || [],
@@ -289,6 +316,7 @@ export default function UsersPage() {
         department: formData.department || undefined,
         phone: formData.phone || undefined,
         isActive: formData.isActive,
+        franchiseId: formData.franchiseId,
         position: formData.position || undefined,
         bio: formData.bio || undefined,
         specialties: formData.specialties.length > 0 ? formData.specialties : undefined,
@@ -346,8 +374,8 @@ export default function UsersPage() {
         </div>
 
         {/* 搜尋與篩選 */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-3 md:p-4 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
             {/* 搜尋 */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -361,7 +389,7 @@ export default function UsersPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
               />
             </div>
 
@@ -376,11 +404,16 @@ export default function UsersPage() {
                   setRoleFilter(e.target.value as Role | "");
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
               >
                 <option value="">全部角色</option>
-                <option value={Role.SUPER_ADMIN}>超級管理員</option>
-                <option value={Role.ADMIN}>管理員</option>
+                {/* 只有管理員以上才能看到管理員選項 */}
+                {canManage(Role.ADMIN) && (
+                  <>
+                    <option value={Role.SUPER_ADMIN}>超級管理員</option>
+                    <option value={Role.ADMIN}>管理員</option>
+                  </>
+                )}
                 <option value={Role.OWNER}>業主</option>
                 <option value={Role.STAFF}>業務人員</option>
               </select>
@@ -401,7 +434,7 @@ export default function UsersPage() {
                   );
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
               >
                 <option value="">全部狀態</option>
                 <option value="true">啟用</option>
@@ -430,7 +463,90 @@ export default function UsersPage() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* 手機版卡片視圖 */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {users.map((user: User) => (
+                  <div key={user.id} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-base font-medium text-gray-900 truncate">
+                          {user.name || "-"}
+                        </div>
+                        <div className="text-sm text-gray-500 truncate">
+                          {user.email}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                            user.role === Role.SUPER_ADMIN
+                              ? "bg-purple-100 text-purple-800"
+                              : user.role === Role.ADMIN
+                              ? "bg-orange-100 text-orange-800"
+                              : user.role === Role.OWNER
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {RoleNames[user.role]}
+                        </span>
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                            user.isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {user.isActive ? "啟用" : "停用"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div>
+                        <span className="text-gray-500">電話：</span>
+                        <span className="text-gray-900">{user.phone || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">加盟店：</span>
+                        <span className="text-gray-900">{user.franchiseName || "-"}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                      {can(PermissionEnum.USER_UPDATE) && (
+                        <>
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg min-h-[44px] active:bg-blue-100"
+                          >
+                            編輯
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(user)}
+                            className="px-4 py-2 text-sm font-medium text-yellow-600 hover:bg-yellow-50 rounded-lg min-h-[44px] active:bg-yellow-100"
+                          >
+                            {user.isActive ? "停用" : "啟用"}
+                          </button>
+                        </>
+                      )}
+                      {can(PermissionEnum.USER_DELETE) &&
+                        user.role !== Role.SUPER_ADMIN && (
+                          <button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg min-h-[44px] active:bg-red-100"
+                          >
+                            刪除
+                          </button>
+                        )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 桌面版表格 */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
@@ -440,7 +556,9 @@ export default function UsersPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         角色
                       </th>
-
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        加盟店
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         電話
                       </th>
@@ -482,6 +600,9 @@ export default function UsersPage() {
                           >
                             {RoleNames[user.role]}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.franchiseName || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {user.phone || "-"}
@@ -541,26 +662,26 @@ export default function UsersPage() {
               </div>
 
               {/* 分頁 */}
-              <div className="px-6 py-4 border-t flex items-center justify-between">
-                <div className="text-sm text-gray-500">
+              <div className="px-4 md:px-6 py-4 border-t flex flex-col md:flex-row items-center justify-between gap-3">
+                <div className="text-sm text-gray-500 order-2 md:order-1">
                   顯示 {(page - 1) * pageSize + 1} 到{" "}
                   {Math.min(page * pageSize, total)} 筆，共 {total} 筆
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex gap-2 order-1 md:order-2 w-full md:w-auto justify-center">
                   <button
                     onClick={() => setPage(page - 1)}
                     disabled={page === 1}
-                    className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 md:flex-none px-4 py-2.5 md:py-1.5 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] md:min-h-0 text-sm font-medium"
                   >
                     上一頁
                   </button>
-                  <span className="px-3 py-1">
-                    第 {page} / {totalPages} 頁
+                  <span className="px-4 py-2.5 md:py-1.5 text-sm flex items-center whitespace-nowrap">
+                    {page} / {totalPages}
                   </span>
                   <button
                     onClick={() => setPage(page + 1)}
                     disabled={page >= totalPages}
-                    className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 md:flex-none px-4 py-2.5 md:py-1.5 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] md:min-h-0 text-sm font-medium"
                   >
                     下一頁
                   </button>
@@ -610,16 +731,16 @@ export default function UsersPage() {
 
       {/* 新增/編輯用戶表單 */}
       {showUserForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-4">
           <div
-            className={`bg-white rounded-lg w-full max-h-[90vh] flex flex-col ${
+            className={`bg-white rounded-lg w-full max-h-[95vh] md:max-h-[90vh] flex flex-col ${
               formMode === "edit" &&
               (formData.role === Role.STAFF || formData.role === Role.OWNER)
                 ? "max-w-5xl"
                 : "max-w-lg"
             }`}
           >
-            <div className="p-4 flex-shrink-0">
+            <div className="p-4 flex-shrink-0 border-b">
               <h3 className="text-lg font-bold text-gray-900">
                 {formMode === "create" ? "新增用戶" : "編輯用戶"}
               </h3>
@@ -648,7 +769,7 @@ export default function UsersPage() {
                     </h4>
 
                     {/* Email & 姓名 - 並排 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Email <span className="text-red-500">*</span>
@@ -660,7 +781,7 @@ export default function UsersPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, email: e.target.value })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                           placeholder="user@example.com"
                         />
                       </div>
@@ -675,14 +796,14 @@ export default function UsersPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, name: e.target.value })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                           placeholder="張三"
                         />
                       </div>
                     </div>
 
                     {/* 密碼 & 角色 - 並排 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           密碼{" "}
@@ -704,7 +825,7 @@ export default function UsersPage() {
                               password: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                           placeholder={
                             formMode === "create" ? "設定密碼" : "留空則不修改"
                           }
@@ -723,7 +844,7 @@ export default function UsersPage() {
                               role: e.target.value as Role,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                         >
                           {canManage(Role.STAFF) && (
                             <option value={Role.STAFF}>業務人員</option>
@@ -738,20 +859,47 @@ export default function UsersPage() {
                       </div>
                     </div>
 
-                    {/* 電話 */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        電話
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="0912-345-678"
-                      />
+                    {/* 電話 & 加盟店 - 並排 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          電話
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, phone: e.target.value })
+                          }
+                          className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
+                          placeholder="0912-345-678"
+                        />
+                      </div>
+                      {/* 加盟店選擇（僅 OWNER 和 STAFF 顯示） */}
+                      {(formData.role === Role.OWNER || formData.role === Role.STAFF) && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            所屬加盟店
+                          </label>
+                          <select
+                            value={formData.franchiseId ?? ""}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                franchiseId: e.target.value ? parseInt(e.target.value) : null,
+                              })
+                            }
+                            className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
+                          >
+                            <option value="">-- 未指定 --</option>
+                            {franchiseOptions.map((franchise) => (
+                              <option key={franchise.id} value={franchise.id}>
+                                [{franchise.code}] {franchise.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
 
                     {/* 狀態 */}
@@ -788,7 +936,7 @@ export default function UsersPage() {
                         </h4>
 
                         {/* 職稱 & Line ID - 並排 */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               職稱
@@ -802,7 +950,7 @@ export default function UsersPage() {
                                   position: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                               placeholder="例：業務經理"
                             />
                           </div>
@@ -819,7 +967,7 @@ export default function UsersPage() {
                                   lineId: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                               placeholder="例：@youshi_wang"
                             />
                           </div>
@@ -845,7 +993,7 @@ export default function UsersPage() {
                                   .filter((s) => s),
                               })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                             placeholder="例：製造業, 營建業, 大型企業專案"
                           />
                         </div>
@@ -861,7 +1009,7 @@ export default function UsersPage() {
                               setFormData({ ...formData, bio: e.target.value })
                             }
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm"
                             placeholder="簡短介紹自己的專業背景和服務理念..."
                           />
                         </div>
@@ -893,7 +1041,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 p-2  flex-shrink-0 bg-white">
+              <div className="flex justify-end gap-3 p-4 flex-shrink-0 bg-white border-t">
                 <button
                   type="button"
                   onClick={() => {
@@ -901,14 +1049,14 @@ export default function UsersPage() {
                     resetForm();
                   }}
                   disabled={creating || updating}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 bg-white"
+                  className="flex-1 md:flex-none px-4 py-3 md:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 bg-white min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={creating || updating}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 md:flex-none px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
                 >
                   {creating || updating
                     ? formMode === "create"

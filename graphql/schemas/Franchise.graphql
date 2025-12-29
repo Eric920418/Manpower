@@ -1,0 +1,85 @@
+# 加盟店類型
+type Franchise {
+  id: Int!
+  name: String!
+  code: String!
+  address: String
+  phone: String
+  email: String
+  description: String
+  isActive: Boolean!
+  userCount: Int!        # 該加盟店的用戶數量
+  createdAt: String!
+  updatedAt: String!
+}
+
+# 加盟店列表返回類型
+type FranchiseListResponse {
+  franchises: [Franchise!]!
+  total: Int!
+  page: Int!
+  pageSize: Int!
+  totalPages: Int!
+}
+
+# 加盟店簡易資訊（用於下拉選單）
+type FranchiseOption {
+  id: Int!
+  name: String!
+  code: String!
+}
+
+# 查詢輸入
+input FranchiseFilterInput {
+  search: String
+  isActive: Boolean
+}
+
+# 創建加盟店輸入
+input CreateFranchiseInput {
+  name: String!
+  code: String!
+  address: String
+  phone: String
+  email: String
+  description: String
+  isActive: Boolean
+}
+
+# 更新加盟店輸入
+input UpdateFranchiseInput {
+  name: String
+  code: String
+  address: String
+  phone: String
+  email: String
+  description: String
+  isActive: Boolean
+}
+
+# 查詢
+extend type Query {
+  # 獲取加盟店列表（分頁）
+  franchises(page: Int, pageSize: Int, filter: FranchiseFilterInput): FranchiseListResponse!
+
+  # 獲取單個加盟店
+  franchise(id: Int!): Franchise
+
+  # 獲取加盟店選項列表（用於下拉選單）
+  franchiseOptions: [FranchiseOption!]!
+}
+
+# 操作
+extend type Mutation {
+  # 創建加盟店
+  createFranchise(input: CreateFranchiseInput!): Franchise!
+
+  # 更新加盟店
+  updateFranchise(id: Int!, input: UpdateFranchiseInput!): Franchise!
+
+  # 刪除加盟店
+  deleteFranchise(id: Int!): Boolean!
+
+  # 切換加盟店狀態
+  toggleFranchiseStatus(id: Int!): Franchise!
+}

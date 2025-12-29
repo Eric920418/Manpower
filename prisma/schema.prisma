@@ -56,6 +56,28 @@ model Navigation {
   @@index([parentId, order])
 }
 
+// ==================== 加盟店管理 ====================
+model Franchise {
+  id          Int       @id @default(autoincrement())
+  name        String    // 加盟店名稱
+  code        String    @unique // 加盟店代碼（唯一識別碼）
+  address     String?   // 地址
+  phone       String?   // 電話
+  email       String?   // Email
+  description String?   @db.Text // 描述
+  isActive    Boolean   @default(true)
+
+  // 關聯
+  users             User[]            @relation("FranchiseUsers")
+  manpowerRequests  ManpowerRequest[] @relation("FranchiseRequests")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+}
+
 // ==================== 用戶與權限 ====================
 enum Role {
   SUPER_ADMIN  // 超級管理員 - 系統最高權限，可管理所有功能
@@ -75,6 +97,10 @@ model User {
   avatar       String?
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
+
+  // 加盟店關聯（OWNER 和 STAFF 所屬的加盟店）
+  franchiseId  Int?
+  franchise    Franchise? @relation("FranchiseUsers", fields: [franchiseId], references: [id])
 
   // 業務人員展示欄位
   position     String?   // 職稱（如：業務經理、資深業務專員）
@@ -118,6 +144,7 @@ model User {
 
   @@index([role, isActive])
   @@index([invitationCode])
+  @@index([franchiseId, role])
 }
 
 // 活動日誌
@@ -184,6 +211,10 @@ model ManpowerRequest {
   invitedBy             String?   // 邀請人 userId
   inviter               User?     @relation("InvitedBy", fields: [invitedBy], references: [id])
 
+  // 加盟店關聯（記錄需求單屬於哪個加盟店，用於資料隔離）
+  franchiseId           Int?
+  franchise             Franchise? @relation("FranchiseRequests", fields: [franchiseId], references: [id])
+
   // 處理資訊
   notes                 String?   @db.Text // 管理員處理備註
   processedBy           String?
@@ -203,6 +234,7 @@ model ManpowerRequest {
   @@index([invitedBy, createdAt(sort: Desc)])
   @@index([status, processedAt(sort: Desc)])
   @@index([invitedBy, status, createdAt(sort: Desc)])
+  @@index([franchiseId, status, createdAt(sort: Desc)])
 }
 
 // ==================== 行政事務簽核 ====================
@@ -218,6 +250,8 @@ model TaskType {
   // 自訂問題設定（JSON 陣列）
   // 格式：[{ id, label, type, options?, required?, trigger?: { answer, taskTypeId } }]
   questions   Json        @default("[]")
+  // 任務標題 placeholder（用於新增行政任務時的輸入提示）
+  titlePlaceholder String?
   // 節點位置（用於流程圖顯示）
   positionX   Float?      // X 座標
   positionY   Float?      // Y 座標

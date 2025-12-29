@@ -83,6 +83,7 @@ const formatTaskTypeBasic = (taskType: {
   code: string;
   label: string;
   description: string | null;
+  titlePlaceholder?: string | null;
   order: number;
   isActive: boolean;
   questions?: unknown;
@@ -95,6 +96,7 @@ const formatTaskTypeBasic = (taskType: {
   code: taskType.code,
   label: taskType.label,
   description: taskType.description,
+  titlePlaceholder: taskType.titlePlaceholder ?? null,
   order: taskType.order,
   isActive: taskType.isActive,
   questions: formatQuestions(taskType.questions),
@@ -126,6 +128,7 @@ interface TaskTypeWithAssignments {
   code: string;
   label: string;
   description: string | null;
+  titlePlaceholder?: string | null;
   order: number;
   isActive: boolean;
   questions?: unknown;
@@ -164,6 +167,7 @@ const formatTaskType = (taskType: TaskTypeWithAssignments) => ({
   code: taskType.code,
   label: taskType.label,
   description: taskType.description,
+  titlePlaceholder: taskType.titlePlaceholder ?? null,
   order: taskType.order,
   isActive: taskType.isActive,
   questions: formatQuestions(taskType.questions),
@@ -254,6 +258,7 @@ export const taskTypeResolvers = {
           code: string;
           label: string;
           description?: string;
+          titlePlaceholder?: string;
           order?: number;
           questions?: Array<{
             id?: string;
@@ -308,6 +313,7 @@ export const taskTypeResolvers = {
           code: args.input.code,
           label: args.input.label,
           description: args.input.description,
+          titlePlaceholder: args.input.titlePlaceholder,
           order,
           questions,
           positionX: args.input.positionX,
@@ -342,6 +348,7 @@ export const taskTypeResolvers = {
           code?: string;
           label?: string;
           description?: string;
+          titlePlaceholder?: string;
           order?: number;
           isActive?: boolean;
           questions?: Array<{
@@ -395,12 +402,17 @@ export const taskTypeResolvers = {
         }));
       }
 
+      // 除錯日誌
+      console.log("[updateTaskType] Input received:", JSON.stringify(args.input, null, 2));
+      console.log("[updateTaskType] titlePlaceholder value:", args.input.titlePlaceholder);
+
       const taskType = await prisma.taskType.update({
         where: { id: args.input.id },
         data: {
           code: args.input.code,
           label: args.input.label,
           description: args.input.description,
+          titlePlaceholder: args.input.titlePlaceholder,
           order: args.input.order,
           isActive: args.input.isActive,
           ...(questions !== undefined && { questions }),
@@ -566,6 +578,7 @@ export const taskTypeResolvers = {
               code: existing.code,
               label: existing.label,
               description: existing.description,
+              titlePlaceholder: existing.titlePlaceholder,
               order: existing.order,
               isActive: existing.isActive,
               questions: existing.questions,

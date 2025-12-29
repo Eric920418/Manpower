@@ -55,11 +55,35 @@ export const manpowerRequestResolvers = {
         // 構建查詢條件
         const where: any = {};
 
-        // 業務人員 (STAFF) 只能看到自己介紹的客戶
-        // SUPER_ADMIN 和 OWNER 可以看到所有客戶
+        // 根據角色設定資料隔離
         if (context.user.role === "STAFF") {
+          // 業務人員只能看到自己介紹的客戶
           where.invitedBy = context.user.id;
+        } else if (context.user.role === "OWNER") {
+          // 業主只能看到自己加盟店的需求單
+          // 先獲取用戶的加盟店 ID
+          const currentUser = await prisma.user.findUnique({
+            where: { id: context.user.id },
+            select: { franchiseId: true },
+          });
+
+          if (currentUser?.franchiseId) {
+            // 有加盟店的業主：只能看到該加盟店的需求單
+            // 需求單必須是同一加盟店的人介紹的，或者需求單本身標記為該加盟店
+            where.OR = [
+              { franchiseId: currentUser.franchiseId },
+              {
+                inviter: {
+                  franchiseId: currentUser.franchiseId,
+                },
+              },
+            ];
+          } else {
+            // 沒有加盟店的業主：只能看到自己介紹的客戶（與 STAFF 相同）
+            where.invitedBy = context.user.id;
+          }
         }
+        // SUPER_ADMIN 和 ADMIN 可以看到所有需求單，不加額外條件
 
         if (filter) {
           if (filter.status) {
@@ -187,12 +211,37 @@ export const manpowerRequestResolvers = {
       }
 
       try {
-        // 業務人員 (STAFF) 只統計自己介紹的客戶
-        // SUPER_ADMIN 和 OWNER 可以看到所有統計
-        const baseWhere =
-          context.user.role === "STAFF"
-            ? { invitedBy: context.user.id }
-            : {};
+        // 根據角色設定統計範圍
+        let baseWhere: any = {};
+
+        if (context.user.role === "STAFF") {
+          // 業務人員只統計自己介紹的客戶
+          baseWhere = { invitedBy: context.user.id };
+        } else if (context.user.role === "OWNER") {
+          // 業主只統計自己加盟店的需求單
+          const currentUser = await prisma.user.findUnique({
+            where: { id: context.user.id },
+            select: { franchiseId: true },
+          });
+
+          if (currentUser?.franchiseId) {
+            // 有加盟店的業主：只統計該加盟店的需求單
+            baseWhere = {
+              OR: [
+                { franchiseId: currentUser.franchiseId },
+                {
+                  inviter: {
+                    franchiseId: currentUser.franchiseId,
+                  },
+                },
+              ],
+            };
+          } else {
+            // 沒有加盟店的業主：只統計自己介紹的客戶
+            baseWhere = { invitedBy: context.user.id };
+          }
+        }
+        // SUPER_ADMIN 和 ADMIN 可以看到所有統計
 
         const [total, pending, processing, completed, rejected, cancelled] =
           await Promise.all([
@@ -280,6 +329,12 @@ export const manpowerRequestResolvers = {
           expectedStartDate = new Date(input.expectedStartDate);
         }
 
+        // 獲取創建者的加盟店 ID（用於資料隔離）
+        const currentUser = await prisma.user.findUnique({
+          where: { id: context.user.id },
+          select: { franchiseId: true },
+        });
+
         // 建立人力需求
         const request = await prisma.manpowerRequest.create({
           data: {
@@ -291,6 +346,7 @@ export const manpowerRequestResolvers = {
             contactEmail: input.contactEmail || null,
             lineId: input.lineId || null,
             qualifications: input.qualifications || null,
+            franchiseId: currentUser?.franchiseId || null, // 記錄加盟店 ID
             positionTitle: input.positionTitle || null,
             jobDescription: input.jobDescription || null,
             quantity: input.quantity || 1,

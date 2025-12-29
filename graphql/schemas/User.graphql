@@ -19,6 +19,9 @@ type User {
   lastLoginAt: String
   invitationCode: String      # 邀請碼（SUPER_ADMIN 除外）
   invitationCount: Int!       # 成功邀請次數
+  # 加盟店資訊
+  franchiseId: Int
+  franchiseName: String       # 加盟店名稱（便於前端顯示）
   # 業務人員展示欄位
   position: String
   bio: String
@@ -90,6 +93,8 @@ input UpdateUserInput {
   phone: String
   avatar: String
   isActive: Boolean
+  # 加盟店資訊
+  franchiseId: Int
   # 業務人員展示欄位
   position: String
   bio: String
@@ -106,10 +111,11 @@ type InvitationCodeValidation {
   message: String
 }
 
-# 業務人員簡易資訊（公開 API 用）
+# 業務人員簡易資訊（公開 API 用，包含業主和業務人員）
 type StaffInfo {
   id: ID!
   name: String!
+  role: Role!
 }
 
 # 業務人員完整資訊（公開展示頁面用）

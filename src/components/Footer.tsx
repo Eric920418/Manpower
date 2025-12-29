@@ -113,16 +113,27 @@ export default function Footer({
 
           {/* Google Maps */}
           <div className="lg:col-span-6 w-full h-64 md:h-auto rounded-lg overflow-hidden">
-            <iframe
-              src={map.embedUrl}
-              width="600"
-              height="450"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="w-full h-full"
-            />
+            {map.embedUrl && (
+              <iframe
+                src={(() => {
+                  // 支援兩種格式：純 URL 或包含 iframe 的 HTML
+                  const url = map.embedUrl.trim();
+                  if (url.startsWith('https://')) {
+                    return url;
+                  }
+                  // 從 HTML 中提取 src URL
+                  const match = url.match(/src="([^"]+)"/);
+                  return match ? match[1] : '';
+                })()}
+                width="600"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full h-full"
+              />
+            )}
           </div>
         </div>
 

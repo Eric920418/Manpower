@@ -127,18 +127,20 @@ export default function AssignTaskPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 過濾可指派的用戶（排除超級管理員，且只能指派給階級比自己低的用戶）
+  // 過濾可指派的用戶（排除超級管理員和自己，可指派給同級或較低階級的用戶）
   const assignableUsers = useMemo(() => {
-    if (!userRole) return [];
+    if (!userRole || !session?.user?.id) return [];
     const currentLevel = roleHierarchy[userRole] || 0;
     return allUsers.filter(user => {
+      // 排除自己
+      if (user.id === session.user.id) return false;
       // 排除超級管理員
       if (user.role === 'SUPER_ADMIN') return false;
-      // 只能指派給階級比自己低的用戶
+      // 可指派給同級或較低階級的用戶
       const userLevel = roleHierarchy[user.role] || 0;
-      return userLevel < currentLevel;
+      return userLevel <= currentLevel;
     });
-  }, [allUsers, userRole]);
+  }, [allUsers, userRole, session?.user?.id]);
 
   // 按角色分組用戶
   const groupedUsers = useMemo(() => {

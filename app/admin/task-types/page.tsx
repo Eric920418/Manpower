@@ -59,6 +59,7 @@ interface TaskType {
   code: string;
   label: string;
   description: string | null;
+  titlePlaceholder: string | null;
   order: number;
   isActive: boolean;
   questions: Question[];
@@ -95,6 +96,7 @@ export default function TaskTypesPage() {
   const [formData, setFormData] = useState({
     label: "",
     description: "",
+    titlePlaceholder: "",
   });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
@@ -136,6 +138,7 @@ export default function TaskTypesPage() {
             code
             label
             description
+            titlePlaceholder
             order
             isActive
             questions {
@@ -223,7 +226,7 @@ export default function TaskTypesPage() {
   // 開啟新增模態框
   const handleAdd = () => {
     setEditingType(null);
-    setFormData({ label: "", description: "" });
+    setFormData({ label: "", description: "", titlePlaceholder: "" });
     setQuestions([]);
     setShowModal(true);
   };
@@ -234,6 +237,7 @@ export default function TaskTypesPage() {
     setFormData({
       label: type.label,
       description: type.description || "",
+      titlePlaceholder: type.titlePlaceholder || "",
     });
     setQuestions(type.questions || []);
     setShowModal(true);
@@ -307,6 +311,7 @@ export default function TaskTypesPage() {
             id: typeof editingType.id === 'string' ? parseInt(editingType.id, 10) : editingType.id,
             label: formData.label,
             description: formData.description || null,
+            titlePlaceholder: formData.titlePlaceholder || null,
             questions: questionsInput,
           },
         };
@@ -345,6 +350,7 @@ export default function TaskTypesPage() {
             code: generateCode(formData.label),
             label: formData.label,
             description: formData.description || null,
+            titlePlaceholder: formData.titlePlaceholder || null,
             questions: questionsInput,
           },
         };
@@ -1182,6 +1188,27 @@ export default function TaskTypesPage() {
                         placeholder="選填"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        任務標題提示文字
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.titlePlaceholder}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            titlePlaceholder: e.target.value,
+                          })
+                        }
+                        placeholder="例如：請輸入雇主姓名"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        此文字將顯示於新增行政申請時的任務標題輸入框中
+                      </p>
                     </div>
 
                     {editingType &&

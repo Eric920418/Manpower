@@ -339,11 +339,30 @@ export default function ManpowerRequestForm() {
                 <option value="">
                   {staffLoading ? "載入中..." : "-- 請選擇介紹人 --"}
                 </option>
-                {staffList.map((staff) => (
-                  <option key={staff.id} value={staff.id}>
-                    {staff.name}
-                  </option>
-                ))}
+                {/* 業主分組 */}
+                {staffList.some((s) => s.role === "OWNER") && (
+                  <optgroup label="業主">
+                    {staffList
+                      .filter((staff) => staff.role === "OWNER")
+                      .map((staff) => (
+                        <option key={staff.id} value={staff.id}>
+                          {staff.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+                {/* 業務人員分組 */}
+                {staffList.some((s) => s.role === "STAFF") && (
+                  <optgroup label="業務人員">
+                    {staffList
+                      .filter((staff) => staff.role === "STAFF")
+                      .map((staff) => (
+                        <option key={staff.id} value={staff.id}>
+                          {staff.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
               </select>
               <div className="mt-1 text-xs text-gray-500">
                 如果您是經由業務人員介紹，請選擇該業務人員
