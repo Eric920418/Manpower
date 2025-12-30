@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -259,6 +259,9 @@ function AdminTasksContent() {
 
   // 複審確認狀態
   const [togglingReviewId, setTogglingReviewId] = useState<number | null>(null);
+
+  // 待處理任務提醒面板狀態
+  const [showReminderPanel, setShowReminderPanel] = useState(false);
 
   // 編輯模式狀態（用於「要求修改」狀態時編輯任務）
   const [isEditMode, setIsEditMode] = useState(false);
@@ -795,6 +798,43 @@ function AdminTasksContent() {
       return next;
     });
   };
+
+  // 自動展開已完成主任務的群組（讓使用者知道有後續任務）
+  // 使用 useRef 追蹤已自動展開的群組，避免重複展開
+  const autoExpandedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const groupsToExpand: string[] = [];
+    for (const item of groupedTasks) {
+      if (
+        item.type === "group" &&
+        item.task.groupId &&
+        item.children &&
+        item.children.length > 0
+      ) {
+        // 主任務已完成或已複審
+        const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+        // 檢查是否有未完成的子任務
+        const hasIncompleteChild = item.children.some(
+          (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
+        );
+        // 如果主任務已完成且有未完成子任務，且尚未自動展開過，則自動展開
+        if (mainTaskCompleted && hasIncompleteChild && !autoExpandedRef.current.has(item.task.groupId)) {
+          groupsToExpand.push(item.task.groupId);
+          autoExpandedRef.current.add(item.task.groupId);
+        }
+      }
+    }
+    if (groupsToExpand.length > 0) {
+      setExpandedGroups((prev) => {
+        const next = new Set(prev);
+        for (const groupId of groupsToExpand) {
+          next.add(groupId);
+        }
+        return next;
+      });
+    }
+  }, [groupedTasks]);
 
   // 創建任務
   const handleCreateTask = async () => {
@@ -1704,17 +1744,177 @@ function AdminTasksContent() {
     );
   }
 
+  // 計算待處理任務數量（根據用戶在案件中的角色）
+  const currentUserId = session?.user?.id;
+
+  // 待處理：用戶是負責人/處理人/審批人
+  const myPendingTasks = tasks.filter(t =>
+    t.status === "PENDING" &&
+    (t.processor?.id === currentUserId ||
+     t.approver?.id === currentUserId ||
+     t.handlers?.some(h => h.id === currentUserId))
+  ).length;
+
+  // 待補件：用戶是申請人
+  const myPendingDocsTasks = tasks.filter(t =>
+    t.status === "PENDING_DOCUMENTS" &&
+    t.applicant?.id === currentUserId
+  ).length;
+
+  // 要求修改：用戶是申請人
+  const myRevisionTasks = tasks.filter(t =>
+    t.status === "REVISION_REQUESTED" &&
+    t.applicant?.id === currentUserId
+  ).length;
+
+  // 待複審打勾：用戶是複審人
+  const myAwaitingReviewCheck = tasks.filter(t =>
+    t.status === "APPROVED" &&
+    t.reviewers?.some(r => r.id === currentUserId) &&
+    !t.reviewedAt
+  ).length;
+
+  const totalPendingCount = myPendingTasks + myPendingDocsTasks + myRevisionTasks + myAwaitingReviewCheck;
+
   return (
     <AdminLayout>
       <div className="max-w-full overflow-x-hidden">
-        {/* 頁面標題 */}
-        <div className="mb-4 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
-              行政事務管理
-            </h1>
-            <p className="text-sm md:text-base text-gray-600">管理所有行政申請單與審批流程</p>
+        {/* 頂部工具列 */}
+        <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* 左側：待處理任務提醒 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowReminderPanel(!showReminderPanel)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all ${
+                totalPendingCount > 0
+                  ? "bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100"
+                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span className="font-medium">待處理任務</span>
+              {totalPendingCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold bg-red-500 text-white rounded-full">
+                  {totalPendingCount}
+                </span>
+              )}
+              <svg className={`w-4 h-4 transition-transform ${showReminderPanel ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* 下拉面板 */}
+            {showReminderPanel && (
+              <div className="absolute left-0 top-full mt-2 w-80 md:w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                <div className="p-3 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-800">需要您處理的任務</h3>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto">
+                  {/* 待處理：用戶是負責人/處理人 */}
+                  {myPendingTasks > 0 && (
+                    <div className="border-b border-gray-100">
+                      <button
+                        onClick={() => {
+                          setStatusFilter("PENDING");
+                          setCurrentPage(1);
+                          setShowReminderPanel(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-yellow-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+                          <span className="text-gray-700">待處理</span>
+                          <span className="text-xs text-gray-400">（您是負責人）</span>
+                        </div>
+                        <span className="px-2.5 py-1 text-sm font-semibold bg-yellow-100 text-yellow-800 rounded-full">
+                          {myPendingTasks}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                  {/* 待補件：用戶是申請人 */}
+                  {myPendingDocsTasks > 0 && (
+                    <div className="border-b border-gray-100">
+                      <button
+                        onClick={() => {
+                          setStatusFilter("PENDING_DOCUMENTS");
+                          setCurrentPage(1);
+                          setShowReminderPanel(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-orange-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-3 h-3 rounded-full bg-orange-500"></span>
+                          <span className="text-gray-700">待補件</span>
+                          <span className="text-xs text-gray-400">（您是申請人）</span>
+                        </div>
+                        <span className="px-2.5 py-1 text-sm font-semibold bg-orange-100 text-orange-800 rounded-full">
+                          {myPendingDocsTasks}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                  {/* 待複審打勾：用戶是複審人 */}
+                  {myAwaitingReviewCheck > 0 && (
+                    <div className="border-b border-gray-100">
+                      <button
+                        onClick={() => {
+                          setStatusFilter("AWAITING_REVIEW_CHECK");
+                          setCurrentPage(1);
+                          setShowReminderPanel(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-purple-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                          <span className="text-gray-700">待複審打勾</span>
+                          <span className="text-xs text-gray-400">（您是複審人）</span>
+                        </div>
+                        <span className="px-2.5 py-1 text-sm font-semibold bg-purple-100 text-purple-800 rounded-full">
+                          {myAwaitingReviewCheck}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                  {/* 要求修改：用戶是申請人 */}
+                  {myRevisionTasks > 0 && (
+                    <div className="border-b border-gray-100">
+                      <button
+                        onClick={() => {
+                          setStatusFilter("REVISION_REQUESTED");
+                          setCurrentPage(1);
+                          setShowReminderPanel(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-pink-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-3 h-3 rounded-full bg-pink-500"></span>
+                          <span className="text-gray-700">要求修改</span>
+                          <span className="text-xs text-gray-400">（您是申請人）</span>
+                        </div>
+                        <span className="px-2.5 py-1 text-sm font-semibold bg-pink-100 text-pink-800 rounded-full">
+                          {myRevisionTasks}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                  {/* 無待處理任務 */}
+                  {totalPendingCount === 0 && (
+                    <div className="px-4 py-8 text-center text-gray-500">
+                      <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p>目前沒有待處理的任務</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* 右側：搜尋和新增 */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             {/* 關鍵字搜尋 */}
             <div className="relative">
@@ -1759,61 +1959,72 @@ function AdminTasksContent() {
           </div>
         </div>
 
-        {/* 統計卡片 */}
+        {/* 統計卡片 - 可點擊快速篩選 */}
         {stats && (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 md:gap-3 mb-4 md:mb-8">
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500">
+            <button
+              onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "all" ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">總計</p>
               <p className="text-lg md:text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-yellow-500">
+            </button>
+            <button
+              onClick={() => { setStatusFilter("PENDING"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-yellow-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING" ? "ring-2 ring-yellow-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待處理</p>
-              <p className="text-lg md:text-2xl font-bold text-yellow-600">
-                {stats.pending}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400">
+              <p className="text-lg md:text-2xl font-bold text-yellow-600">{stats.pending}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("PENDING_DOCUMENTS"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING_DOCUMENTS" ? "ring-2 ring-orange-400 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待補件</p>
-              <p className="text-lg md:text-2xl font-bold text-orange-500">
-                {stats.pendingDocuments}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-pink-500">
+              <p className="text-lg md:text-2xl font-bold text-orange-500">{stats.pendingDocuments}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("REVISION_REQUESTED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-pink-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REVISION_REQUESTED" ? "ring-2 ring-pink-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">要求修改</p>
-              <p className="text-lg md:text-2xl font-bold text-pink-600">
-                {stats.revisionRequested}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500">
+              <p className="text-lg md:text-2xl font-bold text-pink-600">{stats.revisionRequested}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("APPROVED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "APPROVED" ? "ring-2 ring-green-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已批准</p>
-              <p className="text-lg md:text-2xl font-bold text-green-600">
-                {stats.approved}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-red-500">
+              <p className="text-lg md:text-2xl font-bold text-green-600">{stats.approved}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("REJECTED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-red-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REJECTED" ? "ring-2 ring-red-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已退回</p>
-              <p className="text-lg md:text-2xl font-bold text-red-600">
-                {stats.rejected}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-gray-500">
+              <p className="text-lg md:text-2xl font-bold text-red-600">{stats.rejected}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("COMPLETED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-gray-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "COMPLETED" ? "ring-2 ring-gray-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已完成</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-600">
-                {stats.completed}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-indigo-500">
+              <p className="text-lg md:text-2xl font-bold text-gray-600">{stats.completed}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("REVIEWED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-indigo-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REVIEWED" ? "ring-2 ring-indigo-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已複審</p>
-              <p className="text-lg md:text-2xl font-bold text-indigo-600">
-                {stats.reviewed}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-purple-500">
+              <p className="text-lg md:text-2xl font-bold text-indigo-600">{stats.reviewed}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("OVERDUE"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-purple-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "OVERDUE" ? "ring-2 ring-purple-500 ring-offset-1" : ""}`}
+            >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">逾期</p>
-              <p className="text-lg md:text-2xl font-bold text-purple-600">
-                {stats.overdue}
-              </p>
-            </div>
+              <p className="text-lg md:text-2xl font-bold text-purple-600">{stats.overdue}</p>
+            </button>
           </div>
         )}
 
@@ -1927,14 +2138,26 @@ function AdminTasksContent() {
                 <div key={`mobile-${item.task.id}`} className="p-3">
                   {/* 標題列：展開按鈕 + 標題 + 狀態 */}
                   <div className="flex items-center gap-2 mb-2">
-                    {item.type === "group" && item.children && item.children.length > 0 && (
-                      <button
-                        onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
-                        className="p-1.5 hover:bg-gray-200 rounded transition-colors text-gray-500 flex-shrink-0"
-                      >
-                        {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
-                      </button>
-                    )}
+                    {item.type === "group" && item.children && item.children.length > 0 && (() => {
+                      const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                      const hasIncompleteChild = item.children?.some(
+                        (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
+                      );
+                      const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
+                      return (
+                        <button
+                          onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
+                          className={`p-1.5 rounded transition-colors flex-shrink-0 ${
+                            shouldHighlight
+                              ? "bg-orange-100 text-orange-600 hover:bg-orange-200 animate-pulse"
+                              : "hover:bg-gray-200 text-gray-500"
+                          }`}
+                          title={shouldHighlight ? "有後續任務待處理，點擊展開查看" : "點擊展開/收起關聯任務"}
+                        >
+                          {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
+                        </button>
+                      );
+                    })()}
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-gray-900 line-clamp-2">{item.task.title}</span>
                     </div>
@@ -1967,9 +2190,19 @@ function AdminTasksContent() {
                   </div>
 
                   {/* 群組標記 */}
-                  {item.type === "group" && item.children && item.children.length > 0 && (
-                    <div className="text-xs text-blue-600 font-medium mb-2">📎 {item.children.length + 1} 個關聯</div>
-                  )}
+                  {item.type === "group" && item.children && item.children.length > 0 && (() => {
+                    const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                    const hasIncompleteChild = item.children?.some(
+                      (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
+                    );
+                    const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
+                    return (
+                      <div className={`text-xs font-medium mb-2 ${shouldHighlight ? "text-orange-600" : "text-blue-600"}`}>
+                        📎 {item.children.length + 1} 個關聯
+                        {shouldHighlight && <span className="ml-1 text-orange-500">⚠️ 有待處理</span>}
+                      </div>
+                    );
+                  })()}
 
                   {/* 操作按鈕 */}
                   <div className="flex gap-2 pt-2 border-t border-gray-100">
@@ -2102,24 +2335,44 @@ function AdminTasksContent() {
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             {/* 展開/收起按鈕（僅群組顯示） */}
-                            {item.type === "group" && item.children && item.children.length > 0 && (
-                              <button
-                                onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
-                                className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500"
-                              >
-                                {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
-                              </button>
-                            )}
+                            {item.type === "group" && item.children && item.children.length > 0 && (() => {
+                              const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                              const hasIncompleteChild = item.children?.some(
+                                (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
+                              );
+                              const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
+                              return (
+                                <button
+                                  onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
+                                  className={`p-1 rounded transition-colors ${
+                                    shouldHighlight
+                                      ? "bg-orange-100 text-orange-600 hover:bg-orange-200 animate-pulse"
+                                      : "hover:bg-gray-200 text-gray-500"
+                                  }`}
+                                  title={shouldHighlight ? "有後續任務待處理，點擊展開查看" : "點擊展開/收起關聯任務"}
+                                >
+                                  {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
+                                </button>
+                              );
+                            })()}
                             <div>
                               <div className="text-sm font-medium text-gray-900 max-w-[180px] truncate">
                                 {item.task.title}
                               </div>
                               {/* 群組標記 */}
-                              {item.type === "group" && item.children && item.children.length > 0 && (
-                                <span className="text-xs text-blue-600 font-medium">
-                                  📎 {item.children.length + 1} 個關聯
-                                </span>
-                              )}
+                              {item.type === "group" && item.children && item.children.length > 0 && (() => {
+                                const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                                const hasIncompleteChild = item.children?.some(
+                                  (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
+                                );
+                                const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
+                                return (
+                                  <span className={`text-xs font-medium ${shouldHighlight ? "text-orange-600" : "text-blue-600"}`}>
+                                    📎 {item.children.length + 1} 個關聯
+                                    {shouldHighlight && <span className="ml-1 text-orange-500">⚠️ 有待處理</span>}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
                         </td>

@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePermission } from "@/hooks/usePermission";
 import { RoleNames, Permission } from "@/lib/permissions";
@@ -10,22 +10,20 @@ import { RoleNames, Permission } from "@/lib/permissions";
 interface MenuItem {
   label: string;
   href: string;
-  permission?: Permission; // 需要的權限（可選，如果沒有則檢查分組權限）
+  permission?: Permission;
 }
 
 interface MenuGroup {
   title: string;
-  roles: string[]; // 哪些角色可以看到這個分組
-  permissions?: Permission[]; // 或者擁有這些權限之一也可以看到
+  roles: string[];
+  permissions?: Permission[];
   items: MenuItem[];
 }
 
-// 分組選單結構
-// 分組會顯示給：1. 角色在 roles 列表中的用戶，或 2. 擁有分組內任何項目權限的用戶
 const menuGroups: MenuGroup[] = [
   {
     title: "管理員操作",
-    roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'], // 所有角色都可能看到此分組，但顯示哪些項目取決於權限
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'],
     permissions: ['dashboard:view', 'admin_task:read', 'admin_task:create', 'task_assignment:assign', 'form:read', 'user:read'],
     items: [
       { label: "儀表板", href: "/admin/dashboard", permission: 'dashboard:view' },
@@ -38,10 +36,9 @@ const menuGroups: MenuGroup[] = [
   },
   {
     title: "網站內容",
-    roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'], // 所有角色都可能看到此分組
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'],
     permissions: ['web_content:read', 'web_content:update'],
     items: [
-      // 有 web_content:read 權限就能看到所有項目，有 web_content:update 才能編輯
       { label: "首頁內容", href: "/admin/home-page", permission: 'web_content:read' },
       { label: "聯絡我們", href: "/admin/contact-page", permission: 'web_content:read' },
       { label: "申請流程", href: "/admin/application-process", permission: 'web_content:read' },
@@ -76,43 +73,67 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const { getRole, can, canAny } = usePermission();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const { getRole, can } = usePermission();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const startYRef = useRef(0);
 
-  // 從 localStorage 讀取展開狀態
-  useEffect(() => {
-    const saved = localStorage.getItem("admin-sidebar-expanded");
-    if (saved) {
-      try {
-        setExpandedGroups(JSON.parse(saved));
-      } catch {
-        // 預設全部展開
-        const defaultExpanded: Record<string, boolean> = {};
-        menuGroups.forEach((group) => {
-          defaultExpanded[group.title] = true;
-        });
-        setExpandedGroups(defaultExpanded);
-      }
-    } else {
-      // 預設全部展開
-      const defaultExpanded: Record<string, boolean> = {};
-      menuGroups.forEach((group) => {
-        defaultExpanded[group.title] = true;
-      });
-      setExpandedGroups(defaultExpanded);
-    }
-  }, []);
-
-  // 保存展開狀態到 localStorage
-  const toggleGroup = (title: string) => {
-    setExpandedGroups((prev) => {
-      const newState = { ...prev, [title]: !prev[title] };
-      localStorage.setItem("admin-sidebar-expanded", JSON.stringify(newState));
-      return newState;
-    });
+  // 處理拖拉開始
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    startYRef.current = clientY - dragOffset;
   };
+
+  // 處理拖拉移動
+  useEffect(() => {
+    const handleDragMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging) return;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      const newOffset = Math.max(0, Math.min(clientY - startYRef.current, 400));
+      setDragOffset(newOffset);
+    };
+
+    const handleDragEnd = () => {
+      if (!isDragging) return;
+      setIsDragging(false);
+      // 如果拖拉超過 100px，展開選單；否則收起
+      if (dragOffset > 100) {
+        setMenuOpen(true);
+        setDragOffset(0);
+      } else {
+        setMenuOpen(false);
+        setDragOffset(0);
+      }
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleDragMove);
+      window.addEventListener('touchend', handleDragEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleDragMove);
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [isDragging, dragOffset]);
+
+  // 點擊選單外關閉
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) && menuOpen) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -142,7 +163,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const userRole = getRole();
 
-  // 根據路徑獲取當前頁面標題
   const getCurrentPageTitle = () => {
     for (const group of menuGroups) {
       for (const item of group.items) {
@@ -156,275 +176,117 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const currentPageTitle = getCurrentPageTitle();
 
-  // 過濾分組，只顯示用戶有權限的分組
-  // 每個項目都會根據其 permission 進行檢查
   const visibleMenuGroups = menuGroups
     .map((group) => ({
       ...group,
-      // 過濾分組內的項目，只顯示用戶有權限的項目
       items: group.items.filter((item) => {
         if (!userRole) return false;
-        // 如果項目沒有指定權限，則顯示（依賴角色檢查）
         if (!item.permission) return group.roles.includes(userRole);
-        // 檢查具體權限
         return can(item.permission);
       }),
     }))
-    .filter((group) => group.items.length > 0); // 過濾掉沒有可見項目的分組
+    .filter((group) => group.items.length > 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* 側邊欄 - 桌面版 */}
-      <aside
-        className={`${
-          sidebarOpen ? "w-48" : "w-12"
-        } bg-gray-900 text-white transition-all duration-300 hidden lg:block fixed h-full z-30`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo 區域 */}
-          <div className="p-4 border-b border-gray-800">
-            <div className="flex items-center justify-between">
-              {sidebarOpen && (
-                <div>
-                  <h1 className="text-xl font-bold">佑羲人力系統</h1>
-                </div>
-              )}
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 hover:bg-gray-800 rounded transition"
-              >
-                {sidebarOpen ? "◀" : "▶"}
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* 遮罩層 */}
+      <div
+        className={`fixed inset-0 bg-black transition-opacity duration-300 z-40 ${
+          menuOpen ? 'opacity-50 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setMenuOpen(false)}
+      />
 
-          {/* 用戶資訊 */}
-          {sidebarOpen && (
-            <div className="p-4 border-b border-gray-800">
+      {/* 頂部布簾式選單 */}
+      <div ref={menuRef} className="fixed top-0 left-0 right-0 z-50">
+        {/* 選單內容 */}
+        <div
+          className="bg-gray-900 text-white overflow-hidden transition-all duration-300 ease-out"
+          style={{
+            maxHeight: menuOpen ? '80vh' : isDragging ? `${dragOffset}px` : '0px',
+          }}
+        >
+          <div className="max-w-6xl mx-auto px-4 py-6">
+            {/* 頂部資訊列 */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
               <div>
-                <p className="text-sm font-semibold truncate">
-                  {session.user.name || session.user.email}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {userRole && RoleNames[userRole]}
+                <h1 className="text-xl font-bold">佑羲人力系統</h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  {session.user.name || session.user.email} · {userRole && RoleNames[userRole]}
                 </p>
               </div>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-red-400 hover:bg-red-900/30 rounded-lg transition"
+              >
+                登出
+              </button>
             </div>
-          )}
 
-          {/* 選單項目 */}
-          {sidebarOpen && (
-            <nav className="flex-1 overflow-y-auto py-4">
-              {visibleMenuGroups.map((group, groupIndex) => {
-                const isExpanded = expandedGroups[group.title] !== false;
-                return (
-                  <div key={group.title} className={groupIndex > 0 ? "mt-2" : ""}>
-                    <button
-                      onClick={() => toggleGroup(group.title)}
-                      className="w-full px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-800/50 transition"
-                    >
-                      <span>{group.title}</span>
-                      <span
-                        className={`transform transition-transform duration-200 ${
-                          isExpanded ? "rotate-0" : "-rotate-90"
-                        }`}
-                      >
-                        ▼
-                      </span>
-                    </button>
-                    <div
-                      className={`overflow-hidden transition-all duration-200 ${
-                        isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                      }`}
-                    >
-                      <ul className="space-y-1 px-2">
-                        {group.items.map((item) => {
-                          const isActive = pathname === item.href;
-                          return (
-                            <li key={item.href}>
-                              <Link
-                                href={item.href}
-                                className={`flex items-center px-3 py-2.5 rounded-lg transition ${
-                                  isActive
-                                    ? "bg-blue-600 text-white"
-                                    : "text-gray-300 hover:bg-gray-800"
-                                }`}
-                              >
-                                <span className="text-sm font-medium">
-                                  {item.label}
-                                </span>
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  </div>
-                );
-              })}
-            </nav>
-          )}
-
-          {/* 登出按鈕 */}
-          {sidebarOpen && (
-          <div className="p-4 border-t border-gray-800">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-900/20 transition"
-            >
-              <span className="text-sm font-medium">登出</span>
-            </button>
-          </div>
-          )}
-        </div>
-      </aside>
-
-      {/* 移動版側邊欄遮罩 */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* 移動版側邊欄 */}
-      <aside
-        className={`${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } fixed inset-y-0 left-0 w-72 bg-gray-900 text-white transition-transform duration-300 z-50 lg:hidden`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo 區域 */}
-          <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-            <div>
-              <h1 className="text-lg font-bold">佑羲人力系統</h1>
-            </div>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-3 hover:bg-gray-800 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center text-xl"
-              aria-label="關閉選單"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* 用戶資訊 */}
-          <div className="px-4 py-3 border-b border-gray-800 bg-gray-800/50">
-            <p className="text-sm font-semibold truncate">
-              {session.user.name || session.user.email}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {userRole && RoleNames[userRole]}
-            </p>
-          </div>
-
-          {/* 選單項目 */}
-          <nav className="flex-1 overflow-y-auto py-2">
-            {visibleMenuGroups.map((group, groupIndex) => {
-              const isExpanded = expandedGroups[group.title] !== false;
-              return (
-                <div key={group.title} className={groupIndex > 0 ? "mt-1" : ""}>
-                  <button
-                    onClick={() => toggleGroup(group.title)}
-                    className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-800/50 transition min-h-[44px]"
-                  >
-                    <span>{group.title}</span>
-                    <span
-                      className={`transform transition-transform duration-200 ${
-                        isExpanded ? "rotate-0" : "-rotate-90"
-                      }`}
-                    >
-                      ▼
-                    </span>
-                  </button>
-                  <div
-                    className={`overflow-hidden transition-all duration-200 ${
-                      isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-                    }`}
-                  >
-                    <ul className="space-y-0.5 px-2 pb-2">
-                      {group.items.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                          <li key={item.href}>
-                            <Link
-                              href={item.href}
-                              onClick={() => setMobileMenuOpen(false)}
-                              className={`flex items-center px-4 py-3 rounded-lg transition min-h-[48px] ${
-                                isActive
-                                  ? "bg-blue-600 text-white"
-                                  : "text-gray-300 hover:bg-gray-800 active:bg-gray-700"
-                              }`}
-                            >
-                              <span className="text-base font-medium">
-                                {item.label}
-                              </span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
+            {/* 選單分組 - 橫向排列 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visibleMenuGroups.map((group) => (
+                <div key={group.title}>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    {group.title}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.items.map((item) => {
+                      const isActive = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMenuOpen(false)}
+                          className={`px-3 py-2.5 rounded-lg text-sm transition ${
+                            isActive
+                              ? "bg-blue-600 text-white"
+                              : "text-gray-300 hover:bg-gray-800"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
-          </nav>
-
-          {/* 登出按鈕 */}
-          <div className="p-4 border-t border-gray-800">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center px-4 py-3 rounded-lg text-red-400 hover:bg-red-900/20 active:bg-red-900/30 transition min-h-[48px]"
-            >
-              <span className="text-base font-medium">登出</span>
-            </button>
+              ))}
+            </div>
           </div>
         </div>
-      </aside>
+
+        {/* 拉桿 - 永遠顯示 */}
+        <div
+          className={`flex justify-center transition-colors duration-300 ${
+            menuOpen ? 'bg-gray-900' : 'bg-gray-800'
+          }`}
+        >
+          <button
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+            onClick={() => !isDragging && setMenuOpen(!menuOpen)}
+            className="group relative w-full max-w-xs py-2 cursor-grab active:cursor-grabbing"
+          >
+            {/* 拉桿把手 */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-12 h-1.5 bg-gray-600 rounded-full group-hover:bg-gray-500 transition" />
+              <div className="flex items-center gap-2 text-gray-400 text-xs">
+                <span className={`transition-transform duration-300 ${menuOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+                <span>{menuOpen ? '收起選單' : currentPageTitle}</span>
+                <span className={`transition-transform duration-300 ${menuOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
 
       {/* 主要內容區域 */}
-      <main
-        className={`flex-1 transition-all duration-300 ${
-          sidebarOpen ? "lg:ml-48" : "lg:ml-12"
-        }`}
-      >
-        {/* 頂部導航欄（移動版） */}
-        <header className="bg-white shadow-sm border-b lg:hidden sticky top-0 z-20">
-          <div className="flex items-center justify-between px-3 py-2">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="p-3 hover:bg-gray-100 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label="開啟選單"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
-            <div className="flex-1 text-center px-2">
-              <h1 className="text-base font-bold text-gray-900 truncate">{currentPageTitle}</h1>
-              <p className="text-xs text-gray-500">佑羲人力系統</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-3 text-red-600 hover:bg-red-50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center text-sm font-medium"
-            >
-              登出
-            </button>
-          </div>
-        </header>
-
-        {/* 頁面內容 */}
-        <div className="p-4 ">{children}</div>
+      <main className="pt-14">
+        <div className="p-4">{children}</div>
       </main>
     </div>
   );
