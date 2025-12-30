@@ -424,7 +424,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* 頁面內容 */}
-        <div className="p-4 lg:p-8">{children}</div>
+        <div className="p-4 ">{children}</div>
       </main>
     </div>
   );
