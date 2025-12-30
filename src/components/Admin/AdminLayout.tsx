@@ -206,11 +206,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             maxHeight: menuOpen ? '80vh' : isDragging ? `${dragOffset}px` : '0px',
           }}
         >
-          <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="max-w-6xl mx-auto px-4 py-4">
             {/* 頂部資訊列 */}
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
+            <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-700">
               <div>
-                <h1 className="text-xl font-bold">佑羲人力系統</h1>
                 <p className="text-sm text-gray-400 mt-1">
                   {session.user.name || session.user.email} · {userRole && RoleNames[userRole]}
                 </p>
