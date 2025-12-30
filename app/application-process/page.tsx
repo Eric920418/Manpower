@@ -97,7 +97,7 @@ export default async function ApplicationProcessPage({
 
   // 如果有指定 category 但找不到，重定向回申請流程首頁
   if (category && !selectedCategory) {
-    redirect("/apply-process");
+    redirect("/application-process");
   }
 
   return (
@@ -118,7 +118,7 @@ export default async function ApplicationProcessPage({
             <div className="max-w-4xl mx-auto text-center">
               {/* 返回按鈕 */}
               <Link
-                href="/apply-process"
+                href="/application-process"
                 className="inline-flex items-center gap-2 text-brand-primary hover:text-brand-accent mb-6 transition-colors"
               >
                 <span className="material-symbols-outlined">arrow_back</span>

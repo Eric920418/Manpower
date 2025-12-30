@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface FilterOption {
   label: string;
@@ -12,19 +12,41 @@ interface FilterBarProps {
     experience?: string;
     country?: string;
     language?: string;
+    sourceType?: string;
   }) => void;
 }
 
 export default function FilterBar({ onFilterChange }: FilterBarProps) {
+  const filterBarRef = useRef<HTMLDivElement>(null);
   const [showIndustryMenu, setShowIndustryMenu] = useState(false);
   const [showExperienceMenu, setShowExperienceMenu] = useState(false);
   const [showCountryMenu, setShowCountryMenu] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [showSourceTypeMenu, setShowSourceTypeMenu] = useState(false);
 
   const [selectedIndustry, setSelectedIndustry] = useState<string>("");
   const [selectedExperience, setSelectedExperience] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
+  const [selectedSourceType, setSelectedSourceType] = useState<string>("");
+
+  // 點擊外部時關閉所有選單
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterBarRef.current && !filterBarRef.current.contains(event.target as Node)) {
+        setShowIndustryMenu(false);
+        setShowExperienceMenu(false);
+        setShowCountryMenu(false);
+        setShowLanguageMenu(false);
+        setShowSourceTypeMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const industries: FilterOption[] = [
     { label: "全部產業", value: "" },
@@ -60,8 +82,14 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
     { label: "韓文", value: "korean" },
   ];
 
+  const sourceTypes: FilterOption[] = [
+    { label: "全部來源", value: "" },
+    { label: "國內轉出工", value: "domestic" },
+    { label: "國外引進工", value: "foreign" },
+  ];
+
   const handleFilterChange = (
-    type: "industry" | "experience" | "country" | "language",
+    type: "industry" | "experience" | "country" | "language" | "sourceType",
     value: string
   ) => {
     const newFilters = {
@@ -69,12 +97,14 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
       experience: type === "experience" ? value : selectedExperience,
       country: type === "country" ? value : selectedCountry,
       language: type === "language" ? value : selectedLanguage,
+      sourceType: type === "sourceType" ? value : selectedSourceType,
     };
 
     if (type === "industry") setSelectedIndustry(value);
     if (type === "experience") setSelectedExperience(value);
     if (type === "country") setSelectedCountry(value);
     if (type === "language") setSelectedLanguage(value);
+    if (type === "sourceType") setSelectedSourceType(value);
 
     onFilterChange(newFilters);
 
@@ -83,6 +113,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
     setShowExperienceMenu(false);
     setShowCountryMenu(false);
     setShowLanguageMenu(false);
+    setShowSourceTypeMenu(false);
   };
 
   const FilterButton = ({
@@ -147,7 +178,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
     ) : null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div ref={filterBarRef} className="flex flex-wrap items-center gap-3">
       <div className="relative">
         <FilterButton
           label="產業類別"
@@ -157,6 +188,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
             setShowExperienceMenu(false);
             setShowCountryMenu(false);
             setShowLanguageMenu(false);
+            setShowSourceTypeMenu(false);
           }}
           hasSelection={!!selectedIndustry}
         />
@@ -176,6 +208,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
             setShowIndustryMenu(false);
             setShowCountryMenu(false);
             setShowLanguageMenu(false);
+            setShowSourceTypeMenu(false);
           }}
           hasSelection={!!selectedExperience}
         />
@@ -195,6 +228,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
             setShowIndustryMenu(false);
             setShowExperienceMenu(false);
             setShowLanguageMenu(false);
+            setShowSourceTypeMenu(false);
           }}
           hasSelection={!!selectedCountry}
         />
@@ -214,6 +248,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
             setShowIndustryMenu(false);
             setShowExperienceMenu(false);
             setShowCountryMenu(false);
+            setShowSourceTypeMenu(false);
           }}
           hasSelection={!!selectedLanguage}
         />
@@ -221,6 +256,26 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
           options={languages}
           onSelect={(value) => handleFilterChange("language", value)}
           isOpen={showLanguageMenu}
+        />
+      </div>
+
+      <div className="relative">
+        <FilterButton
+          label="來源類型"
+          isOpen={showSourceTypeMenu}
+          onClick={() => {
+            setShowSourceTypeMenu(!showSourceTypeMenu);
+            setShowIndustryMenu(false);
+            setShowExperienceMenu(false);
+            setShowCountryMenu(false);
+            setShowLanguageMenu(false);
+          }}
+          hasSelection={!!selectedSourceType}
+        />
+        <DropdownMenu
+          options={sourceTypes}
+          onSelect={(value) => handleFilterChange("sourceType", value)}
+          isOpen={showSourceTypeMenu}
         />
       </div>
     </div>

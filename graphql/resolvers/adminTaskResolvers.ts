@@ -391,7 +391,7 @@ export const adminTaskResolvers = {
       args: {
         page?: number;
         pageSize?: number;
-        status?: AdminTaskStatus;
+        status?: string;  // 支援 AdminTaskStatus 枚舉值及特殊篩選值
         taskTypeId?: number;
         applicantId?: string;
         processorId?: string;
@@ -428,7 +428,22 @@ export const adminTaskResolvers = {
         ];
       }
 
-      if (args.status) where.status = args.status;
+      // 特殊篩選：待複審打勾（已批准 + 有複審人 + 尚未複審確認）
+      if ((args.status as string) === "AWAITING_REVIEW_CHECK") {
+        where.status = "APPROVED";
+        where.reviewedAt = null;
+        where.assignments = {
+          some: { role: "REVIEWER" },
+        };
+      } else if ((args.status as string) === "OVERDUE") {
+        // 特殊篩選：逾期的（截止日期已過 + 狀態非已完成/已退回）
+        where.deadline = { lt: new Date() };
+        where.status = {
+          in: ["PENDING", "PROCESSING", "PENDING_DOCUMENTS", "PENDING_REVIEW", "REVISION_REQUESTED", "APPROVED"],
+        };
+      } else if (args.status) {
+        where.status = args.status as AdminTaskStatus;
+      }
       if (args.taskTypeId) {
         // 對於 ADMIN，已經透過案件分配限制了可見範圍，這裡只需要額外篩選類型
         where.taskTypeId = args.taskTypeId;

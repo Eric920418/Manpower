@@ -1,4 +1,5 @@
 "use client";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -40,6 +41,19 @@ export default function NewsSection({
   featuredArticle,
   articles,
 }: NewsSectionProps) {
+  // 找出預設 active 的分類，若無則使用第一個（通常是「全部」）
+  const defaultCategory = categories.find(c => c.active)?.value || categories[0]?.value || "all";
+  const [activeCategory, setActiveCategory] = useState(defaultCategory);
+
+  // 根據選擇的分類過濾文章（「全部」或第一個分類顯示所有文章）
+  const filteredArticles = useMemo(() => {
+    const isFirstCategory = categories.length > 0 && activeCategory === categories[0].value;
+    if (activeCategory === "all" || activeCategory === "全部" || isFirstCategory) {
+      return articles;
+    }
+    return articles.filter(article => article.category === activeCategory);
+  }, [activeCategory, articles, categories]);
+
   return (
     <section className="bg-bg-primary py-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -60,8 +74,9 @@ export default function NewsSection({
           {categories.map((category, index) => (
             <button
               key={index}
+              onClick={() => setActiveCategory(category.value)}
               className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 cursor-pointer transition-all ${
-                category.active
+                activeCategory === category.value
                   ? "bg-brand-primary text-text-on-brand"
                   : "bg-bg-secondary text-text-secondary hover:bg-border"
               }`}
@@ -110,7 +125,7 @@ export default function NewsSection({
 
           {/* 一般文章網格 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {articles.map((article, index) => (
+            {filteredArticles.map((article, index) => (
               <Link
                 key={index}
                 href={article.link}

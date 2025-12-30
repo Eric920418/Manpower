@@ -138,6 +138,7 @@ interface AdminTaskStats {
   pending: number;
   processing: number;
   pendingDocuments: number;
+  revisionRequested: number;
   approved: number;
   rejected: number;
   completed: number;
@@ -267,6 +268,7 @@ function AdminTasksContent() {
             pending
             processing
             pendingDocuments
+            revisionRequested
             approved
             rejected
             completed
@@ -334,7 +336,7 @@ function AdminTasksContent() {
 
       // 獲取任務列表
       const tasksQuery = `
-        query AdminTasks($page: Int, $pageSize: Int, $status: AdminTaskStatus, $taskTypeId: Int, $applicantId: String) {
+        query AdminTasks($page: Int, $pageSize: Int, $status: String, $taskTypeId: Int, $applicantId: String) {
           adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId, applicantId: $applicantId) {
             items {
               id
@@ -1257,7 +1259,7 @@ function AdminTasksContent() {
 
         {/* 統計卡片 */}
         {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 md:gap-4 mb-4 md:mb-8">
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 md:gap-3 mb-4 md:mb-8">
             <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500">
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">總計</p>
               <p className="text-lg md:text-2xl font-bold text-gray-900">{stats.total}</p>
@@ -1278,6 +1280,12 @@ function AdminTasksContent() {
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待補件</p>
               <p className="text-lg md:text-2xl font-bold text-orange-500">
                 {stats.pendingDocuments}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-pink-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">要求修改</p>
+              <p className="text-lg md:text-2xl font-bold text-pink-600">
+                {stats.revisionRequested}
               </p>
             </div>
             <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500">
@@ -1325,9 +1333,10 @@ function AdminTasksContent() {
                 <option value="PENDING">待處理</option>
                 <option value="PROCESSING">處理中</option>
                 <option value="PENDING_DOCUMENTS">待補件</option>
-                <option value="PENDING_REVIEW">待複審</option>
                 <option value="REVISION_REQUESTED">要求修改</option>
                 <option value="APPROVED">已批准</option>
+                <option value="AWAITING_REVIEW_CHECK">待複審打勾</option>
+                <option value="OVERDUE">逾期的</option>
                 <option value="REJECTED">已退回</option>
                 <option value="COMPLETED">已完成</option>
               </select>

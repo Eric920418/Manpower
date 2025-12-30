@@ -901,6 +901,71 @@ export const HomePage = () => {
             </div>
           </div>
 
+          {/* 分類標籤 */}
+          <div className="bg-white p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold">分類標籤 (Tabs)</h3>
+              <button
+                onClick={() =>
+                  setPageData((prev) => ({
+                    ...prev,
+                    newsSection: {
+                      ...prev.newsSection,
+                      categories: [
+                        ...prev.newsSection.categories,
+                        { label: "", value: "", active: false },
+                      ],
+                    },
+                  }))
+                }
+                className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+              >
+                新增分類
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-3">
+              第一個分類設為「全部」，其他分類名稱需與文章的分類欄位相符
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {pageData.newsSection.categories.map((category, index) => (
+                <div key={index} className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded border border-purple-200">
+                  <input
+                    type="text"
+                    value={category.label}
+                    onChange={(e) => {
+                      const newCategories = [...pageData.newsSection.categories];
+                      const newLabel = e.target.value;
+                      newCategories[index] = {
+                        ...newCategories[index],
+                        label: newLabel,
+                        value: newLabel,
+                        active: index === 0
+                      };
+                      setPageData((prev) => ({
+                        ...prev,
+                        newsSection: { ...prev.newsSection, categories: newCategories },
+                      }));
+                    }}
+                    placeholder="分類名稱"
+                    className="w-24 rounded-md bg-white px-2 py-1 text-sm text-gray-900 border border-gray-300"
+                  />
+                  <button
+                    onClick={() => {
+                      const newCategories = pageData.newsSection.categories.filter((_, i) => i !== index);
+                      setPageData((prev) => ({
+                        ...prev,
+                        newsSection: { ...prev.newsSection, categories: newCategories },
+                      }));
+                    }}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* 精選文章 */}
           <div className="bg-white p-4 rounded-lg">
             <h3 className="text-lg font-semibold mb-3">精選文章</h3>
@@ -1030,8 +1095,7 @@ export const HomePage = () => {
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
                       <label className="block text-sm font-medium mb-1">分類</label>
-                      <input
-                        type="text"
+                      <select
                         value={article.category}
                         onChange={(e) => {
                           const newArticles = [...pageData.newsSection.articles];
@@ -1041,9 +1105,17 @@ export const HomePage = () => {
                             newsSection: { ...prev.newsSection, articles: newArticles },
                           }));
                         }}
-                        placeholder="移民"
                         className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
-                      />
+                      >
+                        <option value="">請選擇分類</option>
+                        {pageData.newsSection.categories
+                          .slice(1) // 排除第一個「全部」
+                          .map((cat, catIndex) => (
+                            <option key={catIndex} value={cat.label}>
+                              {cat.label}
+                            </option>
+                          ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">日期</label>

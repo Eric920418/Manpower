@@ -41,6 +41,7 @@ const convertWorkerToResume = (worker: Worker): Resume => {
     height: worker.height || 0,
     weight: worker.weight || 0,
     isNew: worker.isNew ?? false,
+    sourceType: worker.sourceType || "",
     // 保留舊欄位以兼容
     title: worker.category || "專業人才",
     experience: worker.experience || `${worker.age}歲`,
@@ -143,6 +144,7 @@ export default function ResumeGrid() {
     experience?: string;
     country?: string;
     language?: string;
+    sourceType?: string;
   }) => {
     let filtered = [...resumes];
 
@@ -225,6 +227,21 @@ export default function ResumeGrid() {
       );
     }
 
+    // 來源類型篩選
+    if (filters.sourceType) {
+      const sourceTypeMap: { [key: string]: string[] } = {
+        domestic: ["國內轉出工", "國內", "轉出"],
+        foreign: ["國外引進工", "國外", "引進"],
+      };
+
+      const matchSourceTypes = sourceTypeMap[filters.sourceType] || [];
+      filtered = filtered.filter((resume) =>
+        matchSourceTypes.some((st) =>
+          (resume.sourceType || "").includes(st)
+        )
+      );
+    }
+
     setFilteredResumes(filtered);
     setCurrentPage(1); // 重設到第一頁
   };
@@ -240,8 +257,17 @@ export default function ResumeGrid() {
     const sorted = [...filteredResumes];
 
     if (value === "newest") {
-      // 最新加入 (依照 ID 反向排序,假設 ID 越大越新)
-      sorted.reverse();
+      // 最新加入 (依照 ID 降序排序，ID 越大越新)
+      sorted.sort((a, b) => {
+        // 嘗試將 ID 轉為數字比較，若無法轉換則用字串比較
+        const idA = parseInt(a.id) || 0;
+        const idB = parseInt(b.id) || 0;
+        if (idA !== 0 && idB !== 0) {
+          return idB - idA; // 數字 ID：降序排列（新的在前）
+        }
+        // 若 ID 為字串，則用字串比較（降序）
+        return b.id.localeCompare(a.id);
+      });
     } else if (value === "experience") {
       // 經驗年資排序 (從多到少)
       sorted.sort((a, b) => {
@@ -481,6 +507,7 @@ export default function ResumeGrid() {
               resume={resume}
               isSelected={selectedIds.has(resume.id)}
               onSelect={handleSelect}
+              viewMode={viewMode}
             />
           ))}
         </div>

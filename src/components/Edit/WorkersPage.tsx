@@ -129,63 +129,6 @@ export const WorkersPage = () => {
 
       <div className="text-3xl font-bold mb-6">移工列表頁面編輯</div>
 
-      {/* Hero 設定 */}
-      <div className="bg-gray-100 p-6 rounded-lg mb-6">
-        <h2 className="text-2xl font-bold mb-4">Hero 區塊設定</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">標題</label>
-            <input
-              type="text"
-              value={pageData.hero.title}
-              onChange={(e) =>
-                setPageData((prev) => ({
-                  ...prev,
-                  hero: { ...prev.hero, title: e.target.value },
-                }))
-              }
-              className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">描述</label>
-            <textarea
-              value={pageData.hero.description}
-              onChange={(e) =>
-                setPageData((prev) => ({
-                  ...prev,
-                  hero: { ...prev.hero, description: e.target.value },
-                }))
-              }
-              rows={3}
-              className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Hero 圖片</label>
-            {pageData.hero.image && (
-              <div className="mb-3">
-                <Image
-                  src={pageData.hero.image}
-                  alt="Hero"
-                  width={400}
-                  height={200}
-                  className="rounded-lg"
-                />
-              </div>
-            )}
-            <ImageUploader
-              onImageUpload={(data) =>
-                setPageData((prev) => ({
-                  ...prev,
-                  hero: { ...prev.hero, image: data.imageUrl },
-                }))
-              }
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Filter Options */}
       <div className="bg-purple-50 p-6 rounded-lg mb-6 border-2 border-purple-200">
         <h2 className="text-2xl font-bold mb-4 text-purple-900">篩選選項設定</h2>

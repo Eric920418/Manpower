@@ -152,7 +152,7 @@ extend type Query {
   adminTasks(
     page: Int
     pageSize: Int
-    status: AdminTaskStatus
+    status: String  # 支援 AdminTaskStatus 枚舉值及特殊篩選值如 AWAITING_REVIEW_CHECK, OVERDUE
     taskTypeId: Int
     applicantId: String
     processorId: String

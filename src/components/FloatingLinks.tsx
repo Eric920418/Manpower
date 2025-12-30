@@ -31,6 +31,7 @@ const query = `
 export const FloatingLinksWidget = () => {
   const [data, setData] = useState<FloatingLinksData | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showTopButton, setShowTopButton] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,6 +55,20 @@ export const FloatingLinksWidget = () => {
 
     fetchData();
   }, []);
+
+  // 監聽滾動，決定是否顯示 Top 按鈕
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowTopButton(window.scrollY > 300);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // 不顯示：尚未載入、未啟用、沒有連結
   if (!isLoaded || !data?.enabled || !data.links || data.links.length === 0) {
@@ -104,6 +119,38 @@ export const FloatingLinksWidget = () => {
           </span>
         </a>
       ))}
+
+      {/* 回到頂部按鈕 */}
+      <button
+        onClick={scrollToTop}
+        title="回到頂部"
+        className={`group relative w-14 h-14 bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center border border-gray-700 hover:scale-110 hover:bg-gray-700 ${
+          showTopButton ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
+      >
+        <svg
+          className="w-6 h-6 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 10l7-7m0 0l7 7m-7-7v18"
+          />
+        </svg>
+
+        {/* Tooltip */}
+        <span
+          className={`absolute ${
+            data.position === "left" ? "left-full ml-2" : "right-full mr-2"
+          } whitespace-nowrap bg-gray-900 text-white text-sm px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none`}
+        >
+          回到頂部
+        </span>
+      </button>
     </div>
   );
 };

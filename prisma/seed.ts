@@ -68,7 +68,7 @@ async function main() {
   // 3. 創建導航選單
   console.log('📋 創建導航選單...');
   const navItems = [
-    { label: '申請流程', url: '/apply-process', order: 0, icon: 'approval' },
+    { label: '申請流程', url: '/application-process', order: 0, icon: 'approval' },
     { label: '履歷表', url: '/resume', order: 1, icon: 'description' },
     { label: '常見問題', url: '/faq', order: 2, icon: 'help' },
     { label: '最新消息', url: '/news', order: 3, icon: 'newspaper' },
