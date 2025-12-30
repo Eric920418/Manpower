@@ -223,7 +223,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
 
             {/* 選單分組 - 橫向排列 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
               {visibleMenuGroups.map((group) => (
                 <div key={group.title}>
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -237,7 +237,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           key={item.href}
                           href={item.href}
                           onClick={() => setMenuOpen(false)}
-                          className={`px-3 py-2.5 rounded-lg text-sm transition ${
+                          className={`px-2 py-2 rounded-lg text-sm transition ${
                             isActive
                               ? "bg-blue-600 text-white"
                               : "text-gray-300 hover:bg-gray-800"
