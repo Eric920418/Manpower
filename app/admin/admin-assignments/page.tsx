@@ -127,7 +127,7 @@ export default function AdminAssignmentsPage() {
   const fetchTasksData = useCallback(async () => {
     try {
       const tasksQuery = `
-        query AdminTasks($status: AdminTaskStatus, $taskTypeId: Int, $search: String) {
+        query AdminTasks($status: String, $taskTypeId: Int, $search: String) {
           adminTasks(status: $status, taskTypeId: $taskTypeId, search: $search, pageSize: 100) {
             items {
               id

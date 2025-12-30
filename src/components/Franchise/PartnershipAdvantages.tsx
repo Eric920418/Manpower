@@ -2,13 +2,15 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
+import Image from "next/image";
 
 interface Advantage {
   number: string;
   title: string;
   subtitle: string;
   description: string;
-  icon: string;
+  icon?: string;
+  image?: string;
   imagePosition: string;
 }
 
@@ -116,22 +118,35 @@ export default function PartnershipAdvantages({ data }: PartnershipAdvantagesPro
                 </p>
               </motion.div>
 
-              {/* 圖片區 (使用圖標替代) */}
+              {/* 圖片區 */}
               <motion.div
                 className={`${advantage.imagePosition === "left" ? "md:order-1" : ""} relative`}
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="relative h-80 bg-gradient-to-br from-brand-primary/10 to-brand-accent/10 rounded-3xl overflow-hidden shadow-xl border border-brand-primary/20">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[120px] text-brand-primary/30">
-                      {advantage.icon}
-                    </span>
-                  </div>
+                  {advantage.image ? (
+                    <Image
+                      src={advantage.image}
+                      alt={advantage.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[120px] text-brand-primary/30">
+                        {advantage.icon || "business"}
+                      </span>
+                    </div>
+                  )}
 
                   {/* 裝飾性元素 */}
-                  <div className="absolute top-4 right-4 w-20 h-20 bg-white/50 rounded-full blur-2xl" />
-                  <div className="absolute bottom-4 left-4 w-32 h-32 bg-brand-primary/20 rounded-full blur-3xl" />
+                  {!advantage.image && (
+                    <>
+                      <div className="absolute top-4 right-4 w-20 h-20 bg-white/50 rounded-full blur-2xl" />
+                      <div className="absolute bottom-4 left-4 w-32 h-32 bg-brand-primary/20 rounded-full blur-3xl" />
+                    </>
+                  )}
                 </div>
               </motion.div>
             </motion.div>

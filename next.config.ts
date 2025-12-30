@@ -24,6 +24,16 @@ const nextConfig: NextConfig = {
         pathname: "/api/images/**",
       },
       {
+        protocol: "http",
+        hostname: "13.114.4.21",
+        pathname: "/api/images/**",
+      },
+      {
+        protocol: "https",
+        hostname: "13.114.4.21",
+        pathname: "/api/images/**",
+      },
+      {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
         pathname: "/**",

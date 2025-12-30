@@ -31,11 +31,18 @@ export default function FranchiseNavButtons({ activeTab, onTabChange }: Franchis
 
   const handleClick = (id: string) => {
     onTabChange(id);
-    // 切換分頁時滾動到內容區頂部
-    window.scrollTo({
-      top: 600,
-      behavior: "smooth",
-    });
+    // 滾動到對應區域
+    const element = document.getElementById(id);
+    if (element) {
+      const headerOffset = 80; // 固定導航列高度
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
   };
 
   return (
@@ -45,15 +52,15 @@ export default function FranchiseNavButtons({ activeTab, onTabChange }: Franchis
 
       <section className={`${isFixed ? 'fixed top-0 left-0 right-0' : 'relative'} z-40 bg-white backdrop-blur-sm border-b border-gray-200 shadow-md transition-all duration-300`}>
         <div className="container mx-auto px-6 py-4">
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="flex flex-nowrap gap-1 sm:gap-3 justify-center">
             {navItems.map((item, index) => (
               <motion.button
                 key={item.id}
                 onClick={() => handleClick(item.id)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-300 ${
+                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-6 py-1.5 sm:py-3 rounded-full font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === item.id
-                    ? "bg-brand-primary text-white shadow-lg scale-105"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105"
+                    ? "bg-brand-primary text-white shadow-lg sm:scale-105"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 sm:hover:scale-105"
                 }`}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -61,8 +68,8 @@ export default function FranchiseNavButtons({ activeTab, onTabChange }: Franchis
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <span className="material-symbols-outlined text-xl">{item.icon}</span>
-                <span className="hidden sm:inline">{item.label}</span>
+                <span className="material-symbols-outlined text-xl hidden sm:inline">{item.icon}</span>
+                <span className="text-xs sm:text-base">{item.label}</span>
               </motion.button>
             ))}
           </div>

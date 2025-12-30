@@ -55,6 +55,7 @@ export default function MarketOpportunity({ data }: MarketOpportunityProps) {
 
   return (
     <section
+      id="main"
       className="relative py-24 overflow-hidden"
     >
       {/* 背景圖片 */}

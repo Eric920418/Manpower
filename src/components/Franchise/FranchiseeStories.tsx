@@ -30,7 +30,7 @@ export default function FranchiseeStories({ data }: FranchiseeStoriesProps) {
 
   if (stories.length === 0) {
     return (
-      <section className="py-24 bg-gradient-to-b from-white to-gray-50">
+      <section id="stories" className="py-24 bg-gradient-to-b from-white to-gray-50">
         <div className="container mx-auto px-6 text-center text-gray-500">
           目前尚無分享內容
         </div>
@@ -39,7 +39,7 @@ export default function FranchiseeStories({ data }: FranchiseeStoriesProps) {
   }
 
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-gray-50">
+    <section id="stories" className="py-16 bg-gradient-to-b from-white to-gray-50">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {stories.map((story, index) => (
