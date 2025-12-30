@@ -41,3 +41,12 @@ main {
   min-height: 100vh;
   background-color: var(--color-bg-primary);
 }
+
+/* 隱藏滾動條 */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}

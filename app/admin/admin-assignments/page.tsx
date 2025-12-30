@@ -71,13 +71,13 @@ type ViewMode = "tasks" | "admins" | "global";
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   PENDING: { label: "待處理", color: "bg-yellow-100 text-yellow-800" },
-  PROCESSING: { label: "處理中", color: "bg-blue-100 text-blue-800" },
   PENDING_DOCUMENTS: { label: "待補件", color: "bg-orange-100 text-orange-800" },
   PENDING_REVIEW: { label: "待複審", color: "bg-purple-100 text-purple-800" },
   REVISION_REQUESTED: { label: "要求修改", color: "bg-pink-100 text-pink-800" },
   APPROVED: { label: "已批准", color: "bg-green-100 text-green-800" },
   REJECTED: { label: "已退回", color: "bg-red-100 text-red-800" },
   COMPLETED: { label: "已完成", color: "bg-gray-100 text-gray-800" },
+  REVIEWED: { label: "已複審", color: "bg-indigo-100 text-indigo-800" },
 };
 
 

@@ -122,6 +122,8 @@ interface AdminTask {
   approvalRoute: string;
   approvalMark: string | null;
   payload: Record<string, unknown>;
+  // 負責人（用於完成確認）
+  handlers: TaskUser[];
   // 複審確認
   reviewedAt: string | null;
   reviewedBy: string | null;
@@ -136,12 +138,12 @@ interface AdminTask {
 interface AdminTaskStats {
   total: number;
   pending: number;
-  processing: number;
   pendingDocuments: number;
   revisionRequested: number;
   approved: number;
   rejected: number;
   completed: number;
+  reviewed: number;
   overdue: number;
 }
 
@@ -155,13 +157,13 @@ interface PageInfo {
 // 狀態映射
 const statusLabels: Record<string, { label: string; className: string }> = {
   PENDING: { label: "待處理", className: "bg-yellow-100 text-yellow-800" },
-  PROCESSING: { label: "處理中", className: "bg-blue-100 text-blue-800" },
   PENDING_DOCUMENTS: { label: "待補件", className: "bg-orange-100 text-orange-800" },
   PENDING_REVIEW: { label: "待複審", className: "bg-purple-100 text-purple-800" },
   REVISION_REQUESTED: { label: "要求修改", className: "bg-pink-100 text-pink-800" },
   APPROVED: { label: "已批准", className: "bg-green-100 text-green-800" },
   REJECTED: { label: "已退回", className: "bg-red-100 text-red-800" },
   COMPLETED: { label: "已完成", className: "bg-gray-100 text-gray-800" },
+  REVIEWED: { label: "已複審", className: "bg-indigo-100 text-indigo-800" },
 };
 
 function AdminTasksContent() {
@@ -201,6 +203,7 @@ function AdminTasksContent() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [applicantFilter, setApplicantFilter] = useState<string>("all");
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [applicants, setApplicants] = useState<{ id: string; name: string | null; email: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -213,7 +216,6 @@ function AdminTasksContent() {
   const [createForm, setCreateForm] = useState({
     taskTypeId: 0,
     title: "",
-    applicantName: "", // 自訂申請人名稱
     deadline: "",
     deadlineText: "", // 文字型期限（如：待定、盡快等）
     notes: "",
@@ -252,8 +254,83 @@ function AdminTasksContent() {
   const [resubmitting, setResubmitting] = useState(false);
   const [resubmitNotes, setResubmitNotes] = useState("");
 
+  // 完成確認狀態
+  const [togglingCompleteId, setTogglingCompleteId] = useState<number | null>(null);
+
   // 複審確認狀態
   const [togglingReviewId, setTogglingReviewId] = useState<number | null>(null);
+
+  // 編輯模式狀態（用於「要求修改」狀態時編輯任務）
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    deadline: "",
+    deadlineText: "",
+    notes: "",
+  });
+  const [editDeadlineType, setEditDeadlineType] = useState<"date" | "text">("date");
+  const [editCustomAnswers, setEditCustomAnswers] = useState<Record<string, string | string[]>>({});
+  const [editExplanationTexts, setEditExplanationTexts] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  // 排序狀態
+  type SortField = "title" | "type" | "applicant" | "status" | "deadline" | "createdAt";
+  type SortOrder = "asc" | "desc";
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+
+  // 狀態優先級（用於排序）
+  const statusPriority: Record<string, number> = {
+    PENDING: 1,
+    PENDING_DOCUMENTS: 2,
+    REVISION_REQUESTED: 3,
+    PENDING_REVIEW: 4,
+    APPROVED: 5,
+    REJECTED: 6,
+    COMPLETED: 7,
+    REVIEWED: 8,
+  };
+
+  // 切換排序
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // 如果點擊同一欄位，切換排序順序
+      if (sortOrder === "asc") {
+        setSortOrder("desc");
+      } else {
+        // 第三次點擊取消排序
+        setSortField(null);
+        setSortOrder("asc");
+      }
+    } else {
+      // 點擊不同欄位，設為新欄位升序
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  // 排序圖標
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return (
+        <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    if (sortOrder === "asc") {
+      return (
+        <svg className="w-3 h-3 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        </svg>
+      );
+    }
+    return (
+      <svg className="w-3 h-3 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
 
   // 獲取資料
   const fetchData = useCallback(async () => {
@@ -266,12 +343,12 @@ function AdminTasksContent() {
           adminTaskStats {
             total
             pending
-            processing
             pendingDocuments
             revisionRequested
             approved
             rejected
             completed
+            reviewed
             overdue
           }
         }
@@ -410,6 +487,12 @@ function AdminTasksContent() {
               reviewedAt
               reviewedBy
               reviewers {
+                id
+                name
+                email
+                role
+              }
+              handlers {
                 id
                 name
                 email
@@ -599,12 +682,34 @@ function AdminTasksContent() {
 
   // 處理任務分組（將關聯任務分組顯示）
   const groupedTasks = useMemo(() => {
+    // 先進行關鍵字過濾
+    const keyword = searchKeyword.trim().toLowerCase();
+    const filteredTasks = keyword
+      ? tasks.filter((task) => {
+          // 搜尋標題
+          if (task.title?.toLowerCase().includes(keyword)) return true;
+          // 搜尋任務編號
+          if (task.taskNo?.toLowerCase().includes(keyword)) return true;
+          // 搜尋類型
+          if (task.taskType?.label?.toLowerCase().includes(keyword)) return true;
+          // 搜尋申請人
+          const applicantName = task.applicantName || task.applicant?.name || task.applicant?.email || "";
+          if (applicantName.toLowerCase().includes(keyword)) return true;
+          // 搜尋狀態
+          const statusLabel = statusLabels[task.status]?.label || "";
+          if (statusLabel.includes(keyword)) return true;
+          // 搜尋備註
+          if (task.notes?.toLowerCase().includes(keyword)) return true;
+          return false;
+        })
+      : tasks;
+
     // 先找出所有有群組的任務
     const groups = new Map<string, AdminTask[]>();
     const processedIds = new Set<number>();
 
     // 第一步：找出所有群組
-    for (const task of tasks) {
+    for (const task of filteredTasks) {
       if (task.groupId) {
         const existing = groups.get(task.groupId) || [];
         existing.push(task);
@@ -629,17 +734,54 @@ function AdminTasksContent() {
     }
 
     // 第三步：添加獨立任務
-    for (const task of tasks) {
+    for (const task of filteredTasks) {
       if (!processedIds.has(task.id)) {
         result.push({ type: "single", task });
       }
     }
 
-    // 按創建時間倒序排列
-    result.sort((a, b) => new Date(b.task.createdAt).getTime() - new Date(a.task.createdAt).getTime());
+    // 排序邏輯
+    result.sort((a, b) => {
+      const taskA = a.task;
+      const taskB = b.task;
+
+      // 如果沒有選擇排序欄位，使用預設的創建時間倒序
+      if (!sortField) {
+        return new Date(taskB.createdAt).getTime() - new Date(taskA.createdAt).getTime();
+      }
+
+      let comparison = 0;
+
+      switch (sortField) {
+        case "title":
+          comparison = (taskA.title || "").localeCompare(taskB.title || "", "zh-TW");
+          break;
+        case "type":
+          comparison = (taskA.taskType?.label || "").localeCompare(taskB.taskType?.label || "", "zh-TW");
+          break;
+        case "applicant":
+          const applicantA = taskA.applicantName || taskA.applicant?.name || taskA.applicant?.email || "";
+          const applicantB = taskB.applicantName || taskB.applicant?.name || taskB.applicant?.email || "";
+          comparison = applicantA.localeCompare(applicantB, "zh-TW");
+          break;
+        case "status":
+          comparison = (statusPriority[taskA.status] || 99) - (statusPriority[taskB.status] || 99);
+          break;
+        case "deadline":
+          const deadlineA = taskA.deadline ? new Date(taskA.deadline).getTime() : Infinity;
+          const deadlineB = taskB.deadline ? new Date(taskB.deadline).getTime() : Infinity;
+          comparison = deadlineA - deadlineB;
+          break;
+        case "createdAt":
+          comparison = new Date(taskA.createdAt).getTime() - new Date(taskB.createdAt).getTime();
+          break;
+      }
+
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
 
     return result;
-  }, [tasks]);
+  }, [tasks, sortField, sortOrder, statusPriority, searchKeyword]);
 
   // 切換群組展開狀態
   const toggleGroup = (groupId: string) => {
@@ -705,7 +847,7 @@ function AdminTasksContent() {
         input: {
           taskTypeId: Number(createForm.taskTypeId),
           title: createForm.title,
-          applicantName: createForm.applicantName || null,
+          applicantName: session?.user?.name || null,
           deadline: deadlineType === "date" ? deadlineValue : null,
           payload: payload,
           notes: createForm.notes || null,
@@ -844,7 +986,6 @@ function AdminTasksContent() {
       setCreateForm({
         taskTypeId: taskTypes.length > 0 ? Number(taskTypes[0].id) : 0,
         title: "",
-        applicantName: "",
         deadline: "",
         deadlineText: "",
         notes: "",
@@ -1006,6 +1147,268 @@ function AdminTasksContent() {
     }
   };
 
+  // 開啟編輯模式（用於「要求修改」狀態時編輯任務）
+  const openEditMode = () => {
+    if (!selectedTask) return;
+
+    // 初始化表單數據
+    setEditForm({
+      title: selectedTask.title || "",
+      deadline: selectedTask.deadline
+        ? new Date(selectedTask.deadline).toISOString().slice(0, 16)
+        : "",
+      deadlineText: (selectedTask.payload?.deadlineText as string) || "",
+      notes: selectedTask.notes || "",
+    });
+
+    // 判斷期限類型
+    if (selectedTask.deadline) {
+      setEditDeadlineType("date");
+    } else if (selectedTask.payload?.deadlineText) {
+      setEditDeadlineType("text");
+    } else {
+      setEditDeadlineType("date");
+    }
+
+    // 初始化自訂問題答案
+    const answers = (selectedTask.payload?.customAnswers as Record<string, string | string[]>) || {};
+    setEditCustomAnswers(answers);
+
+    // 初始化補充說明文字
+    const explanations = (selectedTask.payload?.explanationTexts as Record<string, string>) || {};
+    setEditExplanationTexts(explanations);
+
+    setIsEditMode(true);
+  };
+
+  // 取消編輯
+  const cancelEditMode = () => {
+    setIsEditMode(false);
+    setEditForm({
+      title: "",
+      deadline: "",
+      deadlineText: "",
+      notes: "",
+    });
+    setEditCustomAnswers({});
+    setEditExplanationTexts({});
+  };
+
+  // 保存編輯
+  const handleSaveEdit = async () => {
+    if (!selectedTask) return;
+
+    // 驗證必填欄位
+    if (!editForm.title.trim()) {
+      alert("請輸入任務標題");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const mutation = `
+        mutation UpdateAdminTask($input: UpdateAdminTaskInput!) {
+          updateAdminTask(input: $input) {
+            id
+            taskNo
+            title
+            status
+            deadline
+            notes
+            applicantName
+            payload
+            taskType {
+              id
+              code
+              label
+              questions {
+                id
+                label
+                type
+                options
+                required
+                triggers {
+                  answer
+                  taskTypeId
+                }
+                reminders {
+                  answer
+                  message
+                }
+                explanations {
+                  answer
+                  prompt
+                }
+              }
+            }
+            applicant {
+              id
+              name
+              email
+              role
+            }
+            processor {
+              id
+              name
+              email
+              role
+            }
+            approver {
+              id
+              name
+              email
+              role
+            }
+            approvalRecords {
+              id
+              action
+              comment
+              revisionReason
+              revisionDetail
+              revisionDeadline
+              approver {
+                id
+                name
+                email
+              }
+              createdAt
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      // 構建 payload
+      const newPayload = {
+        ...(selectedTask.payload || {}),
+        customAnswers: editCustomAnswers,
+        explanationTexts: editExplanationTexts,
+        deadlineText: editDeadlineType === "text" ? editForm.deadlineText : null,
+      };
+
+      const variables = {
+        input: {
+          id: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
+          title: editForm.title,
+          deadline: editDeadlineType === "date" && editForm.deadline ? editForm.deadline : null,
+          notes: editForm.notes || null,
+          applicantName: selectedTask.applicantName || null,
+          payload: newPayload,
+        },
+      };
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: mutation, variables }),
+      });
+
+      const data = await res.json();
+
+      if (data.errors) {
+        throw new Error(data.errors[0].message);
+      }
+
+      // 保存成功後，自動重新送出案件（將狀態改為待處理）
+      const resubmitMutation = `
+        mutation ResubmitTask($input: ResubmitTaskInput!) {
+          resubmitTask(input: $input) {
+            id
+            taskNo
+            title
+            status
+            deadline
+            notes
+            applicantName
+            payload
+            taskType {
+              id
+              code
+              label
+              questions {
+                id
+                label
+                type
+                options
+                required
+                explanations {
+                  answer
+                  prompt
+                }
+              }
+            }
+            applicant {
+              id
+              name
+              email
+              role
+            }
+            approvalRecords {
+              id
+              action
+              comment
+              revisionReason
+              revisionDetail
+              revisionDeadline
+              approver {
+                id
+                name
+                email
+              }
+              createdAt
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const resubmitRes = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query: resubmitMutation,
+          variables: {
+            input: {
+              taskId: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
+              notes: "已完成修改",
+            },
+          },
+        }),
+      });
+
+      const resubmitData = await resubmitRes.json();
+
+      if (resubmitData.errors) {
+        throw new Error(resubmitData.errors[0].message);
+      }
+
+      // 更新本地狀態（使用重新送出後的資料）
+      const updatedTask = resubmitData.data.resubmitTask;
+      setSelectedTask(updatedTask as AdminTask);
+
+      // 更新列表中的任務
+      setTasks(prevTasks =>
+        prevTasks.map(t =>
+          t.id === updatedTask.id ? { ...t, ...updatedTask } : t
+        )
+      );
+
+      alert("任務已更新並重新送出審批！");
+      setIsEditMode(false);
+      setShowDetailModal(false);
+      fetchData(); // 刷新列表
+    } catch (error) {
+      console.error("更新任務失敗：", error);
+      alert(`更新失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // 刪除任務
   const handleDeleteTask = async (taskId: number) => {
     if (!confirm("確定要刪除此任務嗎？此操作無法復原。")) {
@@ -1041,6 +1444,77 @@ function AdminTasksContent() {
       alert(`刪除失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // 處理完成確認打勾
+  const handleToggleCompleteCheck = async (task: AdminTask, checked: boolean) => {
+    setTogglingCompleteId(task.id);
+    try {
+      const mutation = `
+        mutation ToggleCompleteCheck($taskId: Int!, $checked: Boolean!) {
+          toggleCompleteCheck(taskId: $taskId, checked: $checked) {
+            id
+            status
+            completedAt
+          }
+        }
+      `;
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query: mutation,
+          variables: { taskId: Number(task.id), checked },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.errors) {
+        throw new Error(data.errors[0].message);
+      }
+
+      // 更新本地狀態
+      const oldStatus = task.status;
+      const newStatus = data.data.toggleCompleteCheck.status;
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? {
+                ...t,
+                status: newStatus,
+                completedAt: data.data.toggleCompleteCheck.completedAt,
+              }
+            : t
+        )
+      );
+
+      // 更新統計數據
+      if (oldStatus !== newStatus && stats) {
+        setStats((prev) => {
+          if (!prev) return prev;
+          const updated = { ...prev };
+
+          // 減少舊狀態計數
+          if (oldStatus === "APPROVED") updated.approved = Math.max(0, updated.approved - 1);
+          else if (oldStatus === "COMPLETED") updated.completed = Math.max(0, updated.completed - 1);
+
+          // 增加新狀態計數
+          if (newStatus === "APPROVED") updated.approved = updated.approved + 1;
+          else if (newStatus === "COMPLETED") updated.completed = updated.completed + 1;
+
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error("完成確認失敗：", error);
+      alert(`操作失敗：${error instanceof Error ? error.message : "未知錯誤"}`);
+    } finally {
+      setTogglingCompleteId(null);
     }
   };
 
@@ -1103,14 +1577,14 @@ function AdminTasksContent() {
           // 減少舊狀態計數
           if (oldStatus === "APPROVED") updated.approved = Math.max(0, updated.approved - 1);
           else if (oldStatus === "COMPLETED") updated.completed = Math.max(0, updated.completed - 1);
+          else if (oldStatus === "REVIEWED") updated.reviewed = Math.max(0, updated.reviewed - 1);
           else if (oldStatus === "PENDING") updated.pending = Math.max(0, updated.pending - 1);
-          else if (oldStatus === "PROCESSING") updated.processing = Math.max(0, updated.processing - 1);
 
           // 增加新狀態計數
           if (newStatus === "APPROVED") updated.approved = updated.approved + 1;
           else if (newStatus === "COMPLETED") updated.completed = updated.completed + 1;
+          else if (newStatus === "REVIEWED") updated.reviewed = updated.reviewed + 1;
           else if (newStatus === "PENDING") updated.pending = updated.pending + 1;
-          else if (newStatus === "PROCESSING") updated.processing = updated.processing + 1;
 
           return updated;
         });
@@ -1232,7 +1706,7 @@ function AdminTasksContent() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-full overflow-x-hidden">
         {/* 頁面標題 */}
         <div className="mb-4 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -1241,25 +1715,53 @@ function AdminTasksContent() {
             </h1>
             <p className="text-sm md:text-base text-gray-600">管理所有行政申請單與審批流程</p>
           </div>
-          <button
-            onClick={() => {
-              // 自動帶入當前登入用戶名稱作為申請人
-              setCreateForm((prev) => ({
-                ...prev,
-                applicantName: session?.user?.name || "",
-              }));
-              setShowCreateModal(true);
-            }}
-            className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-2 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
-          >
-            <span>+</span>
-            新增申請
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            {/* 關鍵字搜尋 */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="搜尋標題、編號、申請人..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                className="w-full sm:w-64 pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {searchKeyword && (
+                <button
+                  onClick={() => setSearchKeyword("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-2 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
+            >
+              <span>+</span>
+              新增申請
+            </button>
+          </div>
         </div>
 
         {/* 統計卡片 */}
         {stats && (
-          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 md:gap-3 mb-4 md:mb-8">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 md:gap-3 mb-4 md:mb-8">
             <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500">
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">總計</p>
               <p className="text-lg md:text-2xl font-bold text-gray-900">{stats.total}</p>
@@ -1268,12 +1770,6 @@ function AdminTasksContent() {
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待處理</p>
               <p className="text-lg md:text-2xl font-bold text-yellow-600">
                 {stats.pending}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-600">
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">處理中</p>
-              <p className="text-lg md:text-2xl font-bold text-blue-600">
-                {stats.processing}
               </p>
             </div>
             <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400">
@@ -1306,6 +1802,12 @@ function AdminTasksContent() {
                 {stats.completed}
               </p>
             </div>
+            <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-indigo-500">
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已複審</p>
+              <p className="text-lg md:text-2xl font-bold text-indigo-600">
+                {stats.reviewed}
+              </p>
+            </div>
             <div className="bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-purple-500">
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">逾期</p>
               <p className="text-lg md:text-2xl font-bold text-purple-600">
@@ -1331,7 +1833,6 @@ function AdminTasksContent() {
               >
                 <option value="all">全部</option>
                 <option value="PENDING">待處理</option>
-                <option value="PROCESSING">處理中</option>
                 <option value="PENDING_DOCUMENTS">待補件</option>
                 <option value="REVISION_REQUESTED">要求修改</option>
                 <option value="APPROVED">已批准</option>
@@ -1339,6 +1840,7 @@ function AdminTasksContent() {
                 <option value="OVERDUE">逾期的</option>
                 <option value="REJECTED">已退回</option>
                 <option value="COMPLETED">已完成</option>
+                <option value="REVIEWED">已複審</option>
               </select>
             </div>
 
@@ -1418,48 +1920,66 @@ function AdminTasksContent() {
             <p className="text-gray-600">點擊右上角「新增申請」開始創建任務</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md overflow-x-auto">
             {/* 手機版卡片視圖 */}
             <div className="md:hidden divide-y divide-gray-200">
               {groupedTasks.map((item) => (
-                <div key={`mobile-${item.task.id}`} className="p-4">
-                  <div className="flex items-start justify-between mb-2">
+                <div key={`mobile-${item.task.id}`} className="p-3">
+                  {/* 標題列：展開按鈕 + 標題 + 狀態 */}
+                  <div className="flex items-center gap-2 mb-2">
+                    {item.type === "group" && item.children && item.children.length > 0 && (
+                      <button
+                        onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
+                        className="p-1.5 hover:bg-gray-200 rounded transition-colors text-gray-500 flex-shrink-0"
+                      >
+                        {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
+                      </button>
+                    )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {item.type === "group" && item.children && item.children.length > 0 && (
-                          <button
-                            onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500 text-xs"
-                          >
-                            {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
-                          </button>
-                        )}
-                        <span className="text-base font-medium text-gray-900 truncate">{item.task.title}</span>
-                      </div>
-                      {item.type === "group" && item.children && item.children.length > 0 && (
-                        <span className="text-xs text-blue-600 font-medium">📎 {item.children.length + 1} 個關聯</span>
-                      )}
+                      <span className="text-sm font-medium text-gray-900 line-clamp-2">{item.task.title}</span>
                     </div>
-                    {getStatusBadge(item.task.status)}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                    <div>
-                      <span className="text-gray-500">類型：</span>
-                      <span className="text-gray-900">{item.task.taskType?.label || "未知"}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">申請人：</span>
-                      <span className="text-gray-900">{item.task.applicantName || item.task.applicant?.name || "-"}</span>
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(item.task.status)}
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+
+                  {/* 資訊區：類型、申請人、期限 */}
+                  <div className="space-y-1 text-xs text-gray-600 mb-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded">{item.task.taskType?.label || "未知"}</span>
+                      <span>{item.task.applicantName || item.task.applicant?.name || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">期限：</span>
+                      {(() => {
+                        const deadline = item.task.deadline;
+                        const deadlineText = item.task.payload?.deadlineText as string;
+                        if (!deadline && !deadlineText) return <span className="text-gray-400">-</span>;
+                        if (deadlineText && !deadline) return <span>{deadlineText}</span>;
+                        const urgency = getDeadlineUrgency(deadline);
+                        return (
+                          <span className={`px-1.5 py-0.5 rounded text-xs ${getDeadlineStyle(urgency)}`}>
+                            {formatDeadlineDate(deadline)}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* 群組標記 */}
+                  {item.type === "group" && item.children && item.children.length > 0 && (
+                    <div className="text-xs text-blue-600 font-medium mb-2">📎 {item.children.length + 1} 個關聯</div>
+                  )}
+
+                  {/* 操作按鈕 */}
+                  <div className="flex gap-2 pt-2 border-t border-gray-100">
                     <button
                       onClick={() => {
                         setSelectedTask(item.task);
                         setApprovalProcessorName(item.task.processorName || "");
                         setShowDetailModal(true);
                       }}
-                      className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg min-h-[44px] active:bg-blue-100"
+                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg min-h-[40px]"
                     >
                       查看詳情
                     </button>
@@ -1467,19 +1987,20 @@ function AdminTasksContent() {
                       <button
                         onClick={() => handleDeleteTask(item.task.id)}
                         disabled={deleting}
-                        className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg min-h-[44px] active:bg-red-100 disabled:opacity-50"
+                        className="px-3 py-2 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 active:bg-red-100 rounded-lg min-h-[40px] disabled:opacity-50"
                       >
                         刪除
                       </button>
                     )}
                   </div>
+
                   {/* 展開的子任務 */}
                   {item.type === "group" && item.task.groupId && expandedGroups.has(item.task.groupId) && item.children?.map((childTask) => {
                     const fullChildTask = tasks.find(t => t.id === childTask.id) as AdminTask | undefined;
                     return (
-                      <div key={`mobile-child-${childTask.id}`} className="mt-3 ml-4 p-3 bg-gray-50 rounded-lg border-l-2 border-gray-300">
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">{childTask.title}</span>
+                      <div key={`mobile-child-${childTask.id}`} className="mt-2 ml-3 p-2 bg-gray-50 rounded-lg border-l-2 border-gray-300">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-700 line-clamp-1 flex-1">{childTask.title}</span>
                           {getStatusBadge(childTask.status)}
                         </div>
                         <button
@@ -1490,7 +2011,7 @@ function AdminTasksContent() {
                               setShowDetailModal(true);
                             }
                           }}
-                          className="text-sm text-blue-600 hover:text-blue-800"
+                          className="text-xs text-blue-600 active:text-blue-800 py-1"
                         >
                           查看詳情
                         </button>
@@ -1506,23 +2027,62 @@ function AdminTasksContent() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      標題
+                    <th
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort("title")}
+                    >
+                      <div className="flex items-center gap-1">
+                        標題
+                        <SortIcon field="title" />
+                      </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                      類型
+                    <th
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort("type")}
+                    >
+                      <div className="flex items-center gap-1">
+                        類型
+                        <SortIcon field="type" />
+                      </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                      申請人
+                    <th
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort("applicant")}
+                    >
+                      <div className="flex items-center gap-1">
+                        申請人
+                        <SortIcon field="applicant" />
+                      </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                      狀態
+                    <th
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort("status")}
+                    >
+                      <div className="flex items-center gap-1">
+                        狀態
+                        <SortIcon field="status" />
+                      </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                      完成期限
+                    <th
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort("deadline")}
+                    >
+                      <div className="flex items-center gap-1">
+                        完成期限
+                        <SortIcon field="deadline" />
+                      </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                      申請時間
+                    <th
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort("createdAt")}
+                    >
+                      <div className="flex items-center gap-1">
+                        申請時間
+                        <SortIcon field="createdAt" />
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                      完成
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                       複審
@@ -1602,6 +2162,53 @@ function AdminTasksContent() {
                           </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-center">
+                          {/* 完成確認 checkbox */}
+                          {(() => {
+                            const isHandler = item.task.handlers?.some(
+                              (h) => h.id === session?.user?.id
+                            );
+                            const isSuperAdmin = userRole === "SUPER_ADMIN";
+                            const isCompleteChecked = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                            const isCompleteLoading = togglingCompleteId === item.task.id;
+                            // 只有已批准或已完成狀態才能操作 checkbox
+                            const isApprovedOrCompleted = item.task.status === "APPROVED" || item.task.status === "COMPLETED";
+                            const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+
+                            // 沒有負責人時不顯示
+                            if (!item.task.handlers || item.task.handlers.length === 0) {
+                              return <span className="text-gray-300">-</span>;
+                            }
+
+                            // 顯示 checkbox
+                            return (
+                              <div className="flex items-center justify-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isCompleteChecked}
+                                  disabled={!canCompleteCheck || isCompleteLoading}
+                                  onChange={(e) =>
+                                    handleToggleCompleteCheck(item.task, e.target.checked)
+                                  }
+                                  className={`w-5 h-5 rounded border-2 ${
+                                    canCompleteCheck
+                                      ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
+                                      : "cursor-not-allowed text-gray-400 border-gray-300"
+                                  } ${isCompleteLoading ? "opacity-50" : ""}`}
+                                  title={
+                                    !isApprovedOrCompleted
+                                      ? "只有已批准狀態才能標記完成"
+                                      : canCompleteCheck
+                                        ? isCompleteChecked
+                                          ? "點擊取消完成標記"
+                                          : "點擊標記為完成"
+                                        : "只有負責人可以操作"
+                                  }
+                                />
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-center">
                           {/* 複審確認 checkbox */}
                           {(() => {
                             const isReviewer = item.task.reviewers?.some(
@@ -1610,16 +2217,16 @@ function AdminTasksContent() {
                             const isSuperAdmin = userRole === "SUPER_ADMIN";
                             const isChecked = !!item.task.reviewedAt;
                             const isLoading = togglingReviewId === item.task.id;
-                            // 只有已批准或已完成狀態才能操作 checkbox
-                            const isApprovedOrCompleted = item.task.status === "APPROVED" || item.task.status === "COMPLETED";
-                            const canCheck = (isReviewer || isSuperAdmin) && isApprovedOrCompleted;
+                            // 只有已完成或已複審狀態才能操作 checkbox
+                            const isCompletedOrReviewed = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                            const canCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
 
                             // 沒有複審人時不顯示
                             if (!item.task.reviewers || item.task.reviewers.length === 0) {
                               return <span className="text-gray-300">-</span>;
                             }
 
-                            // 顯示 checkbox（有複審人就顯示，但只有已批准狀態才能操作）
+                            // 顯示 checkbox（有複審人就顯示，但只有已完成狀態才能操作）
                             return (
                               <div className="flex items-center justify-center">
                                 <input
@@ -1635,8 +2242,8 @@ function AdminTasksContent() {
                                       : "cursor-not-allowed text-gray-400 border-gray-300"
                                   } ${isLoading ? "opacity-50" : ""}`}
                                   title={
-                                    !isApprovedOrCompleted
-                                      ? "只有已批准狀態才能複審"
+                                    !isCompletedOrReviewed
+                                      ? "只有已完成狀態才能複審"
                                       : canCheck
                                         ? isChecked
                                           ? "點擊取消複審確認"
@@ -1732,6 +2339,51 @@ function AdminTasksContent() {
                               </div>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-center">
+                              {/* 子任務完成確認 checkbox */}
+                              {(() => {
+                                if (!fullChildTask) return <span className="text-gray-300">-</span>;
+                                const isHandler = fullChildTask.handlers?.some(
+                                  (h) => h.id === session?.user?.id
+                                );
+                                const isSuperAdmin = userRole === "SUPER_ADMIN";
+                                const isCompleteChecked = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
+                                const isCompleteLoading = togglingCompleteId === fullChildTask.id;
+                                const isApprovedOrCompleted = fullChildTask.status === "APPROVED" || fullChildTask.status === "COMPLETED";
+                                const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+
+                                if (!fullChildTask.handlers || fullChildTask.handlers.length === 0) {
+                                  return <span className="text-gray-300">-</span>;
+                                }
+
+                                return (
+                                  <div className="flex items-center justify-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={isCompleteChecked}
+                                      disabled={!canCompleteCheck || isCompleteLoading}
+                                      onChange={(e) =>
+                                        handleToggleCompleteCheck(fullChildTask, e.target.checked)
+                                      }
+                                      className={`w-5 h-5 rounded border-2 ${
+                                        canCompleteCheck
+                                          ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
+                                          : "cursor-not-allowed text-gray-400 border-gray-300"
+                                      } ${isCompleteLoading ? "opacity-50" : ""}`}
+                                      title={
+                                        !isApprovedOrCompleted
+                                          ? "只有已批准狀態才能標記完成"
+                                          : canCompleteCheck
+                                            ? isCompleteChecked
+                                              ? "點擊取消完成標記"
+                                              : "點擊標記為完成"
+                                            : "只有負責人可以操作"
+                                      }
+                                    />
+                                  </div>
+                                );
+                              })()}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
                               {/* 子任務複審確認 checkbox */}
                               {(() => {
                                 if (!fullChildTask) return <span className="text-gray-300">-</span>;
@@ -1741,9 +2393,9 @@ function AdminTasksContent() {
                                 const isSuperAdmin = userRole === "SUPER_ADMIN";
                                 const isChecked = !!fullChildTask.reviewedAt;
                                 const isLoading = togglingReviewId === fullChildTask.id;
-                                // 只有已批准或已完成狀態才能操作 checkbox
-                                const isApprovedOrCompleted = fullChildTask.status === "APPROVED" || fullChildTask.status === "COMPLETED";
-                                const canCheck = (isReviewer || isSuperAdmin) && isApprovedOrCompleted;
+                                // 只有已完成或已複審狀態才能操作 checkbox
+                                const isCompletedOrReviewed = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
+                                const canCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
 
                                 if (!fullChildTask.reviewers || fullChildTask.reviewers.length === 0) {
                                   return <span className="text-gray-300">-</span>;
@@ -1764,8 +2416,8 @@ function AdminTasksContent() {
                                           : "cursor-not-allowed text-gray-400 border-gray-300"
                                       } ${isLoading ? "opacity-50" : ""}`}
                                       title={
-                                        !isApprovedOrCompleted
-                                          ? "只有已批准狀態才能複審"
+                                        !isCompletedOrReviewed
+                                          ? "只有已完成狀態才能複審"
                                           : canCheck
                                             ? isChecked
                                               ? "點擊取消複審確認"
@@ -1915,25 +2567,6 @@ function AdminTasksContent() {
                         setCreateForm({ ...createForm, title: e.target.value })
                       }
                       placeholder={selectedTaskType?.titlePlaceholder || "請輸入任務標題"}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 申請人 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      申請人
-                    </label>
-                    <input
-                      type="text"
-                      value={createForm.applicantName}
-                      onChange={(e) =>
-                        setCreateForm({
-                          ...createForm,
-                          applicantName: e.target.value,
-                        })
-                      }
-                      placeholder="申請人名稱（已自動帶入當前登入用戶）"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -2215,7 +2848,10 @@ function AdminTasksContent() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowDetailModal(false)}
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    setIsEditMode(false);
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-lg"
                 >
                   ✕
@@ -2223,132 +2859,384 @@ function AdminTasksContent() {
               </div>
 
               <div className="p-6 space-y-6">
-                {/* 基本資訊 */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    基本資訊
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">類型</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedTask.taskType?.label || "未知類型"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">標題</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedTask.title}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">狀態</p>
-                      {getStatusBadge(selectedTask.status)}
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">申請人</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedTask.applicantName ||
-                          selectedTask.applicant?.name ||
-                          selectedTask.applicant?.email}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">負責人</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedTask.processorName ||
-                          selectedTask.processor?.name ||
-                          selectedTask.processor?.email ||
-                          "-"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">申請時間</p>
-                      <p className="text-sm text-gray-900">
-                        {formatDate(selectedTask.applicationDate)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">完成限期</p>
-                      <p className="text-sm text-gray-900">
-                        {selectedTask.deadline
-                          ? formatDate(selectedTask.deadline)
-                          : (selectedTask.payload?.deadlineText as string) ||
-                            "-"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 細節 */}
-                {selectedTask.notes && (
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      細節
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                        {selectedTask.notes}
-                      </p>
-                    </div>
+                {/* 編輯按鈕（只在要求修改狀態且是申請人時顯示） */}
+                {selectedTask.applicant?.id === session?.user?.id &&
+                  selectedTask.status === "REVISION_REQUESTED" &&
+                  !isEditMode && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={openEditMode}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      編輯任務
+                    </button>
                   </div>
                 )}
 
-                {/* 自訂問題答案 */}
-                {(() => {
-                  const answers = selectedTask.payload?.customAnswers as
-                    | Record<string, string | string[]>
-                    | undefined;
-                  const taskTypeQuestions =
-                    selectedTask.taskType?.questions || [];
-                  if (
-                    !answers ||
-                    Object.keys(answers).length === 0 ||
-                    taskTypeQuestions.length === 0
-                  ) {
-                    return null;
-                  }
-                  return (
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">
-                        類型問題回答
-                      </h3>
-                      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                        {taskTypeQuestions.map(
-                          (question: Question, index: number) => {
-                            const answer = answers[question.id];
-                            if (
-                              answer === undefined ||
-                              answer === null ||
-                              (Array.isArray(answer) && answer.length === 0) ||
-                              answer === ""
-                            ) {
-                              return null;
-                            }
-                            return (
-                              <div
-                                key={question.id}
-                                className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0"
-                              >
-                                <p className="text-xs text-gray-600 mb-1">
-                                  {index + 1}. {question.label}
-                                </p>
-                                <p className="text-sm font-medium text-gray-900">
-                                  {Array.isArray(answer)
-                                    ? answer.join("、")
-                                    : answer}
-                                </p>
-                              </div>
-                            );
-                          }
-                        )}
+                {/* 編輯表單（編輯模式時顯示） */}
+                {isEditMode ? (
+                  <div className="space-y-6">
+                    {/* 編輯模式標題 */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 text-blue-800">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span className="font-medium">編輯模式 - 請修改後重新送出審批</span>
                       </div>
                     </div>
-                  );
-                })()}
 
-                {/* 審批記錄 */}
-                {selectedTask.approvalRecords.length > 0 && (
+                    {/* 基本資訊編輯 */}
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">基本資訊</h3>
+                      <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                        {/* 類型（唯讀） */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">類型</label>
+                          <p className="px-3 py-2 bg-gray-100 rounded-lg text-gray-600">
+                            {selectedTask.taskType?.label || "未知類型"}
+                          </p>
+                        </div>
+
+                        {/* 標題 */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            任務標題 <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.title}
+                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        {/* 完成限期 */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">完成限期</label>
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditDeadlineType("date")}
+                              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                                editDeadlineType === "date"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
+                            >
+                              選擇日期
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditDeadlineType("text")}
+                              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                                editDeadlineType === "text"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
+                            >
+                              輸入文字
+                            </button>
+                          </div>
+                          {editDeadlineType === "date" ? (
+                            <input
+                              type="datetime-local"
+                              value={editForm.deadline}
+                              onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={editForm.deadlineText}
+                              onChange={(e) => setEditForm({ ...editForm, deadlineText: e.target.value })}
+                              placeholder="例如：待定、盡快、下週前..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 細節編輯 */}
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">細節</h3>
+                      <textarea
+                        value={editForm.notes}
+                        onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                        rows={4}
+                        placeholder="請輸入細節..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
+
+                    {/* 自訂問題答案編輯 */}
+                    {selectedTask.taskType?.questions && selectedTask.taskType.questions.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">類型問題回答</h3>
+                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                          {selectedTask.taskType.questions.map((question: Question, index: number) => (
+                            <div key={question.id} className="space-y-2">
+                              <label className="block text-sm font-medium text-gray-700">
+                                {index + 1}. {question.label}
+                                {question.required && <span className="text-red-500 ml-1">*</span>}
+                              </label>
+
+                              {/* 文字回答 */}
+                              {question.type === "TEXT" && (
+                                <input
+                                  type="text"
+                                  value={(editCustomAnswers[question.id] as string) || ""}
+                                  onChange={(e) =>
+                                    setEditCustomAnswers({
+                                      ...editCustomAnswers,
+                                      [question.id]: e.target.value,
+                                    })
+                                  }
+                                  placeholder="請輸入..."
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                />
+                              )}
+
+                              {/* 單選題 */}
+                              {question.type === "RADIO" && (
+                                <div className="space-y-2">
+                                  {question.options.map((option, optIndex) => (
+                                    <label key={optIndex} className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={`edit_question_${question.id}`}
+                                        value={option}
+                                        checked={editCustomAnswers[question.id] === option}
+                                        onChange={(e) =>
+                                          setEditCustomAnswers({
+                                            ...editCustomAnswers,
+                                            [question.id]: e.target.value,
+                                          })
+                                        }
+                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                      />
+                                      <span className="text-sm text-gray-700">{option}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* 補充說明輸入 */}
+                              {question.type === "RADIO" && editCustomAnswers[question.id] && (() => {
+                                const selectedAnswer = editCustomAnswers[question.id] as string;
+                                const explanation = question.explanations?.find(e => e.answer === selectedAnswer);
+                                if (!explanation) return null;
+                                const explanationKey = `${question.id}_${selectedAnswer}`;
+                                return (
+                                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <label className="block text-sm font-medium text-blue-800 mb-2">
+                                      {explanation.prompt}
+                                    </label>
+                                    <textarea
+                                      value={editExplanationTexts[explanationKey] || ""}
+                                      onChange={(e) =>
+                                        setEditExplanationTexts({
+                                          ...editExplanationTexts,
+                                          [explanationKey]: e.target.value,
+                                        })
+                                      }
+                                      placeholder="請輸入補充說明..."
+                                      rows={3}
+                                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                    />
+                                  </div>
+                                );
+                              })()}
+
+                              {/* 複選題 */}
+                              {question.type === "CHECKBOX" && (
+                                <div className="space-y-2">
+                                  {question.options.map((option, optIndex) => {
+                                    const currentValues = (editCustomAnswers[question.id] as string[]) || [];
+                                    const isChecked = currentValues.includes(option);
+                                    return (
+                                      <label key={optIndex} className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          value={option}
+                                          checked={isChecked}
+                                          onChange={(e) => {
+                                            let newValues: string[];
+                                            if (e.target.checked) {
+                                              newValues = [...currentValues, option];
+                                            } else {
+                                              newValues = currentValues.filter((v) => v !== option);
+                                            }
+                                            setEditCustomAnswers({
+                                              ...editCustomAnswers,
+                                              [question.id]: newValues,
+                                            });
+                                          }}
+                                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm text-gray-700">{option}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 編輯操作按鈕 */}
+                    <div className="flex gap-3 pt-4 border-t">
+                      <button
+                        onClick={cancelEditMode}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      >
+                        取消編輯
+                      </button>
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={saving}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {saving ? "保存中..." : "保存修改"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* 基本資訊（顯示模式） */}
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        基本資訊
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">類型</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedTask.taskType?.label || "未知類型"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">標題</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedTask.title}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">狀態</p>
+                          {getStatusBadge(selectedTask.status)}
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">申請人</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedTask.applicantName ||
+                              selectedTask.applicant?.name ||
+                              selectedTask.applicant?.email}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">負責人</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedTask.handlers && selectedTask.handlers.length > 0
+                              ? selectedTask.handlers.map(h => h.name || h.email).join("、")
+                              : selectedTask.processorName ||
+                                selectedTask.processor?.name ||
+                                selectedTask.processor?.email ||
+                                "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">申請時間</p>
+                          <p className="text-sm text-gray-900">
+                            {formatDate(selectedTask.applicationDate)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">完成限期</p>
+                          <p className="text-sm text-gray-900">
+                            {selectedTask.deadline
+                              ? formatDate(selectedTask.deadline)
+                              : (selectedTask.payload?.deadlineText as string) ||
+                                "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 細節（顯示模式） */}
+                    {selectedTask.notes && (
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">
+                          細節
+                        </h3>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                            {selectedTask.notes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 自訂問題答案（顯示模式） */}
+                    {(() => {
+                      const answers = selectedTask.payload?.customAnswers as
+                        | Record<string, string | string[]>
+                        | undefined;
+                      const taskTypeQuestions =
+                        selectedTask.taskType?.questions || [];
+                      if (
+                        !answers ||
+                        Object.keys(answers).length === 0 ||
+                        taskTypeQuestions.length === 0
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-4">
+                            類型問題回答
+                          </h3>
+                          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                            {taskTypeQuestions.map(
+                              (question: Question, index: number) => {
+                                const answer = answers[question.id];
+                                if (
+                                  answer === undefined ||
+                                  answer === null ||
+                                  (Array.isArray(answer) && answer.length === 0) ||
+                                  answer === ""
+                                ) {
+                                  return null;
+                                }
+                                return (
+                                  <div
+                                    key={question.id}
+                                    className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0"
+                                  >
+                                    <p className="text-xs text-gray-600 mb-1">
+                                      {index + 1}. {question.label}
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {Array.isArray(answer)
+                                        ? answer.join("、")
+                                        : answer}
+                                    </p>
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 審批記錄 */}
+                    {selectedTask.approvalRecords.length > 0 && (
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-4">
                       審批記錄
@@ -2423,10 +3311,9 @@ function AdminTasksContent() {
                   </div>
                 )}
 
-                {/* 審批操作（僅待處理/處理中狀態且有審批權限才顯示） */}
+                {/* 審批操作（僅待處理/待補件狀態且有審批權限才顯示） */}
                 {can('admin_task:approve') &&
                   (selectedTask.status === "PENDING" ||
-                  selectedTask.status === "PROCESSING" ||
                   selectedTask.status === "PENDING_DOCUMENTS") && (
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-4">
@@ -2639,6 +3526,8 @@ function AdminTasksContent() {
                       </button>
                     </div>
                   </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

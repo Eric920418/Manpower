@@ -3,13 +3,13 @@
 # 行政任務狀態
 enum AdminTaskStatus {
   PENDING              # 待處理
-  PROCESSING           # 處理中
   PENDING_DOCUMENTS    # 待補件
   PENDING_REVIEW       # 待複審
   REVISION_REQUESTED   # 要求修改
   APPROVED             # 已批准
   REJECTED             # 已退回
   COMPLETED            # 已完成
+  REVIEWED             # 已複審
 }
 
 # 審批路線
@@ -127,13 +127,13 @@ type AdminTaskConnection {
 type AdminTaskStats {
   total: Int!
   pending: Int!
-  processing: Int!
   pendingDocuments: Int!
   pendingReview: Int!
   revisionRequested: Int!
   approved: Int!
   rejected: Int!
   completed: Int!
+  reviewed: Int!
   overdue: Int!
 }
 
@@ -401,6 +401,9 @@ extend type Mutation {
 
   # 重新送出案件（申請人修改後重新提交）
   resubmitTask(input: ResubmitTaskInput!): AdminTask!
+
+  # 完成確認打勾（只有負責人可操作，將已批准改為已完成）
+  toggleCompleteCheck(taskId: Int!, checked: Boolean!): AdminTask!
 
   # 複審確認打勾（只有複審人可操作）
   toggleReviewCheck(taskId: Int!, checked: Boolean!): AdminTask!

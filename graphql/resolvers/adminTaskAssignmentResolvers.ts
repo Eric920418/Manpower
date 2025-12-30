@@ -231,7 +231,7 @@ export const adminTaskAssignmentResolvers = {
             prisma.adminTaskAssignment.count({
               where: {
                 userId: user.id,
-                task: { status: "PROCESSING" },
+                task: { status: "APPROVED" },
               },
             }),
             prisma.adminTaskAssignment.count({

@@ -118,15 +118,15 @@ export const dashboardResolvers = {
           ? prisma.adminTask.count({ where: { status: "PENDING" } })
           : prisma.adminTask.count({ where: { status: "PENDING", OR: [{ applicantId: user.id }, { processorId: user.id }] } }),
         user.role === "SUPER_ADMIN"
-          ? prisma.adminTask.count({ where: { status: "PROCESSING" } })
-          : prisma.adminTask.count({ where: { status: "PROCESSING", OR: [{ applicantId: user.id }, { processorId: user.id }] } }),
+          ? prisma.adminTask.count({ where: { status: "APPROVED" } })
+          : prisma.adminTask.count({ where: { status: "APPROVED", OR: [{ applicantId: user.id }, { processorId: user.id }] } }),
         user.role === "SUPER_ADMIN"
           ? prisma.adminTask.count({ where: { status: "COMPLETED" } })
           : prisma.adminTask.count({ where: { status: "COMPLETED", OR: [{ applicantId: user.id }, { processorId: user.id }] } }),
         user.role === "SUPER_ADMIN"
           ? prisma.adminTask.count({
               where: {
-                status: { in: ["PENDING", "PROCESSING"] },
+                status: { in: ["PENDING", "APPROVED"] },
                 deadline: { lt: now },
               },
             })

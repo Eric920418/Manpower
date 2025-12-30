@@ -133,26 +133,26 @@ const formatDetails = (action: string, entity: string, details: Record<string, u
       if (details.newStatus) {
         const statusMap: Record<string, string> = {
           PENDING: "待處理",
-          PROCESSING: "處理中",
           PENDING_DOCUMENTS: "待補件",
           PENDING_REVIEW: "待複審",
           REVISION_REQUESTED: "要求修改",
           APPROVED: "已批准",
           REJECTED: "已退回",
           COMPLETED: "已完成",
+          REVIEWED: "已複審",
         };
         parts.push(`新狀態：${statusMap[details.newStatus as string] || details.newStatus}`);
       }
       if (details.oldStatus && details.newStatus) {
         const statusMap: Record<string, string> = {
           PENDING: "待處理",
-          PROCESSING: "處理中",
           PENDING_DOCUMENTS: "待補件",
           PENDING_REVIEW: "待複審",
           REVISION_REQUESTED: "要求修改",
           APPROVED: "已批准",
           REJECTED: "已退回",
           COMPLETED: "已完成",
+          REVIEWED: "已複審",
         };
         parts.push(`狀態變更：${statusMap[details.oldStatus as string] || details.oldStatus} → ${statusMap[details.newStatus as string] || details.newStatus}`);
       }
@@ -553,13 +553,13 @@ export default function ActivityLogsPage() {
         if (snapshot.status) {
           const statusMap: Record<string, string> = {
             PENDING: "待處理",
-            PROCESSING: "處理中",
             PENDING_DOCUMENTS: "待補件",
             PENDING_REVIEW: "待複審",
             REVISION_REQUESTED: "要求修改",
             APPROVED: "已批准",
             REJECTED: "已退回",
             COMPLETED: "已完成",
+            REVIEWED: "已複審",
           };
           details.push({ label: "狀態", value: statusMap[snapshot.status as string] || String(snapshot.status) });
         }
