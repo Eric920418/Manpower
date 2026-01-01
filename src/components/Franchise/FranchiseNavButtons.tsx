@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 
 // 導航按鈕為頁面結構性元素
 export const navItems = [
+  { id: "stories", label: "加盟主分享", icon: "forum" },
   { id: "main", label: "市場趨勢", icon: "trending_up" },
   { id: "details", label: "加盟詳情", icon: "description" },
   { id: "seminar", label: "報名加盟說明會", icon: "event" },
-  { id: "stories", label: "加盟主分享", icon: "forum" },
 ];
 
 interface FranchiseNavButtonsProps {
