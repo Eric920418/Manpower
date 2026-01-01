@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Fragment } from "react";
 import { useSession } from "next-auth/react";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { usePermission } from "@/hooks/usePermission";
+import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
 
 // 活動日誌
 interface ActivityLog {
@@ -642,13 +643,47 @@ export default function ActivityLogsPage() {
 
   const totalPages = Math.ceil(total / pageSize);
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (logs.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "活動日誌",
+      sheetName: "日誌",
+      columns: [
+        { key: "createdAt", header: "時間", width: 20, format: (value) => formatDateForExcel(value) },
+        { key: "user", header: "用戶", width: 20, format: (value) => value?.name || value?.email || "" },
+        { key: "user", header: "用戶Email", width: 25, format: (value) => value?.email || "" },
+        { key: "user", header: "角色", width: 12, format: (value) => roleLabels[value?.role] || value?.role || "" },
+        { key: "action", header: "操作", width: 12, format: (value) => actionLabels[value] || value },
+        { key: "entity", header: "對象", width: 15, format: (value) => entityLabels[value] || value },
+        { key: "entityId", header: "對象ID", width: 12 },
+        { key: "details", header: "詳情", width: 40, format: (value, row) => formatDetails(row.action, row.entity, value) },
+        { key: "ipAddress", header: "IP位址", width: 15 },
+      ],
+      data: logs,
+    });
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         {/* 標題 */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">活動日誌</h1>
-          <p className="text-gray-600 mt-1">查看全站用戶操作行為記錄</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">活動日誌</h1>
+            <p className="text-gray-600 mt-1">查看全站用戶操作行為記錄</p>
+          </div>
+          <button
+            onClick={handleExportExcel}
+            disabled={logs.length === 0}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            導出 Excel
+          </button>
         </div>
 
         {/* 統計卡片 */}

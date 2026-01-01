@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import FeaturedTalents from "@/components/FeaturedTalents";
 import NewsSection from "@/components/NewsSection";
+import Partners from "@/components/Partners";
 import Footer from "@/components/Footer";
 
 // 強制動態渲染，避免 build 時 fetch 失敗
@@ -16,6 +17,7 @@ async function getHomePageData() {
         hero
         featuredTalents
         newsSection
+        partnersSection
         footer
       }
       activeNavigations {
@@ -157,6 +159,11 @@ export default async function Home() {
           categories={pageData.newsSection.categories}
           featuredArticle={pageData.newsSection.featuredArticle}
           articles={pageData.newsSection.articles}
+        />
+        <Partners
+          title={pageData.partnersSection?.title || "合作夥伴與服務廠商"}
+          description={pageData.partnersSection?.description || ""}
+          partners={pageData.partnersSection?.partners || []}
         />
         <Footer
           logo={pageData.footer.logo}

@@ -4,6 +4,7 @@ type HomePage {
   hero: JSON
   featuredTalents: JSON
   newsSection: JSON
+  partnersSection: JSON
   contactSection: JSON
   footer: JSON
 }
@@ -17,6 +18,7 @@ input UpdateHomePageInput {
   hero: JSON
   featuredTalents: JSON
   newsSection: JSON
+  partnersSection: JSON
   contactSection: JSON
   footer: JSON
 }

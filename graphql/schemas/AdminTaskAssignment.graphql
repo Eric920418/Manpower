@@ -23,10 +23,10 @@ type AdminTaskAssignment {
 # 用戶的案件分配摘要（管理員視角）
 type UserTaskAssignmentSummary {
   user: TaskUser!
-  totalTasks: Int!
-  pendingTasks: Int!
-  processingTasks: Int!
-  pendingReviewTasks: Int!
+  # 負責的案件類型
+  handlerTaskTypes: [TaskType!]!
+  # 複審的案件類型
+  reviewerTaskTypes: [TaskType!]!
 }
 
 # ==================== Queries ====================

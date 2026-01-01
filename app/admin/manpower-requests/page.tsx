@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import Image from "next/image";
 import { hasPermission } from "@/lib/permissions";
+import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
 import type { Role } from "@prisma/client";
 
 interface ManpowerRequest {
@@ -470,16 +471,16 @@ export default function ManpowerRequestsPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, { label: string; className: string }> = {
-      pending: { label: "待處理", className: "bg-yellow-100 text-yellow-800" },
-      processing: { label: "處理中", className: "bg-blue-100 text-blue-800" },
-      completed: { label: "已完成", className: "bg-green-100 text-green-800" },
-      rejected: { label: "已拒絕", className: "bg-red-100 text-red-800" },
-      cancelled: { label: "已取消", className: "bg-gray-100 text-gray-800" },
-    };
+  const statusBadges: Record<string, { label: string; className: string }> = {
+    pending: { label: "待處理", className: "bg-yellow-100 text-yellow-800" },
+    processing: { label: "處理中", className: "bg-blue-100 text-blue-800" },
+    completed: { label: "已完成", className: "bg-green-100 text-green-800" },
+    rejected: { label: "已拒絕", className: "bg-red-100 text-red-800" },
+    cancelled: { label: "已取消", className: "bg-gray-100 text-gray-800" },
+  };
 
-    const badge = badges[status] || badges.pending;
+  const getStatusBadge = (status: string) => {
+    const badge = statusBadges[status] || statusBadges.pending;
 
     return (
       <span
@@ -488,6 +489,32 @@ export default function ManpowerRequestsPage() {
         {badge.label}
       </span>
     );
+  };
+
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (requests.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "人力需求列表",
+      sheetName: "需求",
+      columns: [
+        { key: "requestNo", header: "需求單號", width: 15 },
+        { key: "companyName", header: "公司名稱", width: 20 },
+        { key: "contactPerson", header: "聯絡人", width: 12 },
+        { key: "contactPhone", header: "電話", width: 15 },
+        { key: "contactEmail", header: "Email", width: 25 },
+        { key: "positionTitle", header: "職位", width: 15 },
+        { key: "quantity", header: "人數", width: 8 },
+        { key: "workLocation", header: "工作地點", width: 15 },
+        { key: "status", header: "狀態", width: 10, format: (value) => statusBadges[value]?.label || value },
+        { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
+      ],
+      data: requests,
+    });
   };
 
   const formatDate = (dateString: string | null) => {
@@ -556,15 +583,24 @@ export default function ManpowerRequestsPage() {
               查看和處理所有提交的人力需求表單
             </p>
           </div>
-          {canCreateForm && (
+          <div className="flex gap-3">
             <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-brand-primary text-text-on-brand rounded-lg hover:bg-brand-accent transition-colors font-bold"
+              onClick={handleExportExcel}
+              disabled={requests.length === 0}
+              className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="material-symbols-outlined">add</span>
-              新增需求
+              導出 Excel
             </button>
-          )}
+            {canCreateForm && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-brand-primary text-text-on-brand rounded-lg hover:bg-brand-accent transition-colors font-bold"
+              >
+                <span className="material-symbols-outlined">add</span>
+                新增需求
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 統計卡片 */}
@@ -973,8 +1009,8 @@ export default function ManpowerRequestsPage() {
                   </div>
                 </div>
 
-                {/* 狀態管理 - 僅 SUPER_ADMIN 可操作 */}
-                {session?.user?.role === "SUPER_ADMIN" && (
+                {/* 狀態管理 - 需要 form:process 權限 */}
+                {can("form:process") && (
                   <div>
                     <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
                       <span className="material-symbols-outlined text-brand-primary">

@@ -1,4 +1,6 @@
 import { prisma } from "../prismaClient";
+import { hasPermissionWithCustom, Permission, CustomPermissions } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
 
 // Context 類型
 interface Context {
@@ -7,6 +9,7 @@ interface Context {
     email: string;
     role: string;
     name?: string;
+    customPermissions?: CustomPermissions | null;
   };
 }
 
@@ -18,10 +21,16 @@ const requireAuth = (context: Context) => {
   return context.user;
 };
 
-const requireSuperAdmin = (context: Context) => {
+// 檢查用戶是否擁有特定權限（支援自訂權限）
+const requirePermission = (context: Context, permission: Permission) => {
   const user = requireAuth(context);
-  if (user.role !== "SUPER_ADMIN") {
-    throw new Error("權限不足：需要超級管理員權限");
+  const hasPermission = hasPermissionWithCustom(
+    user.role as Role,
+    permission,
+    user.customPermissions
+  );
+  if (!hasPermission) {
+    throw new Error(`權限不足：需要 ${permission} 權限`);
   }
   return user;
 };
@@ -276,7 +285,7 @@ export const taskTypeResolvers = {
       },
       context: Context
     ) => {
-      requireSuperAdmin(context);
+      requirePermission(context, "system:config");
 
       // 檢查 code 是否已存在
       const existing = await prisma.taskType.findUnique({
@@ -322,7 +331,7 @@ export const taskTypeResolvers = {
       });
 
       // 記錄活動日誌
-      const user = requireSuperAdmin(context);
+      const user = requirePermission(context, "system:config");
       await prisma.activityLog.create({
         data: {
           userId: user.id,
@@ -367,7 +376,7 @@ export const taskTypeResolvers = {
       },
       context: Context
     ) => {
-      requireSuperAdmin(context);
+      requirePermission(context, "system:config");
 
       const existing = await prisma.taskType.findUnique({
         where: { id: args.input.id },
@@ -507,7 +516,7 @@ export const taskTypeResolvers = {
       }
 
       // 記錄活動日誌
-      const user = requireSuperAdmin(context);
+      const user = requirePermission(context, "system:config");
       await prisma.activityLog.create({
         data: {
           userId: user.id,
@@ -536,7 +545,7 @@ export const taskTypeResolvers = {
       args: { id: number },
       context: Context
     ) => {
-      requireSuperAdmin(context);
+      requirePermission(context, "system:config");
 
       const existing = await prisma.taskType.findUnique({
         where: { id: args.id },
@@ -561,7 +570,7 @@ export const taskTypeResolvers = {
       }
 
       // 記錄活動日誌（保存完整資料快照以便復原）
-      const user = requireSuperAdmin(context);
+      const user = requirePermission(context, "system:config");
       await prisma.activityLog.create({
         data: {
           userId: user.id,
@@ -598,7 +607,7 @@ export const taskTypeResolvers = {
       args: { ids: number[] },
       context: Context
     ) => {
-      requireSuperAdmin(context);
+      requirePermission(context, "system:config");
 
       // 批量更新排序
       await Promise.all(

@@ -204,7 +204,7 @@ export const adminTaskAssignmentResolvers = {
       };
     },
 
-    // 獲取所有用戶的分配摘要
+    // 獲取所有用戶的分配摘要（顯示負責和複審的案件類型）
     allUserAssignmentSummaries: async (_: unknown, __: unknown, context: Context) => {
       requirePermission(context, "task_assignment:read");
 
@@ -217,38 +217,38 @@ export const adminTaskAssignmentResolvers = {
         select: { id: true, name: true, email: true, role: true },
       });
 
-      // 獲取所有分配的統計
+      // 獲取每個用戶的案件類型分配
       const summaries = await Promise.all(
         users.map(async (user) => {
-          const [totalTasks, pendingTasks, processingTasks, pendingReviewTasks] = await Promise.all([
-            prisma.adminTaskAssignment.count({ where: { userId: user.id } }),
-            prisma.adminTaskAssignment.count({
-              where: {
-                userId: user.id,
-                task: { status: "PENDING" },
-              },
-            }),
-            prisma.adminTaskAssignment.count({
-              where: {
-                userId: user.id,
-                task: { status: "APPROVED" },
-              },
-            }),
-            prisma.adminTaskAssignment.count({
-              where: {
-                userId: user.id,
-                role: "REVIEWER",
-                task: { status: "PENDING_REVIEW" },
-              },
-            }),
-          ]);
+          // 獲取該用戶的全局分配設定
+          const assignments = await prisma.taskTypeDefaultAssignment.findMany({
+            where: { userId: user.id },
+            include: {
+              taskType: true,
+            },
+          });
+
+          // 分類：負責的案件類型 vs 複審的案件類型
+          const handlerTaskTypes = assignments
+            .filter(a => a.role === "HANDLER")
+            .map(a => ({
+              id: a.taskType.id,
+              code: a.taskType.code,
+              label: a.taskType.label,
+            }));
+
+          const reviewerTaskTypes = assignments
+            .filter(a => a.role === "REVIEWER")
+            .map(a => ({
+              id: a.taskType.id,
+              code: a.taskType.code,
+              label: a.taskType.label,
+            }));
 
           return {
             user: formatUser(user),
-            totalTasks,
-            pendingTasks,
-            processingTasks,
-            pendingReviewTasks,
+            handlerTaskTypes,
+            reviewerTaskTypes,
           };
         })
       );

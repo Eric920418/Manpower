@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
+import { exportToExcel } from "@/lib/exportExcel";
 
 // 類型定義
 interface TaskUser {
@@ -44,10 +45,8 @@ interface AdminTask {
 
 interface UserSummary {
   user: TaskUser;
-  totalTasks: number;
-  pendingTasks: number;
-  processingTasks: number;
-  pendingReviewTasks: number;
+  handlerTaskTypes: TaskType[];
+  reviewerTaskTypes: TaskType[];
 }
 
 // 全局分配類型
@@ -180,10 +179,8 @@ export default function AdminAssignmentsPage() {
         query {
           allUserAssignmentSummaries {
             user { id name email role }
-            totalTasks
-            pendingTasks
-            processingTasks
-            pendingReviewTasks
+            handlerTaskTypes { id code label }
+            reviewerTaskTypes { id code label }
           }
           assignableUsers { id name email role }
         }
@@ -406,6 +403,61 @@ export default function AdminAssignmentsPage() {
     }
   };
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (viewMode === "tasks") {
+      if (tasks.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+      exportToExcel({
+        filename: "案件分配_案件視角",
+        sheetName: "案件",
+        columns: [
+          { key: "taskNo", header: "案件編號", width: 15 },
+          { key: "title", header: "標題", width: 30 },
+          { key: "taskType", header: "類型", width: 15, format: (value) => value?.label || "" },
+          { key: "status", header: "狀態", width: 12, format: (value) => STATUS_MAP[value]?.label || value },
+          { key: "handlers", header: "負責人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+          { key: "reviewers", header: "複審人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+        ],
+        data: tasks,
+      });
+    } else if (viewMode === "admins") {
+      if (userSummaries.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+      exportToExcel({
+        filename: "案件分配_管理員視角",
+        sheetName: "管理員",
+        columns: [
+          { key: "user", header: "管理員", width: 20, format: (value) => value?.name || value?.email || "" },
+          { key: "user", header: "Email", width: 25, format: (value) => value?.email || "" },
+          { key: "handlerTaskTypes", header: "負責案件類型", width: 30, format: (value) => value?.map((t: TaskType) => t.label).join(", ") || "" },
+          { key: "reviewerTaskTypes", header: "複審案件類型", width: 30, format: (value) => value?.map((t: TaskType) => t.label).join(", ") || "" },
+        ],
+        data: userSummaries,
+      });
+    } else {
+      if (globalSummaries.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+      exportToExcel({
+        filename: "案件分配_全局分配",
+        sheetName: "全局分配",
+        columns: [
+          { key: "taskType", header: "案件類型", width: 20, format: (value) => value?.label || "" },
+          { key: "taskType", header: "代碼", width: 12, format: (value) => value?.code || "" },
+          { key: "handlers", header: "負責人", width: 30, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+          { key: "reviewers", header: "複審人", width: 30, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+        ],
+        data: globalSummaries,
+      });
+    }
+  };
+
   // 套用全局分配到現有案件
   const handleApplyGlobalToExisting = async () => {
     if (!confirm("確定要將全局分配設定套用到所有未完成的案件嗎？\n\n此操作會根據各案件類型的全局分配設定，為尚未分配的案件添加對應的管理員。")) {
@@ -491,8 +543,17 @@ export default function AdminAssignmentsPage() {
             <p className="text-gray-600">分配案件給管理員處理</p>
           </div>
 
-          {/* 視圖切換 */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* 導出按鈕 */}
+            <button
+              onClick={handleExportExcel}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+            >
+              導出 Excel
+            </button>
+
+            {/* 視圖切換 */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode("tasks")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -523,6 +584,7 @@ export default function AdminAssignmentsPage() {
             >
               全局分配
             </button>
+            </div>
           </div>
         </div>
 
@@ -690,35 +752,59 @@ export default function AdminAssignmentsPage() {
                 <p className="text-gray-600">請先在用戶管理頁面創建管理員帳號</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {userSummaries.map((summary) => (
-                  <div key={summary.user.id} className="bg-white rounded-xl shadow-md p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">
-                        {(summary.user.name || summary.user.email)[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{summary.user.name || "-"}</p>
-                        <p className="text-sm text-gray-500">{summary.user.email}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 text-sm text-gray-600">
-                      <div className="text-center p-2 bg-yellow-50 rounded-lg">
-                        <p className="text-xl font-bold text-yellow-600">{summary.pendingTasks}</p>
-                        <p className="text-xs text-gray-600">待處理</p>
-                      </div>
-                      <div className="text-center p-2 bg-blue-50 rounded-lg">
-                        <p className="text-xl font-bold text-blue-600">{summary.processingTasks}</p>
-                        <p className="text-xs text-gray-600">處理中</p>
-                      </div>
-                      <div className="text-center p-2 bg-gray-50 rounded-lg">
-                        <p className="text-xl font-bold text-gray-600">{summary.totalTasks}</p>
-                        <p className="text-xs text-gray-600">總計</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">管理員</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">負責案件類型</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">複審案件類型</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {userSummaries.map((summary) => (
+                      <tr key={summary.user.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                              {(summary.user.name || summary.user.email)[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{summary.user.name || "-"}</p>
+                              <p className="text-sm text-gray-500">{summary.user.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {summary.handlerTaskTypes.length === 0 ? (
+                            <span className="text-sm text-gray-400">未設定</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {summary.handlerTaskTypes.map((type) => (
+                                <span key={type.id} className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
+                                  {type.label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {summary.reviewerTaskTypes.length === 0 ? (
+                            <span className="text-sm text-gray-400">未設定</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {summary.reviewerTaskTypes.map((type) => (
+                                <span key={type.id} className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">
+                                  {type.label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </>

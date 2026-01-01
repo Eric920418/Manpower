@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
 
 interface Franchise {
   id: number;
@@ -240,6 +241,30 @@ export default function FranchisesAdmin() {
     }
   };
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (franchises.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "加盟店列表",
+      sheetName: "加盟店",
+      columns: [
+        { key: "code", header: "代碼", width: 12 },
+        { key: "name", header: "名稱", width: 20 },
+        { key: "address", header: "地址", width: 30 },
+        { key: "phone", header: "電話", width: 15 },
+        { key: "email", header: "Email", width: 25 },
+        { key: "userCount", header: "用戶數", width: 10 },
+        { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
+        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+      ],
+      data: franchises,
+    });
+  };
+
   const handleDelete = async (franchise: Franchise) => {
     if (!confirm(`確定要刪除「${franchise.name}」嗎？此操作無法復原。`)) {
       return;
@@ -290,13 +315,22 @@ export default function FranchisesAdmin() {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">加盟店管理</h1>
-          <button
-            onClick={() => handleOpenModal()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined">add</span>
-            新增加盟店
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleExportExcel}
+              disabled={franchises.length === 0}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              導出 Excel
+            </button>
+            <button
+              onClick={() => handleOpenModal()}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">add</span>
+              新增加盟店
+            </button>
+          </div>
         </div>
 
         {/* 搜尋 */}

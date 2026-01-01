@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import Image from "next/image";
@@ -32,6 +33,7 @@ interface ManpowerRequest {
 
 export default function ManpowerRequestDetailPage() {
   const { data: session, status } = useSession();
+  const { can } = usePermission();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -437,8 +439,8 @@ export default function ManpowerRequestDetailPage() {
             </div>
           </div>
 
-          {/* 狀態管理 - 僅 SUPER_ADMIN 可操作 */}
-          {session?.user?.role === "SUPER_ADMIN" && (
+          {/* 狀態管理 - 需要 form:process 權限 */}
+          {can("form:process") && (
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-brand-primary">

@@ -98,8 +98,18 @@ export default function ResumeGrid() {
         const workersData = result.data?.workersPage?.[0]?.workers || [];
         const convertedResumes = workersData.map(convertWorkerToResume);
 
-        setResumes(convertedResumes);
-        setFilteredResumes(convertedResumes);
+        // 預設按「最新加入」排序（ID 降序）
+        const sortedResumes = [...convertedResumes].sort((a, b) => {
+          const idA = parseInt(a.id) || 0;
+          const idB = parseInt(b.id) || 0;
+          if (idA !== 0 && idB !== 0) {
+            return idB - idA;
+          }
+          return b.id.localeCompare(a.id);
+        });
+
+        setResumes(sortedResumes);
+        setFilteredResumes(sortedResumes);
       } catch (err) {
         console.error("獲取移工資料失敗:", err);
         setError(err instanceof Error ? err.message : "未知錯誤");

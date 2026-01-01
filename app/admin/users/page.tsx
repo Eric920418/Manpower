@@ -7,6 +7,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { PermissionEnum } from "@/lib/permissions";
 import { Role } from "@prisma/client";
 import { RoleNames } from "@/lib/permissions";
+import { exportToExcel, formatDateForExcel, formatBooleanForExcel } from "@/lib/exportExcel";
 
 // GraphQL 查詢
 const GET_USERS = gql`
@@ -342,6 +343,31 @@ export default function UsersPage() {
   const total = data?.users?.total || 0;
   const totalPages = data?.users?.totalPages || 1;
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (users.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "用戶列表",
+      sheetName: "用戶",
+      columns: [
+        { key: "name", header: "姓名", width: 15 },
+        { key: "email", header: "Email", width: 25 },
+        { key: "role", header: "角色", width: 12, format: (value) => RoleNames[value as Role] || value },
+        { key: "franchiseName", header: "加盟店", width: 15 },
+        { key: "phone", header: "電話", width: 15 },
+        { key: "department", header: "部門", width: 12 },
+        { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
+        { key: "lastLoginAt", header: "最後登入", width: 18, format: (value) => formatDateForExcel(value) },
+        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+      ],
+      data: users,
+    });
+  };
+
   if (!can(PermissionEnum.USER_READ)) {
     return (
       <AdminLayout>
@@ -363,14 +389,23 @@ export default function UsersPage() {
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">用戶管理</h1>
             <p className="text-sm md:text-base text-gray-500 mt-1">管理系統用戶帳號與權限</p>
           </div>
-          {can(PermissionEnum.USER_CREATE) && (
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
-              onClick={handleCreateUser}
-              className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
+              onClick={handleExportExcel}
+              disabled={users.length === 0}
+              className="w-full sm:w-auto px-4 py-3 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition min-h-[48px] md:min-h-0 text-base md:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ➕ 新增用戶
+              導出 Excel
             </button>
-          )}
+            {can(PermissionEnum.USER_CREATE) && (
+              <button
+                onClick={handleCreateUser}
+                className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
+              >
+                ➕ 新增用戶
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 搜尋與篩選 */}

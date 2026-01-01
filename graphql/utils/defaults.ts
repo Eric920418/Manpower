@@ -158,6 +158,24 @@ const homePageDefaults = {
       },
     ],
   },
+  partnersSection: {
+    title: "合作夥伴與服務廠商",
+    description: "我們與眾多優質企業建立長期合作關係",
+    partners: [
+      {
+        id: "partner-001",
+        name: "合作夥伴 1",
+        logo: "",
+        url: "",
+      },
+      {
+        id: "partner-002",
+        name: "合作夥伴 2",
+        logo: "",
+        url: "",
+      },
+    ],
+  },
   contactSection: {
     badge: "聯絡我們",
     title: "與我們取得聯繫",

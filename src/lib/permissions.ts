@@ -147,7 +147,8 @@ export const RolePermissions: Record<Role, Permission[]> = {
     'admin_task:read',
     'admin_task:update',
     'admin_task:approve',
-    // 案件分配管理（可指派任務給下級）
+    // 案件分配管理（可查看和指派任務給下級）
+    'task_assignment:read',
     'task_assignment:assign',
     // 系統設定（加盟店管理）
     'system:config',

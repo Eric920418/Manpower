@@ -26,7 +26,7 @@ export default function FAQHero({ title, description }: Props) {
       </div>
 
       {/* 波浪裝飾 */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div className="absolute -bottom-1 left-0 right-0 translate-y-1/2">
         <svg
           viewBox="0 0 1440 120"
           fill="none"

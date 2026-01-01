@@ -5,6 +5,7 @@ import { useQuery, useMutation, gql } from "@apollo/client";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionEnum } from "@/lib/permissions";
+import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
 
 // GraphQL 查詢
 const GET_FORM_SUBMISSIONS = gql`
@@ -170,6 +171,32 @@ export default function SubmissionsPage() {
   const total = data?.formSubmissions?.total || 0;
   const totalPages = data?.formSubmissions?.totalPages || 1;
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (submissions.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "表單提交記錄",
+      sheetName: "提交記錄",
+      columns: [
+        { key: "submitterName", header: "提交者姓名", width: 15 },
+        { key: "submitterEmail", header: "Email", width: 25 },
+        { key: "submitterPhone", header: "電話", width: 15 },
+        { key: "template", header: "表單名稱", width: 20, format: (value) => value?.name || "" },
+        { key: "formType", header: "表單類型", width: 12 },
+        { key: "status", header: "狀態", width: 10, format: (value) => STATUS_OPTIONS.find(s => s.value === value)?.label || value },
+        { key: "processor", header: "處理者", width: 15, format: (value) => value?.name || "" },
+        { key: "notes", header: "備註", width: 30 },
+        { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
+        { key: "processedAt", header: "處理時間", width: 18, format: (value) => formatDateForExcel(value) },
+      ],
+      data: submissions,
+    });
+  };
+
   if (!can(PermissionEnum.FORM_READ)) {
     return (
       <AdminLayout>
@@ -191,6 +218,13 @@ export default function SubmissionsPage() {
             <h1 className="text-2xl font-bold text-gray-900">表單提交記錄</h1>
             <p className="text-gray-500 mt-1">查看和處理表單提交</p>
           </div>
+          <button
+            onClick={handleExportExcel}
+            disabled={submissions.length === 0}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            導出 Excel
+          </button>
         </div>
 
         {/* 搜尋與篩選 */}

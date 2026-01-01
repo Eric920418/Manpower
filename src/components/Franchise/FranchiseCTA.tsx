@@ -31,7 +31,6 @@ interface FranchiseCTAProps {
 
 const defaultButtons: CTAButton[] = [
   { text: "聯絡我們", link: "/contact", icon: "mail", variant: "primary" },
-  { text: "加盟說明會報名表", link: "/franchise/seminar", icon: "event_note", variant: "secondary" },
 ];
 
 const defaultContactInfo: ContactInfo[] = [

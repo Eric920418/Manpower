@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { useTaskReminder } from "@/components/Admin/TaskReminderProvider";
 import { useToast } from "@/components/UI/Toast";
+import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
 
 // 類型定義
 interface TaskUser {
@@ -1776,6 +1777,30 @@ function AdminTasksContent() {
 
   const totalPendingCount = myPendingTasks + myPendingDocsTasks + myRevisionTasks + myAwaitingReviewCheck;
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (tasks.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "行政任務列表",
+      sheetName: "任務",
+      columns: [
+        { key: "taskNo", header: "案件編號", width: 15 },
+        { key: "title", header: "標題", width: 30 },
+        { key: "taskType", header: "案件類型", width: 15, format: (value) => value?.label || "" },
+        { key: "status", header: "狀態", width: 12, format: (value) => statusLabels[value]?.label || value },
+        { key: "applicant", header: "申請人", width: 15, format: (value) => value?.name || value?.email || "" },
+        { key: "handlers", header: "負責人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+        { key: "deadline", header: "期限", width: 18, format: (value) => formatDateForExcel(value) },
+        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+      ],
+      data: tasks,
+    });
+  };
+
   return (
     <AdminLayout>
       <div className="max-w-full overflow-x-hidden">
@@ -1949,13 +1974,22 @@ function AdminTasksContent() {
                 </button>
               )}
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-2 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
-            >
-              <span>+</span>
-              新增申請
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={handleExportExcel}
+                disabled={tasks.length === 0}
+                className="w-full sm:w-auto px-4 py-3 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                導出 Excel
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="w-full sm:w-auto px-4 py-3 md:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center gap-2 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium"
+              >
+                <span>+</span>
+                新增申請
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2216,7 +2250,7 @@ function AdminTasksContent() {
                     >
                       查看詳情
                     </button>
-                    {userRole === "SUPER_ADMIN" && (
+                    {can("admin_task:delete") && (
                       <button
                         onClick={() => handleDeleteTask(item.task.id)}
                         disabled={deleting}
@@ -2520,7 +2554,7 @@ function AdminTasksContent() {
                             >
                               詳情
                             </button>
-                            {userRole === "SUPER_ADMIN" && (
+                            {can("admin_task:delete") && (
                               <button
                                 onClick={() => handleDeleteTask(item.task.id)}
                                 disabled={deleting}
@@ -2696,7 +2730,7 @@ function AdminTasksContent() {
                                 >
                                   詳情
                                 </button>
-                                {userRole === "SUPER_ADMIN" && (
+                                {can("admin_task:delete") && (
                                   <button
                                     onClick={() => handleDeleteTask(childTask.id)}
                                     disabled={deleting}
@@ -3418,6 +3452,22 @@ function AdminTasksContent() {
                                 "-"}
                           </p>
                         </div>
+                        {selectedTask.completedAt && (
+                          <div>
+                            <p className="text-xs text-gray-600 mb-1">已完成時間</p>
+                            <p className="text-sm text-gray-900">
+                              {formatDate(selectedTask.completedAt)}
+                            </p>
+                          </div>
+                        )}
+                        {selectedTask.reviewedAt && (
+                          <div>
+                            <p className="text-xs text-gray-600 mb-1">已複審時間</p>
+                            <p className="text-sm text-gray-900">
+                              {formatDate(selectedTask.reviewedAt)}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 

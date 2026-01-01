@@ -389,7 +389,7 @@ export const manpowerRequestResolvers = {
       }
     },
 
-    // 更新人力需求（主要用於更新狀態和備註）- 僅 SUPER_ADMIN 可操作
+    // 更新人力需求（主要用於更新狀態和備註）- 需要 form:process 權限
     updateManpowerRequest: async (
       _: any,
       { input }: { input: any },
@@ -399,9 +399,9 @@ export const manpowerRequestResolvers = {
         throw new Error("未登入，無法更新人力需求");
       }
 
-      // 只有 SUPER_ADMIN 可以更新狀態
-      if (context.user.role !== "SUPER_ADMIN") {
-        throw new Error("只有系統管理員可以更新人力需求狀態");
+      // 檢查 form:process 權限
+      if (!checkPermission(context, "form:process")) {
+        throw new Error("沒有權限處理人力需求");
       }
 
       try {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, gql } from "@apollo/client";
 import { useSession } from "next-auth/react";
 import AdminLayout from "@/components/Admin/AdminLayout";
+import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
 
 // GraphQL 查詢
 const GET_ATTACHMENTS = gql`
@@ -110,6 +111,28 @@ export default function FilesPage() {
   const total = data?.attachments?.total || 0;
   const totalPages = data?.attachments?.totalPages || 1;
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (attachments.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "檔案列表",
+      sheetName: "檔案",
+      columns: [
+        { key: "originalName", header: "檔案名稱", width: 30 },
+        { key: "filename", header: "系統檔名", width: 30 },
+        { key: "mimeType", header: "類型", width: 20 },
+        { key: "size", header: "大小 (Bytes)", width: 15 },
+        { key: "uploadedBy", header: "上傳者", width: 15 },
+        { key: "createdAt", header: "上傳時間", width: 18, format: (value) => formatDateForExcel(value) },
+      ],
+      data: attachments,
+    });
+  };
+
   // 等待 session 載入完成
   if (status === "loading") {
     return (
@@ -135,6 +158,13 @@ export default function FilesPage() {
             <h1 className="text-2xl font-bold text-gray-900">檔案管理</h1>
             <p className="text-gray-500 mt-1">查看和管理系統檔案</p>
           </div>
+          <button
+            onClick={handleExportExcel}
+            disabled={attachments.length === 0}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            導出 Excel
+          </button>
         </div>
 
         {/* 搜尋與篩選 */}

@@ -13,6 +13,7 @@ const UPDATE_PAGE = gql`
       hero
       featuredTalents
       newsSection
+      partnersSection
       contactSection
       footer
     }
@@ -26,6 +27,7 @@ const query = `
       hero
       featuredTalents
       newsSection
+      partnersSection
       contactSection
       footer
     }
@@ -106,6 +108,13 @@ interface ContactInfo {
   link: string;
 }
 
+interface Partner {
+  id: string;
+  name: string;
+  logo: string;
+  url: string;
+}
+
 interface HomePageData {
   header: {
     logo: {
@@ -147,6 +156,11 @@ interface HomePageData {
     categories: Category[];
     featuredArticle: FeaturedArticle;
     articles: Article[];
+  };
+  partnersSection: {
+    title: string;
+    description: string;
+    partners: Partner[];
   };
   contactSection: {
     badge: string;
@@ -219,6 +233,11 @@ export const HomePage = () => {
       featuredArticle: { badge: "", title: "", description: "", image: "", link: "#" },
       articles: [],
     },
+    partnersSection: {
+      title: "",
+      description: "",
+      partners: [],
+    },
     contactSection: {
       badge: "",
       title: "",
@@ -258,6 +277,7 @@ export const HomePage = () => {
           hero: data.homePage[0].hero || prev.hero,
           featuredTalents: data.homePage[0].featuredTalents || prev.featuredTalents,
           newsSection: data.homePage[0].newsSection || prev.newsSection,
+          partnersSection: data.homePage[0].partnersSection || prev.partnersSection,
           contactSection: data.homePage[0].contactSection || prev.contactSection,
           footer: data.homePage[0].footer || prev.footer,
         }));
@@ -274,6 +294,7 @@ export const HomePage = () => {
       hero: pageData.hero,
       featuredTalents: pageData.featuredTalents,
       newsSection: pageData.newsSection,
+      partnersSection: pageData.partnersSection,
       contactSection: pageData.contactSection,
       footer: pageData.footer,
     };
@@ -1120,19 +1141,34 @@ export const HomePage = () => {
                     <div>
                       <label className="block text-sm font-medium mb-1">日期</label>
                       <input
-                        type="text"
-                        value={article.date}
+                        type="date"
+                        value={(() => {
+                          // 將中文日期格式轉換為 YYYY-MM-DD 格式供 date input 使用
+                          const match = article.date.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+                          if (match) {
+                            const [, year, month, day] = match;
+                            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                          }
+                          return article.date;
+                        })()}
                         onChange={(e) => {
                           const newArticles = [...pageData.newsSection.articles];
-                          newArticles[index] = { ...newArticles[index], date: e.target.value };
+                          // 將 YYYY-MM-DD 格式轉換為中文日期格式
+                          const dateValue = e.target.value;
+                          let formattedDate = dateValue;
+                          if (dateValue) {
+                            const [year, month, day] = dateValue.split('-');
+                            formattedDate = `${year}年${parseInt(month)}月${parseInt(day)}日`;
+                          }
+                          newArticles[index] = { ...newArticles[index], date: formattedDate };
                           setPageData((prev) => ({
                             ...prev,
                             newsSection: { ...prev.newsSection, articles: newArticles },
                           }));
                         }}
-                        placeholder="2023年12月14日"
                         className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
                       />
+                      <p className="text-xs text-gray-500 mt-1">目前顯示：{article.date || '未設定'}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -1224,6 +1260,167 @@ export const HomePage = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 合作夥伴設定 */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg mb-6 border-2 border-green-200">
+        <h2 className="text-2xl font-bold mb-4 text-green-900">合作夥伴與服務廠商設定</h2>
+
+        <div className="space-y-6">
+          {/* 標題區塊 */}
+          <div className="bg-white p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3">標題區塊</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">主標題</label>
+                <input
+                  type="text"
+                  value={pageData.partnersSection.title}
+                  onChange={(e) =>
+                    setPageData((prev) => ({
+                      ...prev,
+                      partnersSection: { ...prev.partnersSection, title: e.target.value },
+                    }))
+                  }
+                  placeholder="合作夥伴與服務廠商"
+                  className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">描述文字</label>
+                <textarea
+                  value={pageData.partnersSection.description}
+                  onChange={(e) =>
+                    setPageData((prev) => ({
+                      ...prev,
+                      partnersSection: { ...prev.partnersSection, description: e.target.value },
+                    }))
+                  }
+                  rows={2}
+                  placeholder="我們與眾多優質企業建立長期合作關係"
+                  className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 合作夥伴列表 */}
+          <div className="bg-white p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold">合作夥伴 Logo</h3>
+              <button
+                onClick={() =>
+                  setPageData((prev) => ({
+                    ...prev,
+                    partnersSection: {
+                      ...prev.partnersSection,
+                      partners: [
+                        ...prev.partnersSection.partners,
+                        {
+                          id: `partner-${Date.now()}`,
+                          name: "",
+                          logo: "",
+                          url: "",
+                        },
+                      ],
+                    },
+                  }))
+                }
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                新增合作夥伴
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              上傳合作夥伴的 Logo 圖片，建議使用透明背景的 PNG 格式
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pageData.partnersSection.partners.map((partner, index) => (
+                <div key={partner.id} className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h4 className="font-semibold mb-3 text-green-900">合作夥伴 #{index + 1}</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">名稱</label>
+                      <input
+                        type="text"
+                        value={partner.name}
+                        onChange={(e) => {
+                          const newPartners = [...pageData.partnersSection.partners];
+                          newPartners[index] = { ...newPartners[index], name: e.target.value };
+                          setPageData((prev) => ({
+                            ...prev,
+                            partnersSection: { ...prev.partnersSection, partners: newPartners },
+                          }));
+                        }}
+                        placeholder="合作夥伴名稱"
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Logo 圖片</label>
+                      {partner.logo && (
+                        <div className="mb-2 p-2 bg-white rounded border border-gray-200">
+                          <Image
+                            src={partner.logo}
+                            alt={partner.name || "Partner logo"}
+                            width={120}
+                            height={80}
+                            className="object-contain max-h-16 w-auto mx-auto"
+                          />
+                        </div>
+                      )}
+                      <ImageUploader
+                        onImageUpload={(data) => {
+                          const newPartners = [...pageData.partnersSection.partners];
+                          newPartners[index] = { ...newPartners[index], logo: data.imageUrl };
+                          setPageData((prev) => ({
+                            ...prev,
+                            partnersSection: { ...prev.partnersSection, partners: newPartners },
+                          }));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">連結網址（選填）</label>
+                      <input
+                        type="text"
+                        value={partner.url}
+                        onChange={(e) => {
+                          const newPartners = [...pageData.partnersSection.partners];
+                          newPartners[index] = { ...newPartners[index], url: e.target.value };
+                          setPageData((prev) => ({
+                            ...prev,
+                            partnersSection: { ...prev.partnersSection, partners: newPartners },
+                          }));
+                        }}
+                        placeholder="https://example.com"
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">點擊 Logo 時會開啟此網址</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newPartners = pageData.partnersSection.partners.filter((_, i) => i !== index);
+                        setPageData((prev) => ({
+                          ...prev,
+                          partnersSection: { ...prev.partnersSection, partners: newPartners },
+                        }));
+                      }}
+                      className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                    >
+                      刪除此合作夥伴
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {pageData.partnersSection.partners.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                尚未新增任何合作夥伴，點擊上方按鈕新增
+              </div>
+            )}
           </div>
         </div>
       </div>

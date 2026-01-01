@@ -5,6 +5,7 @@ import { useQuery, useMutation, gql } from "@apollo/client";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionEnum } from "@/lib/permissions";
+import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
 
 // GraphQL 查詢
 const GET_FORM_TEMPLATES = gql`
@@ -248,6 +249,29 @@ export default function FormsPage() {
   const total = data?.formTemplates?.total || 0;
   const totalPages = data?.formTemplates?.totalPages || 1;
 
+  // 導出 Excel
+  const handleExportExcel = () => {
+    if (templates.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    exportToExcel({
+      filename: "表單模板列表",
+      sheetName: "模板",
+      columns: [
+        { key: "name", header: "表單名稱", width: 25 },
+        { key: "type", header: "類型", width: 15, format: (value) => FORM_TYPES.find((t) => t.value === value)?.label || value },
+        { key: "description", header: "描述", width: 30 },
+        { key: "submissionCount", header: "提交次數", width: 12 },
+        { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
+        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+        { key: "updatedAt", header: "更新時間", width: 18, format: (value) => formatDateForExcel(value) },
+      ],
+      data: templates,
+    });
+  };
+
   if (!can(PermissionEnum.FORM_READ)) {
     return (
       <AdminLayout>
@@ -269,14 +293,23 @@ export default function FormsPage() {
             <h1 className="text-2xl font-bold text-gray-900">表單管理</h1>
             <p className="text-gray-500 mt-1">管理系統表單模板</p>
           </div>
-          {can(PermissionEnum.FORM_CREATE) && (
+          <div className="flex gap-3">
             <button
-              onClick={handleCreateTemplate}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              onClick={handleExportExcel}
+              disabled={templates.length === 0}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ➕ 新增表單模板
+              導出 Excel
             </button>
-          )}
+            {can(PermissionEnum.FORM_CREATE) && (
+              <button
+                onClick={handleCreateTemplate}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                ➕ 新增表單模板
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 搜尋與篩選 */}

@@ -166,6 +166,19 @@ export const FranchisePage = () => {
       if (response.errors) {
         alert("更新失敗：" + JSON.stringify(response.errors));
       } else {
+        // 清除前台快取
+        await Promise.all([
+          fetch("/api/revalidate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: "/franchise" }),
+          }),
+          fetch("/api/revalidate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: "/franchise/stories" }),
+          }),
+        ]);
         alert("更新成功");
       }
     } catch (err) {

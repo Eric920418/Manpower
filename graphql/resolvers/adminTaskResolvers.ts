@@ -1061,7 +1061,7 @@ export const adminTaskResolvers = {
 
     // 刪除行政任務
     deleteAdminTask: async (_: unknown, args: { id: number }, context: Context) => {
-      const user = requireSuperAdmin(context);
+      const user = requirePermission(context, "admin_task:delete");
 
       // 取得完整的任務資料作為刪除前備份
       const task = await prisma.adminTask.findUnique({
@@ -1351,7 +1351,7 @@ export const adminTaskResolvers = {
       args: { taskId: number; processorId: string },
       context: Context
     ) => {
-      const user = requireSuperAdmin(context);
+      const user = requirePermission(context, "task_assignment:assign");
 
       const task = await prisma.adminTask.update({
         where: { id: args.taskId },
@@ -1381,7 +1381,7 @@ export const adminTaskResolvers = {
       args: { taskId: number; approverId: string },
       context: Context
     ) => {
-      const user = requireSuperAdmin(context);
+      const user = requirePermission(context, "task_assignment:assign");
 
       const task = await prisma.adminTask.update({
         where: { id: args.taskId },
