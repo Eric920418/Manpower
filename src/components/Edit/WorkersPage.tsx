@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ImageUploader } from "@/components/Admin/ImageUploader";
 import { useSession } from "next-auth/react";
 import { graphqlRequest } from "@/utils/graphqlClient";
+import { exportToExcel } from "@/lib/exportExcel";
 
 const UPDATE_PAGE = gql`
   mutation UpdateWorkersPage($input: UpdateWorkersPageInput!) {
@@ -123,6 +124,7 @@ export const WorkersPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
   const [isNewWorker, setIsNewWorker] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -337,7 +339,7 @@ export const WorkersPage = () => {
     }
   };
 
-  // 儲存設定 (篩選選項 + CTA)
+  // 儲存篩選選項設定
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
@@ -383,6 +385,45 @@ export const WorkersPage = () => {
     setCurrentPage(1);
   };
 
+  // 導出 Excel - 導出所有移工資料（根據目前篩選條件）
+  const handleExportExcel = async () => {
+    if (filteredWorkers.length === 0) {
+      alert("沒有資料可以導出");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      exportToExcel({
+        filename: "移工資料列表",
+        sheetName: "移工",
+        columns: [
+          { key: "name", header: "姓名", width: 15 },
+          { key: "foreignId", header: "外國人編號", width: 15 },
+          { key: "age", header: "年齡", width: 8 },
+          { key: "gender", header: "性別", width: 8 },
+          { key: "country", header: "國家", width: 12 },
+          { key: "category", header: "職業類別", width: 12 },
+          { key: "sourceType", header: "來源類型", width: 12 },
+          { key: "education", header: "學歷", width: 12 },
+          { key: "height", header: "身高(cm)", width: 10 },
+          { key: "weight", header: "體重(kg)", width: 10 },
+          { key: "experience", header: "工作經驗", width: 20 },
+          { key: "availability", header: "可上工時間", width: 15 },
+          { key: "skills", header: "技能", width: 25, format: (value) => Array.isArray(value) ? value.join(", ") : "" },
+          { key: "languages", header: "語言能力", width: 20, format: (value) => Array.isArray(value) ? value.join(", ") : "" },
+          { key: "description", header: "個人描述", width: 30 },
+        ],
+        data: filteredWorkers,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -425,7 +466,7 @@ export const WorkersPage = () => {
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          頁面設定
+          篩選選項設定
         </button>
       </div>
 
@@ -549,13 +590,22 @@ export const WorkersPage = () => {
                 </button>
               )}
             </div>
-            <button
-              onClick={openAddModal}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-base">add</span>
-              新增移工
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleExportExcel}
+                disabled={filteredWorkers.length === 0 || exporting}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exporting ? "導出中..." : "導出 Excel"}
+              </button>
+              <button
+                onClick={openAddModal}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base">add</span>
+                新增移工
+              </button>
+            </div>
           </div>
 
           {/* 列表 */}
@@ -732,9 +782,8 @@ export const WorkersPage = () => {
           </div>
         </>
       ) : (
-        /* 設定頁面 */
+        /* 篩選選項設定頁面 */
         <div className="space-y-6">
-          {/* 篩選選項設定 */}
           <div className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
             <h2 className="text-2xl font-bold mb-4 text-purple-900">篩選選項設定</h2>
             <p className="text-sm text-purple-700 mb-4">設定前台頁面的篩選下拉選單選項</p>
@@ -814,78 +863,13 @@ export const WorkersPage = () => {
             </div>
           </div>
 
-          {/* CTA 區塊設定 */}
-          <div className="bg-gray-100 p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">CTA 區塊設定</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">標題</label>
-                <input
-                  type="text"
-                  value={pageData.ctaSection.title}
-                  onChange={(e) =>
-                    setPageData((prev) => ({
-                      ...prev,
-                      ctaSection: { ...prev.ctaSection, title: e.target.value },
-                    }))
-                  }
-                  className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">描述</label>
-                <textarea
-                  value={pageData.ctaSection.description}
-                  onChange={(e) =>
-                    setPageData((prev) => ({
-                      ...prev,
-                      ctaSection: { ...prev.ctaSection, description: e.target.value },
-                    }))
-                  }
-                  rows={2}
-                  className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">按鈕文字</label>
-                  <input
-                    type="text"
-                    value={pageData.ctaSection.buttonText}
-                    onChange={(e) =>
-                      setPageData((prev) => ({
-                        ...prev,
-                        ctaSection: { ...prev.ctaSection, buttonText: e.target.value },
-                      }))
-                    }
-                    className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">按鈕連結</label>
-                  <input
-                    type="text"
-                    value={pageData.ctaSection.buttonLink}
-                    onChange={(e) =>
-                      setPageData((prev) => ({
-                        ...prev,
-                        ctaSection: { ...prev.ctaSection, buttonLink: e.target.value },
-                      }))
-                    }
-                    className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* 儲存按鈕 */}
           <div className="sticky bottom-4">
             <button
               onClick={handleSaveSettings}
               className="w-full bg-green-500 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 shadow-xl"
             >
-              儲存頁面設定
+              儲存篩選選項
             </button>
           </div>
         </div>

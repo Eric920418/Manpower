@@ -1,7 +1,18 @@
+import { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FranchiseHero from "@/components/Franchise/FranchiseHero";
 import FranchisePageContent from "@/components/Franchise/FranchisePageContent";
+
+export const metadata: Metadata = {
+  title: "創業加盟",
+  description: "加入佑羲人力創業加盟計劃，掌握長照市場商機。我們提供全程教育訓練、品質管控支持、多角化業務機會，是您穩健創業的最佳夥伴。",
+  openGraph: {
+    title: "創業加盟 | 佑羲人力",
+    description: "加入佑羲人力創業加盟計劃，掌握長照市場商機。全程教育訓練、品質管控支持。",
+    type: "website",
+  },
+};
 
 // 強制動態渲染，避免 build 時 fetch 失敗
 export const dynamic = 'force-dynamic';

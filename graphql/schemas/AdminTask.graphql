@@ -157,6 +157,7 @@ extend type Query {
     applicantId: String
     processorId: String
     approverId: String
+    handlerId: String     # 按負責人篩選
     search: String
     sortBy: String
     sortOrder: String

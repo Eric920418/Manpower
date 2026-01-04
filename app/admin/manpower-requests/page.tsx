@@ -58,6 +58,7 @@ export default function ManpowerRequestsPage() {
   const [requests, setRequests] = useState<ManpowerRequest[]>([]);
   const [stats, setStats] = useState<ManpowerRequestStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [selectedRequest, setSelectedRequest] =
     useState<ManpowerRequest | null>(null);
@@ -491,30 +492,109 @@ export default function ManpowerRequestsPage() {
     );
   };
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (requests.length === 0) {
+  // 導出 Excel - 此頁面的 GraphQL 查詢本身無分頁限制，已獲取全部資料
+  const handleExportExcel = async () => {
+    if (!stats || stats.total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "人力需求列表",
-      sheetName: "需求",
-      columns: [
-        { key: "requestNo", header: "需求單號", width: 15 },
-        { key: "companyName", header: "公司名稱", width: 20 },
-        { key: "contactPerson", header: "聯絡人", width: 12 },
-        { key: "contactPhone", header: "電話", width: 15 },
-        { key: "contactEmail", header: "Email", width: 25 },
-        { key: "positionTitle", header: "職位", width: 15 },
-        { key: "quantity", header: "人數", width: 8 },
-        { key: "workLocation", header: "工作地點", width: 15 },
-        { key: "status", header: "狀態", width: 10, format: (value) => statusBadges[value]?.label || value },
-        { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: requests,
-    });
+    setExporting(true);
+    try {
+      // 重新獲取所有資料以確保是最新的
+      const requestsQuery = filter !== "all"
+        ? `query {
+            manpowerRequests(filter: { status: "${filter}" }) {
+              id
+              requestNo
+              selectedResumeIds
+              companyName
+              contactPerson
+              contactPhone
+              contactEmail
+              positionTitle
+              jobDescription
+              quantity
+              salaryRange
+              expectedStartDate
+              workLocation
+              additionalRequirements
+              status
+              notes
+              processedBy
+              processedAt
+              ipAddress
+              userAgent
+              createdAt
+              updatedAt
+            }
+          }`
+        : `query {
+            manpowerRequests {
+              id
+              requestNo
+              selectedResumeIds
+              companyName
+              contactPerson
+              contactPhone
+              contactEmail
+              positionTitle
+              jobDescription
+              quantity
+              salaryRange
+              expectedStartDate
+              workLocation
+              additionalRequirements
+              status
+              notes
+              processedBy
+              processedAt
+              ipAddress
+              userAgent
+              createdAt
+              updatedAt
+            }
+          }`;
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: requestsQuery }),
+      });
+
+      const data = await res.json();
+      if (data.errors) throw new Error(data.errors[0].message);
+
+      const allRequests = data.data.manpowerRequests;
+
+      if (allRequests.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "人力需求列表",
+        sheetName: "需求",
+        columns: [
+          { key: "requestNo", header: "需求單號", width: 15 },
+          { key: "companyName", header: "公司名稱", width: 20 },
+          { key: "contactPerson", header: "聯絡人", width: 12 },
+          { key: "contactPhone", header: "電話", width: 15 },
+          { key: "contactEmail", header: "Email", width: 25 },
+          { key: "positionTitle", header: "職位", width: 15 },
+          { key: "quantity", header: "人數", width: 8 },
+          { key: "workLocation", header: "工作地點", width: 15 },
+          { key: "status", header: "狀態", width: 10, format: (value) => statusBadges[value]?.label || value },
+          { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allRequests,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const formatDate = (dateString: string | null) => {
@@ -586,10 +666,10 @@ export default function ManpowerRequestsPage() {
           <div className="flex gap-3">
             <button
               onClick={handleExportExcel}
-              disabled={requests.length === 0}
+              disabled={!stats || stats.total === 0 || exporting}
               className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              導出 Excel
+              {exporting ? "導出中..." : "導出 Excel"}
             </button>
             {canCreateForm && (
               <button

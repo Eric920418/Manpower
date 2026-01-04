@@ -49,6 +49,8 @@ export default function FranchisesAdmin() {
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [total, setTotal] = useState(0);
 
   const fetchFranchises = useCallback(async () => {
     setLoading(true);
@@ -99,6 +101,7 @@ export default function FranchisesAdmin() {
       const data: FranchiseListResponse = result.data.franchises;
       setFranchises(data.franchises);
       setTotalPages(data.totalPages);
+      setTotal(data.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : "載入失敗");
     } finally {
@@ -241,28 +244,79 @@ export default function FranchisesAdmin() {
     }
   };
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (franchises.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "加盟店列表",
-      sheetName: "加盟店",
-      columns: [
-        { key: "code", header: "代碼", width: 12 },
-        { key: "name", header: "名稱", width: 20 },
-        { key: "address", header: "地址", width: 30 },
-        { key: "phone", header: "電話", width: 15 },
-        { key: "email", header: "Email", width: 25 },
-        { key: "userCount", header: "用戶數", width: 10 },
-        { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
-        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: franchises,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const response = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `
+            query GetFranchises($page: Int, $pageSize: Int, $filter: FranchiseFilterInput) {
+              franchises(page: $page, pageSize: $pageSize, filter: $filter) {
+                franchises {
+                  id
+                  name
+                  code
+                  address
+                  phone
+                  email
+                  description
+                  isActive
+                  userCount
+                  createdAt
+                  updatedAt
+                }
+                total
+              }
+            }
+          `,
+          variables: {
+            page: 1,
+            pageSize: 99999, // 獲取全部
+            filter: search ? { search } : undefined,
+          },
+        }),
+      });
+
+      const result = await response.json();
+      if (result.errors) throw new Error(result.errors[0]?.message || "查詢失敗");
+
+      const allFranchises = result.data.franchises.franchises;
+
+      if (allFranchises.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "加盟店列表",
+        sheetName: "加盟店",
+        columns: [
+          { key: "code", header: "代碼", width: 12 },
+          { key: "name", header: "名稱", width: 20 },
+          { key: "address", header: "地址", width: 30 },
+          { key: "phone", header: "電話", width: 15 },
+          { key: "email", header: "Email", width: 25 },
+          { key: "userCount", header: "用戶數", width: 10 },
+          { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
+          { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allFranchises,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleDelete = async (franchise: Franchise) => {
@@ -318,10 +372,10 @@ export default function FranchisesAdmin() {
           <div className="flex gap-3">
             <button
               onClick={handleExportExcel}
-              disabled={franchises.length === 0}
+              disabled={total === 0 || exporting}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              導出 Excel
+              {exporting ? "導出中..." : "導出 Excel"}
             </button>
             <button
               onClick={() => handleOpenModal()}

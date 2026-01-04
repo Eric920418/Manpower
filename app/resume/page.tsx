@@ -1,7 +1,18 @@
+import { Metadata } from "next";
 import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ResumeGrid from "@/components/Resume/ResumeGrid";
+
+export const metadata: Metadata = {
+  title: "人才履歷庫",
+  description: "瀏覽佑羲人力人才履歷庫，查看各類專業外籍人才的詳細履歷資料，為您的企業找到最適合的員工。",
+  openGraph: {
+    title: "人才履歷庫 | 佑羲人力",
+    description: "瀏覽佑羲人力人才履歷庫，查看各類專業外籍人才的詳細履歷資料。",
+    type: "website",
+  },
+};
 
 // 強制動態渲染，避免 build 時 fetch 失敗
 export const dynamic = 'force-dynamic';

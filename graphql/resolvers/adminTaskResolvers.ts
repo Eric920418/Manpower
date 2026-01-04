@@ -396,6 +396,7 @@ export const adminTaskResolvers = {
         applicantId?: string;
         processorId?: string;
         approverId?: string;
+        handlerId?: string;
         search?: string;
         sortBy?: string;
         sortOrder?: string;
@@ -451,6 +452,15 @@ export const adminTaskResolvers = {
       if (args.applicantId) where.applicantId = args.applicantId;
       if (args.processorId) where.processorId = args.processorId;
       if (args.approverId) where.approverId = args.approverId;
+      // 按負責人篩選（透過 assignments 關聯表）
+      if (args.handlerId) {
+        where.assignments = {
+          some: {
+            userId: args.handlerId,
+            role: "HANDLER",
+          },
+        };
+      }
 
       if (args.search) {
         // 搜尋條件使用 OR，並加入到 AND 陣列中（如果存在的話）

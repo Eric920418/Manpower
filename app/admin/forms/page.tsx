@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, gql } from "@apollo/client";
+import { useQuery, useMutation, gql, useApolloClient } from "@apollo/client";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionEnum } from "@/lib/permissions";
@@ -91,6 +91,7 @@ const FORM_TYPES = [
 
 export default function FormsPage() {
   const { can } = usePermission();
+  const client = useApolloClient();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -100,6 +101,7 @@ export default function FormsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [exporting, setExporting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     type: "custom",
@@ -249,27 +251,57 @@ export default function FormsPage() {
   const total = data?.formTemplates?.total || 0;
   const totalPages = data?.formTemplates?.totalPages || 1;
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (templates.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "表單模板列表",
-      sheetName: "模板",
-      columns: [
-        { key: "name", header: "表單名稱", width: 25 },
-        { key: "type", header: "類型", width: 15, format: (value) => FORM_TYPES.find((t) => t.value === value)?.label || value },
-        { key: "description", header: "描述", width: 30 },
-        { key: "submissionCount", header: "提交次數", width: 12 },
-        { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
-        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
-        { key: "updatedAt", header: "更新時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: templates,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const { data: allData } = await client.query({
+        query: GET_FORM_TEMPLATES,
+        variables: {
+          page: 1,
+          pageSize: 99999, // 獲取全部
+          filter: {
+            search: search || undefined,
+            type: typeFilter || undefined,
+            isActive: statusFilter === "" ? undefined : statusFilter,
+          },
+        },
+        fetchPolicy: "network-only",
+      });
+
+      const allTemplates = allData?.formTemplates?.templates || [];
+
+      if (allTemplates.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "表單模板列表",
+        sheetName: "模板",
+        columns: [
+          { key: "name", header: "表單名稱", width: 25 },
+          { key: "type", header: "類型", width: 15, format: (value) => FORM_TYPES.find((t) => t.value === value)?.label || value },
+          { key: "description", header: "描述", width: 30 },
+          { key: "submissionCount", header: "提交次數", width: 12 },
+          { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
+          { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+          { key: "updatedAt", header: "更新時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allTemplates,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (!can(PermissionEnum.FORM_READ)) {
@@ -296,10 +328,10 @@ export default function FormsPage() {
           <div className="flex gap-3">
             <button
               onClick={handleExportExcel}
-              disabled={templates.length === 0}
+              disabled={total === 0 || exporting}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              導出 Excel
+              {exporting ? "導出中..." : "導出 Excel"}
             </button>
             {can(PermissionEnum.FORM_CREATE) && (
               <button

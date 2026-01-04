@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, gql } from "@apollo/client";
+import { useQuery, useMutation, gql, useApolloClient } from "@apollo/client";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionEnum } from "@/lib/permissions";
@@ -125,8 +125,10 @@ interface FranchiseOption {
 
 export default function UsersPage() {
   const { can, canManage } = usePermission();
+  const client = useApolloClient();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
+  const [exporting, setExporting] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const [statusFilter, setStatusFilter] = useState<boolean | "">("");
@@ -343,29 +345,59 @@ export default function UsersPage() {
   const total = data?.users?.total || 0;
   const totalPages = data?.users?.totalPages || 1;
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (users.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "用戶列表",
-      sheetName: "用戶",
-      columns: [
-        { key: "name", header: "姓名", width: 15 },
-        { key: "email", header: "Email", width: 25 },
-        { key: "role", header: "角色", width: 12, format: (value) => RoleNames[value as Role] || value },
-        { key: "franchiseName", header: "加盟店", width: 15 },
-        { key: "phone", header: "電話", width: 15 },
-        { key: "department", header: "部門", width: 12 },
-        { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
-        { key: "lastLoginAt", header: "最後登入", width: 18, format: (value) => formatDateForExcel(value) },
-        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: users,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const { data: allData } = await client.query({
+        query: GET_USERS,
+        variables: {
+          page: 1,
+          pageSize: 99999, // 獲取全部
+          filter: {
+            search: search || undefined,
+            role: roleFilter || undefined,
+            isActive: statusFilter === "" ? undefined : statusFilter,
+          },
+        },
+        fetchPolicy: "network-only",
+      });
+
+      const allUsers = allData?.users?.users || [];
+
+      if (allUsers.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "用戶列表",
+        sheetName: "用戶",
+        columns: [
+          { key: "name", header: "姓名", width: 15 },
+          { key: "email", header: "Email", width: 25 },
+          { key: "role", header: "角色", width: 12, format: (value) => RoleNames[value as Role] || value },
+          { key: "franchiseName", header: "加盟店", width: 15 },
+          { key: "phone", header: "電話", width: 15 },
+          { key: "department", header: "部門", width: 12 },
+          { key: "isActive", header: "狀態", width: 8, format: (value) => value ? "啟用" : "停用" },
+          { key: "lastLoginAt", header: "最後登入", width: 18, format: (value) => formatDateForExcel(value) },
+          { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allUsers,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (!can(PermissionEnum.USER_READ)) {
@@ -392,10 +424,10 @@ export default function UsersPage() {
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={handleExportExcel}
-              disabled={users.length === 0}
+              disabled={total === 0 || exporting}
               className="w-full sm:w-auto px-4 py-3 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition min-h-[48px] md:min-h-0 text-base md:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              導出 Excel
+              {exporting ? "導出中..." : "導出 Excel"}
             </button>
             {can(PermissionEnum.USER_CREATE) && (
               <button

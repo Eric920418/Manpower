@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ApplicationProcessHero from "@/components/ApplicationProcess/ApplicationProcessHero";
@@ -5,6 +6,16 @@ import ProcessSteps from "@/components/ApplicationProcess/ProcessSteps";
 import ProcessCTA from "@/components/ApplicationProcess/ProcessCTA";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "申請流程",
+  description: "了解外籍勞工申請流程，包含看護工、幫傭、廠工、營造工、養護機構等不同工作類別的專業申請流程指引。",
+  openGraph: {
+    title: "申請流程 | 佑羲人力",
+    description: "了解外籍勞工申請流程，包含看護工、幫傭、廠工、營造工等不同工作類別的專業申請流程指引。",
+    type: "website",
+  },
+};
 
 // 強制動態渲染，避免 build 時 fetch 失敗
 export const dynamic = 'force-dynamic';

@@ -42,12 +42,13 @@ export default function NewsSection({
   articles,
 }: NewsSectionProps) {
   // 找出預設 active 的分類，若無則使用第一個（通常是「全部」）
-  const defaultCategory = categories.find(c => c.active)?.value || categories[0]?.value || "all";
+  // 使用 label 作為 activeCategory，因為文章的 category 欄位存的是分類的 label
+  const defaultCategory = categories.find(c => c.active)?.label || categories[0]?.label || "全部";
   const [activeCategory, setActiveCategory] = useState(defaultCategory);
 
   // 根據選擇的分類過濾文章（「全部」或第一個分類顯示所有文章）
   const filteredArticles = useMemo(() => {
-    const isFirstCategory = categories.length > 0 && activeCategory === categories[0].value;
+    const isFirstCategory = categories.length > 0 && activeCategory === categories[0].label;
     if (activeCategory === "all" || activeCategory === "全部" || isFirstCategory) {
       return articles;
     }
@@ -74,9 +75,9 @@ export default function NewsSection({
           {categories.map((category, index) => (
             <button
               key={index}
-              onClick={() => setActiveCategory(category.value)}
+              onClick={() => setActiveCategory(category.label)}
               className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-4 cursor-pointer transition-all ${
-                activeCategory === category.value
+                activeCategory === category.label
                   ? "bg-brand-primary text-text-on-brand"
                   : "bg-bg-secondary text-text-secondary hover:bg-border"
               }`}
@@ -93,16 +94,16 @@ export default function NewsSection({
             href={featuredArticle.link}
             className="flex flex-col md:flex-row items-stretch gap-6 group cursor-pointer"
           >
-            <div className="md:w-1/2 lg:w-2/3 h-64 md:h-auto rounded-xl overflow-hidden">
+            <div className="md:w-1/2 h-56 md:h-72 rounded-xl overflow-hidden">
               <Image
                 src={featuredArticle.image}
                 alt={featuredArticle.title}
-                width={800}
-                height={500}
+                width={600}
+                height={350}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
-            <div className="flex flex-col justify-center gap-4 md:w-1/2 lg:w-1/3">
+            <div className="flex flex-col justify-center gap-4 md:w-1/2">
               <div className="flex flex-col gap-2">
                 <p className="text-brand-secondary text-sm font-bold leading-normal tracking-wide">
                   {featuredArticle.badge}
@@ -110,7 +111,7 @@ export default function NewsSection({
                 <h3 className="text-text-primary text-2xl font-bold leading-tight">
                   {featuredArticle.title}
                 </h3>
-                <p className="text-text-secondary text-base font-normal leading-normal">
+                <p className="text-text-secondary text-base font-normal leading-normal line-clamp-5">
                   {featuredArticle.description}
                 </p>
               </div>
@@ -147,7 +148,7 @@ export default function NewsSection({
                   <h4 className="text-text-primary text-lg font-bold leading-snug">
                     {article.title}
                   </h4>
-                  <p className="text-text-secondary text-sm font-normal leading-normal">
+                  <p className="text-text-secondary text-sm font-normal leading-normal line-clamp-3">
                     {article.description}
                   </p>
                 </div>

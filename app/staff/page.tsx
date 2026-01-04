@@ -1,8 +1,19 @@
+import { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import StaffHero from "@/components/Staff/StaffHero";
 import StaffList from "@/components/Staff/StaffList";
 import StaffCTA from "@/components/Staff/StaffCTA";
+
+export const metadata: Metadata = {
+  title: "業務團隊",
+  description: "認識佑羲人力專業業務團隊，我們的業務專員具備豐富的人力仲介經驗，竭誠為您提供最優質的外籍勞工仲介服務。",
+  openGraph: {
+    title: "業務團隊 | 佑羲人力",
+    description: "認識佑羲人力專業業務團隊，具備豐富的人力仲介經驗。",
+    type: "website",
+  },
+};
 
 // 強制動態渲染，避免 build 時 fetch 失敗
 export const dynamic = 'force-dynamic';

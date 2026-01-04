@@ -276,6 +276,7 @@ export default function ActivityLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // 分頁
   const [page, setPage] = useState(1);
@@ -643,29 +644,59 @@ export default function ActivityLogsPage() {
 
   const totalPages = Math.ceil(total / pageSize);
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (logs.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "活動日誌",
-      sheetName: "日誌",
-      columns: [
-        { key: "createdAt", header: "時間", width: 20, format: (value) => formatDateForExcel(value) },
-        { key: "user", header: "用戶", width: 20, format: (value) => value?.name || value?.email || "" },
-        { key: "user", header: "用戶Email", width: 25, format: (value) => value?.email || "" },
-        { key: "user", header: "角色", width: 12, format: (value) => roleLabels[value?.role] || value?.role || "" },
-        { key: "action", header: "操作", width: 12, format: (value) => actionLabels[value] || value },
-        { key: "entity", header: "對象", width: 15, format: (value) => entityLabels[value] || value },
-        { key: "entityId", header: "對象ID", width: 12 },
-        { key: "details", header: "詳情", width: 40, format: (value, row) => formatDetails(row.action, row.entity, value) },
-        { key: "ipAddress", header: "IP位址", width: 15 },
-      ],
-      data: logs,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const queryParams = new URLSearchParams({
+        page: "1",
+        pageSize: "99999", // 獲取全部
+        ...(filterUserId && { userId: filterUserId }),
+        ...(filterAction && { action: filterAction }),
+        ...(filterEntity && { entity: filterEntity }),
+        ...(filterStartDate && { startDate: filterStartDate }),
+        ...(filterEndDate && { endDate: filterEndDate }),
+      });
+
+      const response = await fetch(`/api/admin/activity-logs?${queryParams}`);
+      if (!response.ok) throw new Error("獲取資料失敗");
+
+      const data = await response.json();
+      const allLogs = data.logs || [];
+
+      if (allLogs.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "活動日誌",
+        sheetName: "日誌",
+        columns: [
+          { key: "createdAt", header: "時間", width: 20, format: (value) => formatDateForExcel(value) },
+          { key: "user", header: "用戶", width: 20, format: (value) => value?.name || value?.email || "" },
+          { key: "user", header: "用戶Email", width: 25, format: (value) => value?.email || "" },
+          { key: "user", header: "角色", width: 12, format: (value) => roleLabels[value?.role] || value?.role || "" },
+          { key: "action", header: "操作", width: 12, format: (value) => actionLabels[value] || value },
+          { key: "entity", header: "對象", width: 15, format: (value) => entityLabels[value] || value },
+          { key: "entityId", header: "對象ID", width: 12 },
+          { key: "details", header: "詳情", width: 40, format: (value, row) => formatDetails(row.action, row.entity, value) },
+          { key: "ipAddress", header: "IP位址", width: 15 },
+        ],
+        data: allLogs,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -679,10 +710,10 @@ export default function ActivityLogsPage() {
           </div>
           <button
             onClick={handleExportExcel}
-            disabled={logs.length === 0}
+            disabled={total === 0 || exporting}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            導出 Excel
+            {exporting ? "導出中..." : "導出 Excel"}
           </button>
         </div>
 

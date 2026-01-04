@@ -14,9 +14,15 @@ interface FilterBarProps {
     language?: string;
     sourceType?: string;
   }) => void;
+  filterOptions?: {
+    categories: string[];
+    countries: string[];
+    genders: string[];
+    sourceTypes: string[];
+  };
 }
 
-export default function FilterBar({ onFilterChange }: FilterBarProps) {
+export default function FilterBar({ onFilterChange, filterOptions }: FilterBarProps) {
   const filterBarRef = useRef<HTMLDivElement>(null);
   const [showIndustryMenu, setShowIndustryMenu] = useState(false);
   const [showExperienceMenu, setShowExperienceMenu] = useState(false);
@@ -48,13 +54,13 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
     };
   }, []);
 
+  // 從後台設定動態生成產業類別選項
   const industries: FilterOption[] = [
-    { label: "全部產業", value: "" },
-    { label: "製造業", value: "manufacturing" },
-    { label: "營建業", value: "construction" },
-    { label: "農業", value: "agriculture" },
-    { label: "服務業", value: "service" },
-    { label: "科技業", value: "technology" },
+    { label: "全部類別", value: "" },
+    ...(filterOptions?.categories || []).map((cat) => ({
+      label: cat,
+      value: cat,
+    })),
   ];
 
   const experienceLevels: FilterOption[] = [
@@ -65,13 +71,13 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
     { label: "10 年以上", value: "10+" },
   ];
 
+  // 從後台設定動態生成國家選項
   const countries: FilterOption[] = [
     { label: "全部國家", value: "" },
-    { label: "菲律賓", value: "philippines" },
-    { label: "越南", value: "vietnam" },
-    { label: "印尼", value: "indonesia" },
-    { label: "泰國", value: "thailand" },
-    { label: "印度", value: "india" },
+    ...(filterOptions?.countries || []).map((country) => ({
+      label: country,
+      value: country,
+    })),
   ];
 
   const languages: FilterOption[] = [
@@ -82,10 +88,13 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
     { label: "韓文", value: "korean" },
   ];
 
+  // 從後台設定動態生成來源類型選項
   const sourceTypes: FilterOption[] = [
     { label: "全部來源", value: "" },
-    { label: "國內轉出工", value: "domestic" },
-    { label: "國外引進工", value: "foreign" },
+    ...(filterOptions?.sourceTypes || []).map((st) => ({
+      label: st,
+      value: st,
+    })),
   ];
 
   const handleFilterChange = (

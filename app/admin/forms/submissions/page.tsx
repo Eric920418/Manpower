@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, gql } from "@apollo/client";
+import { useQuery, useMutation, gql, useApolloClient } from "@apollo/client";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionEnum } from "@/lib/permissions";
@@ -93,6 +93,7 @@ const STATUS_OPTIONS = [
 
 export default function SubmissionsPage() {
   const { can } = usePermission();
+  const client = useApolloClient();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -102,6 +103,7 @@ export default function SubmissionsPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showProcessModal, setShowProcessModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [processData, setProcessData] = useState({
     status: "processing",
     notes: "",
@@ -171,30 +173,60 @@ export default function SubmissionsPage() {
   const total = data?.formSubmissions?.total || 0;
   const totalPages = data?.formSubmissions?.totalPages || 1;
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (submissions.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "表單提交記錄",
-      sheetName: "提交記錄",
-      columns: [
-        { key: "submitterName", header: "提交者姓名", width: 15 },
-        { key: "submitterEmail", header: "Email", width: 25 },
-        { key: "submitterPhone", header: "電話", width: 15 },
-        { key: "template", header: "表單名稱", width: 20, format: (value) => value?.name || "" },
-        { key: "formType", header: "表單類型", width: 12 },
-        { key: "status", header: "狀態", width: 10, format: (value) => STATUS_OPTIONS.find(s => s.value === value)?.label || value },
-        { key: "processor", header: "處理者", width: 15, format: (value) => value?.name || "" },
-        { key: "notes", header: "備註", width: 30 },
-        { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
-        { key: "processedAt", header: "處理時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: submissions,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const { data: allData } = await client.query({
+        query: GET_FORM_SUBMISSIONS,
+        variables: {
+          page: 1,
+          pageSize: 99999, // 獲取全部
+          filter: {
+            search: search || undefined,
+            formType: typeFilter || undefined,
+            status: statusFilter || undefined,
+          },
+        },
+        fetchPolicy: "network-only",
+      });
+
+      const allSubmissions = allData?.formSubmissions?.submissions || [];
+
+      if (allSubmissions.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "表單提交記錄",
+        sheetName: "提交記錄",
+        columns: [
+          { key: "submitterName", header: "提交者姓名", width: 15 },
+          { key: "submitterEmail", header: "Email", width: 25 },
+          { key: "submitterPhone", header: "電話", width: 15 },
+          { key: "template", header: "表單名稱", width: 20, format: (value) => value?.name || "" },
+          { key: "formType", header: "表單類型", width: 12 },
+          { key: "status", header: "狀態", width: 10, format: (value) => STATUS_OPTIONS.find(s => s.value === value)?.label || value },
+          { key: "processor", header: "處理者", width: 15, format: (value) => value?.name || "" },
+          { key: "notes", header: "備註", width: 30 },
+          { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
+          { key: "processedAt", header: "處理時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allSubmissions,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (!can(PermissionEnum.FORM_READ)) {
@@ -220,10 +252,10 @@ export default function SubmissionsPage() {
           </div>
           <button
             onClick={handleExportExcel}
-            disabled={submissions.length === 0}
+            disabled={total === 0 || exporting}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            導出 Excel
+            {exporting ? "導出中..." : "導出 Excel"}
           </button>
         </div>
 

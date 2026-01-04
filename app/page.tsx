@@ -5,6 +5,7 @@ import FeaturedTalents from "@/components/FeaturedTalents";
 import NewsSection from "@/components/NewsSection";
 import Partners from "@/components/Partners";
 import Footer from "@/components/Footer";
+import { DefaultOrganizationJsonLd } from "@/components/SEO/JsonLd";
 
 // 強制動態渲染，避免 build 時 fetch 失敗
 export const dynamic = 'force-dynamic';
@@ -48,7 +49,7 @@ async function getHomePageData() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
-      next: { revalidate: 300 }, // ISR: 每 5 分鐘重新驗證
+      cache: "no-store", // 不使用快取，即時更新
     });
 
     if (!res.ok) {
@@ -113,6 +114,9 @@ export default async function Home() {
 
     return (
       <main className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+        {/* JSON-LD 結構化數據 */}
+        <DefaultOrganizationJsonLd />
+
         {/* 固定背景 Logo - 视差效果 */}
         <div
           className="fixed inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden"

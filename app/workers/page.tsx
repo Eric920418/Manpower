@@ -1,8 +1,19 @@
+import { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WorkersHero from "@/components/Workers/WorkersHero";
 import WorkersList from "@/components/Workers/WorkersList";
 import WorkersCTA from "@/components/Workers/WorkersCTA";
+
+export const metadata: Metadata = {
+  title: "優質人才庫",
+  description: "瀏覽佑羲人力精選的專業外籍人才，包含製造業、營建業、服務業、農漁業等各領域優秀人才，為您的企業找到最適合的員工。",
+  openGraph: {
+    title: "優質人才庫 | 佑羲人力",
+    description: "瀏覽佑羲人力精選的專業外籍人才，包含製造業、營建業、服務業、農漁業等各領域優秀人才。",
+    type: "website",
+  },
+};
 
 // 強制動態渲染，避免 build 時 fetch 失敗
 export const dynamic = 'force-dynamic';

@@ -201,9 +201,11 @@ function AdminTasksContent() {
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [applicantFilter, setApplicantFilter] = useState<string>("all");
+  const [handlerFilter, setHandlerFilter] = useState<string>("all");
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [applicants, setApplicants] = useState<{ id: string; name: string | null; email: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -417,8 +419,8 @@ function AdminTasksContent() {
 
       // 獲取任務列表
       const tasksQuery = `
-        query AdminTasks($page: Int, $pageSize: Int, $status: String, $taskTypeId: Int, $applicantId: String) {
-          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId, applicantId: $applicantId) {
+        query AdminTasks($page: Int, $pageSize: Int, $status: String, $taskTypeId: Int, $applicantId: String, $handlerId: String) {
+          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId, applicantId: $applicantId, handlerId: $handlerId) {
             items {
               id
               taskNo
@@ -548,6 +550,7 @@ function AdminTasksContent() {
       if (statusFilter !== "all") variables.status = statusFilter;
       if (typeFilter !== "all") variables.taskTypeId = parseInt(typeFilter, 10);
       if (applicantFilter !== "all") variables.applicantId = applicantFilter;
+      if (handlerFilter !== "all") variables.handlerId = handlerFilter;
 
       // 添加時間戳防止緩存
       const timestamp = Date.now();
@@ -638,7 +641,7 @@ function AdminTasksContent() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, typeFilter, applicantFilter, currentPage]);
+  }, [statusFilter, typeFilter, applicantFilter, handlerFilter, currentPage]);
 
   // 使用穩定的依賴項避免無限循環
   useEffect(() => {
@@ -699,6 +702,11 @@ function AdminTasksContent() {
           // 搜尋申請人
           const applicantName = task.applicantName || task.applicant?.name || task.applicant?.email || "";
           if (applicantName.toLowerCase().includes(keyword)) return true;
+          // 搜尋負責人
+          if (task.handlers && task.handlers.length > 0) {
+            const handlerNames = task.handlers.map(h => (h.name || h.email || "").toLowerCase()).join(" ");
+            if (handlerNames.includes(keyword)) return true;
+          }
           // 搜尋狀態
           const statusLabel = statusLabels[task.status]?.label || "";
           if (statusLabel.includes(keyword)) return true;
@@ -1777,28 +1785,81 @@ function AdminTasksContent() {
 
   const totalPendingCount = myPendingTasks + myPendingDocsTasks + myRevisionTasks + myAwaitingReviewCheck;
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (tasks.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (!stats || stats.total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "行政任務列表",
-      sheetName: "任務",
-      columns: [
-        { key: "taskNo", header: "案件編號", width: 15 },
-        { key: "title", header: "標題", width: 30 },
-        { key: "taskType", header: "案件類型", width: 15, format: (value) => value?.label || "" },
-        { key: "status", header: "狀態", width: 12, format: (value) => statusLabels[value]?.label || value },
-        { key: "applicant", header: "申請人", width: 15, format: (value) => value?.name || value?.email || "" },
-        { key: "handlers", header: "負責人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
-        { key: "deadline", header: "期限", width: 18, format: (value) => formatDateForExcel(value) },
-        { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: tasks,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const query = `
+        query AdminTasks($status: String, $taskTypeId: Int, $applicantId: String, $handlerId: String, $search: String) {
+          adminTasks(status: $status, taskTypeId: $taskTypeId, applicantId: $applicantId, handlerId: $handlerId, search: $search, pageSize: 99999) {
+            items {
+              id
+              taskNo
+              title
+              status
+              deadline
+              createdAt
+              taskType { id code label }
+              applicant { id name email role }
+              handlers { id name email role }
+            }
+          }
+        }
+      `;
+
+      const response = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query,
+          variables: {
+            status: statusFilter !== "all" ? statusFilter : undefined,
+            taskTypeId: typeFilter !== "all" ? parseInt(typeFilter) : undefined,
+            applicantId: applicantFilter !== "all" ? applicantFilter : undefined,
+            handlerId: handlerFilter !== "all" ? handlerFilter : undefined,
+            search: searchKeyword || undefined,
+          },
+        }),
+      });
+
+      const result = await response.json();
+      if (result.errors) throw new Error(result.errors[0].message);
+
+      const allTasks = result.data.adminTasks.items;
+
+      if (allTasks.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "行政任務列表",
+        sheetName: "任務",
+        columns: [
+          { key: "taskNo", header: "案件編號", width: 15 },
+          { key: "title", header: "標題", width: 30 },
+          { key: "taskType", header: "案件類型", width: 15, format: (value) => value?.label || "" },
+          { key: "status", header: "狀態", width: 12, format: (value) => statusLabels[value]?.label || value },
+          { key: "applicant", header: "申請人", width: 15, format: (value) => value?.name || value?.email || "" },
+          { key: "handlers", header: "負責人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+          { key: "deadline", header: "期限", width: 18, format: (value) => formatDateForExcel(value) },
+          { key: "createdAt", header: "建立時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allTasks,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -1977,10 +2038,10 @@ function AdminTasksContent() {
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={handleExportExcel}
-                disabled={tasks.length === 0}
+                disabled={!stats || stats.total === 0 || exporting}
                 className="w-full sm:w-auto px-4 py-3 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2 min-h-[48px] md:min-h-0 text-base md:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                導出 Excel
+                {exporting ? "導出中..." : "導出 Excel"}
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -2064,7 +2125,7 @@ function AdminTasksContent() {
 
         {/* 篩選器 */}
         <div className="bg-white rounded-xl shadow-md p-3 md:p-4 mb-4 md:mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
             {/* 狀態篩選 */}
             <div>
               <label className="block text-xs md:text-sm text-gray-600 mb-1">狀態</label>
@@ -2116,6 +2177,26 @@ function AdminTasksContent() {
                 value={applicantFilter}
                 onChange={(e) => {
                   setApplicantFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full px-3 py-2.5 md:py-1.5 border border-gray-300 rounded-lg text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">全部</option>
+                {applicants.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name || user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 負責人篩選 */}
+            <div>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">負責人</label>
+              <select
+                value={handlerFilter}
+                onChange={(e) => {
+                  setHandlerFilter(e.target.value);
                   setCurrentPage(1);
                 }}
                 className="w-full px-3 py-2.5 md:py-1.5 border border-gray-300 rounded-lg text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -2200,11 +2281,19 @@ function AdminTasksContent() {
                     </div>
                   </div>
 
-                  {/* 資訊區：類型、申請人、期限 */}
+                  {/* 資訊區：類型、申請人、負責人、期限 */}
                   <div className="space-y-1 text-xs text-gray-600 mb-2">
                     <div className="flex items-center justify-between">
                       <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded">{item.task.taskType?.label || "未知"}</span>
-                      <span>{item.task.applicantName || item.task.applicant?.name || "-"}</span>
+                      <span>申請人：{item.task.applicantName || item.task.applicant?.name || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">負責人：</span>
+                      <span className="truncate max-w-[180px]">
+                        {item.task.handlers && item.task.handlers.length > 0
+                          ? item.task.handlers.map(h => h.name || h.email).join(", ")
+                          : "-"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400">期限：</span>
@@ -2321,6 +2410,9 @@ function AdminTasksContent() {
                         <SortIcon field="applicant" />
                       </div>
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                      負責人
+                    </th>
                     <th
                       className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort("status")}
@@ -2420,6 +2512,13 @@ function AdminTasksContent() {
                             {item.task.applicantName ||
                               item.task.applicant?.name ||
                               item.task.applicant?.email}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 max-w-[100px] truncate">
+                            {item.task.handlers && item.task.handlers.length > 0
+                              ? item.task.handlers.map(h => h.name || h.email).join(", ")
+                              : <span className="text-gray-400">-</span>}
                           </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
@@ -2597,6 +2696,13 @@ function AdminTasksContent() {
                                   fullChildTask?.applicant?.name ||
                                   fullChildTask?.applicant?.email ||
                                   "-"}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-gray-600 max-w-[100px] truncate">
+                                {fullChildTask?.handlers && fullChildTask.handlers.length > 0
+                                  ? fullChildTask.handlers.map(h => h.name || h.email).join(", ")
+                                  : <span className="text-gray-400">-</span>}
                               </div>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">

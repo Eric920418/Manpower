@@ -107,6 +107,7 @@ export default function AdminAssignmentsPage() {
   // 狀態
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // 分配模態框
   const [showModal, setShowModal] = useState(false);
@@ -403,58 +404,102 @@ export default function AdminAssignmentsPage() {
     }
   };
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (viewMode === "tasks") {
-      if (tasks.length === 0) {
-        alert("沒有資料可以導出");
-        return;
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      if (viewMode === "tasks") {
+        // 獲取所有案件資料（pageSize: 99999）
+        const tasksQuery = `
+          query AdminTasks($status: String, $taskTypeId: Int, $search: String) {
+            adminTasks(status: $status, taskTypeId: $taskTypeId, search: $search, pageSize: 99999) {
+              items {
+                id
+                taskNo
+                title
+                status
+                taskType { id code label }
+                handlers { id name email role }
+                reviewers { id name email role }
+              }
+            }
+          }
+        `;
+
+        const res = await fetch("/api/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            query: tasksQuery,
+            variables: {
+              status: statusFilter || undefined,
+              taskTypeId: typeFilter ? parseInt(typeFilter) : undefined,
+              search: searchQuery || undefined,
+            },
+          }),
+        });
+
+        const data = await res.json();
+        if (data.errors) throw new Error(data.errors[0].message);
+
+        const allTasks = data.data.adminTasks.items;
+        if (allTasks.length === 0) {
+          alert("沒有資料可以導出");
+          return;
+        }
+
+        exportToExcel({
+          filename: "案件分配_案件視角",
+          sheetName: "案件",
+          columns: [
+            { key: "taskNo", header: "案件編號", width: 15 },
+            { key: "title", header: "標題", width: 30 },
+            { key: "taskType", header: "類型", width: 15, format: (value) => value?.label || "" },
+            { key: "status", header: "狀態", width: 12, format: (value) => STATUS_MAP[value]?.label || value },
+            { key: "handlers", header: "負責人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+            { key: "reviewers", header: "複審人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+          ],
+          data: allTasks,
+        });
+      } else if (viewMode === "admins") {
+        if (userSummaries.length === 0) {
+          alert("沒有資料可以導出");
+          return;
+        }
+        exportToExcel({
+          filename: "案件分配_管理員視角",
+          sheetName: "管理員",
+          columns: [
+            { key: "user", header: "管理員", width: 20, format: (value) => value?.name || value?.email || "" },
+            { key: "user", header: "Email", width: 25, format: (value) => value?.email || "" },
+            { key: "handlerTaskTypes", header: "負責案件類型", width: 30, format: (value) => value?.map((t: TaskType) => t.label).join(", ") || "" },
+            { key: "reviewerTaskTypes", header: "複審案件類型", width: 30, format: (value) => value?.map((t: TaskType) => t.label).join(", ") || "" },
+          ],
+          data: userSummaries,
+        });
+      } else {
+        if (globalSummaries.length === 0) {
+          alert("沒有資料可以導出");
+          return;
+        }
+        exportToExcel({
+          filename: "案件分配_全局分配",
+          sheetName: "全局分配",
+          columns: [
+            { key: "taskType", header: "案件類型", width: 20, format: (value) => value?.label || "" },
+            { key: "taskType", header: "代碼", width: 12, format: (value) => value?.code || "" },
+            { key: "handlers", header: "負責人", width: 30, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+            { key: "reviewers", header: "複審人", width: 30, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
+          ],
+          data: globalSummaries,
+        });
       }
-      exportToExcel({
-        filename: "案件分配_案件視角",
-        sheetName: "案件",
-        columns: [
-          { key: "taskNo", header: "案件編號", width: 15 },
-          { key: "title", header: "標題", width: 30 },
-          { key: "taskType", header: "類型", width: 15, format: (value) => value?.label || "" },
-          { key: "status", header: "狀態", width: 12, format: (value) => STATUS_MAP[value]?.label || value },
-          { key: "handlers", header: "負責人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
-          { key: "reviewers", header: "複審人", width: 20, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
-        ],
-        data: tasks,
-      });
-    } else if (viewMode === "admins") {
-      if (userSummaries.length === 0) {
-        alert("沒有資料可以導出");
-        return;
-      }
-      exportToExcel({
-        filename: "案件分配_管理員視角",
-        sheetName: "管理員",
-        columns: [
-          { key: "user", header: "管理員", width: 20, format: (value) => value?.name || value?.email || "" },
-          { key: "user", header: "Email", width: 25, format: (value) => value?.email || "" },
-          { key: "handlerTaskTypes", header: "負責案件類型", width: 30, format: (value) => value?.map((t: TaskType) => t.label).join(", ") || "" },
-          { key: "reviewerTaskTypes", header: "複審案件類型", width: 30, format: (value) => value?.map((t: TaskType) => t.label).join(", ") || "" },
-        ],
-        data: userSummaries,
-      });
-    } else {
-      if (globalSummaries.length === 0) {
-        alert("沒有資料可以導出");
-        return;
-      }
-      exportToExcel({
-        filename: "案件分配_全局分配",
-        sheetName: "全局分配",
-        columns: [
-          { key: "taskType", header: "案件類型", width: 20, format: (value) => value?.label || "" },
-          { key: "taskType", header: "代碼", width: 12, format: (value) => value?.code || "" },
-          { key: "handlers", header: "負責人", width: 30, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
-          { key: "reviewers", header: "複審人", width: 30, format: (value) => value?.map((u: TaskUser) => u.name || u.email).join(", ") || "" },
-        ],
-        data: globalSummaries,
-      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -547,9 +592,10 @@ export default function AdminAssignmentsPage() {
             {/* 導出按鈕 */}
             <button
               onClick={handleExportExcel}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              disabled={exporting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              導出 Excel
+              {exporting ? "導出中..." : "導出 Excel"}
             </button>
 
             {/* 視圖切換 */}

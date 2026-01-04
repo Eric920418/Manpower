@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, gql } from "@apollo/client";
+import { useQuery, gql, useApolloClient } from "@apollo/client";
 import { useSession } from "next-auth/react";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import { exportToExcel, formatDateForExcel } from "@/lib/exportExcel";
@@ -55,12 +55,14 @@ const FILE_TYPE_ICONS: Record<string, string> = {
 
 export default function FilesPage() {
   const { status } = useSession();
+  const client = useApolloClient();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedFile, setSelectedFile] = useState<Attachment | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // 查詢附件列表
   const { data, loading, error, refetch } = useQuery(GET_ATTACHMENTS, {
@@ -111,26 +113,55 @@ export default function FilesPage() {
   const total = data?.attachments?.total || 0;
   const totalPages = data?.attachments?.totalPages || 1;
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (attachments.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "檔案列表",
-      sheetName: "檔案",
-      columns: [
-        { key: "originalName", header: "檔案名稱", width: 30 },
-        { key: "filename", header: "系統檔名", width: 30 },
-        { key: "mimeType", header: "類型", width: 20 },
-        { key: "size", header: "大小 (Bytes)", width: 15 },
-        { key: "uploadedBy", header: "上傳者", width: 15 },
-        { key: "createdAt", header: "上傳時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: attachments,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const { data: allData } = await client.query({
+        query: GET_ATTACHMENTS,
+        variables: {
+          page: 1,
+          pageSize: 99999, // 獲取全部
+          filter: {
+            search: search || undefined,
+            mimeType: typeFilter || undefined,
+          },
+        },
+        fetchPolicy: "network-only",
+      });
+
+      const allAttachments = allData?.attachments?.attachments || [];
+
+      if (allAttachments.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "檔案列表",
+        sheetName: "檔案",
+        columns: [
+          { key: "originalName", header: "檔案名稱", width: 30 },
+          { key: "filename", header: "系統檔名", width: 30 },
+          { key: "mimeType", header: "類型", width: 20 },
+          { key: "size", header: "大小 (Bytes)", width: 15 },
+          { key: "uploadedBy", header: "上傳者", width: 15 },
+          { key: "createdAt", header: "上傳時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allAttachments,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   // 等待 session 載入完成
@@ -160,10 +191,10 @@ export default function FilesPage() {
           </div>
           <button
             onClick={handleExportExcel}
-            disabled={attachments.length === 0}
+            disabled={total === 0 || exporting}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            導出 Excel
+            {exporting ? "導出中..." : "導出 Excel"}
           </button>
         </div>
 

@@ -58,6 +58,7 @@ export default function ContactSubmissionsPage() {
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const fetchSubmissions = useCallback(async () => {
     setIsLoading(true);
@@ -158,28 +159,53 @@ export default function ContactSubmissionsPage() {
     return currentType?.label || submission.questionLabel || submission.questionType;
   };
 
-  // 導出 Excel
-  const handleExportExcel = () => {
-    if (submissions.length === 0) {
+  // 導出 Excel - 獲取全部資料
+  const handleExportExcel = async () => {
+    if (pagination.total === 0) {
       alert("沒有資料可以導出");
       return;
     }
 
-    exportToExcel({
-      filename: "聯絡表單",
-      sheetName: "提交記錄",
-      columns: [
-        { key: "questionType", header: "問題類型", width: 15, format: (value, row) => getQuestionLabel(row) },
-        { key: "name", header: "姓名", width: 12 },
-        { key: "email", header: "Email", width: 25 },
-        { key: "phone", header: "電話", width: 15 },
-        { key: "message", header: "訊息內容", width: 40 },
-        { key: "status", header: "狀態", width: 10, format: (value) => statusLabels[value] || value },
-        { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
-        { key: "repliedAt", header: "回覆時間", width: 18, format: (value) => formatDateForExcel(value) },
-      ],
-      data: submissions,
-    });
+    setExporting(true);
+    try {
+      // 獲取所有資料（不分頁）
+      const params = new URLSearchParams();
+      params.set("page", "1");
+      params.set("limit", "99999"); // 獲取全部
+      if (filterStatus) params.set("status", filterStatus);
+      if (filterQuestionType) params.set("questionType", filterQuestionType);
+      if (searchKeyword) params.set("search", searchKeyword);
+
+      const res = await fetch(`/api/contact-submission?${params.toString()}`);
+      const data = await res.json();
+      const allSubmissions = data.submissions || [];
+
+      if (allSubmissions.length === 0) {
+        alert("沒有資料可以導出");
+        return;
+      }
+
+      exportToExcel({
+        filename: "聯絡表單",
+        sheetName: "提交記錄",
+        columns: [
+          { key: "questionType", header: "問題類型", width: 15, format: (value, row) => getQuestionLabel(row) },
+          { key: "name", header: "姓名", width: 12 },
+          { key: "email", header: "Email", width: 25 },
+          { key: "phone", header: "電話", width: 15 },
+          { key: "message", header: "訊息內容", width: 40 },
+          { key: "status", header: "狀態", width: 10, format: (value) => statusLabels[value] || value },
+          { key: "createdAt", header: "提交時間", width: 18, format: (value) => formatDateForExcel(value) },
+          { key: "repliedAt", header: "回覆時間", width: 18, format: (value) => formatDateForExcel(value) },
+        ],
+        data: allSubmissions,
+      });
+    } catch (error) {
+      console.error("導出失敗:", error);
+      alert("導出失敗，請稍後再試");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -189,10 +215,10 @@ export default function ContactSubmissionsPage() {
           <div className="text-3xl font-bold">聯絡表單管理</div>
           <button
             onClick={handleExportExcel}
-            disabled={submissions.length === 0}
+            disabled={pagination.total === 0 || exporting}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            導出 Excel
+            {exporting ? "導出中..." : "導出 Excel"}
           </button>
         </div>
 

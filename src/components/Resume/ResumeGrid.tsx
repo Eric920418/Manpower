@@ -54,6 +54,12 @@ export default function ResumeGrid() {
   const router = useRouter();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [filteredResumes, setFilteredResumes] = useState<Resume[]>([]);
+  const [filterOptions, setFilterOptions] = useState<{
+    categories: string[];
+    countries: string[];
+    genders: string[];
+    sourceTypes: string[];
+  }>({ categories: [], countries: [], genders: [], sourceTypes: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,6 +80,7 @@ export default function ResumeGrid() {
           query workersPage {
             workersPage {
               workers
+              filterOptions
             }
           }
         `;
@@ -96,6 +103,13 @@ export default function ResumeGrid() {
         }
 
         const workersData = result.data?.workersPage?.[0]?.workers || [];
+        const filterOptionsData = result.data?.workersPage?.[0]?.filterOptions || {
+          categories: [],
+          countries: [],
+          genders: [],
+          sourceTypes: [],
+        };
+        setFilterOptions(filterOptionsData);
         const convertedResumes = workersData.map(convertWorkerToResume);
 
         // 預設按「最新加入」排序（ID 降序）
@@ -158,39 +172,17 @@ export default function ResumeGrid() {
   }) => {
     let filtered = [...resumes];
 
-    // 國家篩選 (使用中文名稱匹配)
+    // 國家篩選 (直接使用中文名稱匹配)
     if (filters.country) {
-      const countryMap: { [key: string]: string[] } = {
-        philippines: ["菲律賓", "philippines"],
-        vietnam: ["越南", "vietnam"],
-        indonesia: ["印尼", "indonesia"],
-        thailand: ["泰國", "thailand"],
-        india: ["印度", "india"],
-      };
-
-      const matchCountries = countryMap[filters.country] || [];
       filtered = filtered.filter((resume) =>
-        matchCountries.some((c) =>
-          resume.country.toLowerCase().includes(c.toLowerCase())
-        )
+        resume.country.includes(filters.country!)
       );
     }
 
-    // 產業類別篩選 (使用 title 欄位)
+    // 產業類別篩選 (使用 title 欄位，直接匹配後台設定的類別)
     if (filters.industry) {
-      const industryMap: { [key: string]: string[] } = {
-        manufacturing: ["製造", "工廠", "廠工", "CNC", "焊"],
-        construction: ["營造", "建築", "工頭", "營建"],
-        agriculture: ["農業", "農", "收割", "牲畜"],
-        service: ["服務", "接待", "客房", "清潔", "幫傭", "護理"],
-        technology: ["科技", "技術", "工程"],
-      };
-
-      const matchKeywords = industryMap[filters.industry] || [];
       filtered = filtered.filter((resume) =>
-        matchKeywords.some((keyword) =>
-          (resume.title?.toLowerCase().includes(keyword.toLowerCase()) ?? false)
-        )
+        resume.title?.includes(filters.industry!) ?? false
       );
     }
 
@@ -237,18 +229,10 @@ export default function ResumeGrid() {
       );
     }
 
-    // 來源類型篩選
+    // 來源類型篩選 (直接匹配後台設定的來源類型)
     if (filters.sourceType) {
-      const sourceTypeMap: { [key: string]: string[] } = {
-        domestic: ["國內轉出工", "國內", "轉出"],
-        foreign: ["國外引進工", "國外", "引進"],
-      };
-
-      const matchSourceTypes = sourceTypeMap[filters.sourceType] || [];
       filtered = filtered.filter((resume) =>
-        matchSourceTypes.some((st) =>
-          (resume.sourceType || "").includes(st)
-        )
+        (resume.sourceType || "").includes(filters.sourceType!)
       );
     }
 
@@ -393,7 +377,7 @@ export default function ResumeGrid() {
 
       {/* 篩選器 */}
       <div className="mb-6">
-        <FilterBar onFilterChange={handleFilterChange} />
+        <FilterBar onFilterChange={handleFilterChange} filterOptions={filterOptions} />
       </div>
 
       {/* 選擇工具列 */}

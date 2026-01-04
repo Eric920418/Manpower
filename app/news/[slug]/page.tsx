@@ -1,11 +1,12 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import DOMPurify from "isomorphic-dompurify";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/SEO/JsonLd";
+import { NewsContentStyles } from "@/components/News/NewsContentStyles";
 
 interface News {
   title: string;
@@ -23,137 +24,181 @@ interface PageData {
   newsList: News[];
 }
 
-export default function NewsDetailPage() {
-  const params = useParams();
-  const slug = params.slug as string;
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
 
-  const [news, setNews] = useState<News | null>(null);
-  const [headerData, setHeaderData] = useState<any>(null);
-  const [footerData, setFooterData] = useState<any>(null);
-  const [navigations, setNavigations] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// 獲取新聞資料
+async function getNewsData(slug: string) {
+  try {
+    const apiUrl = process.env.NEXTAUTH_URL + "/api/graphql";
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const query = `
-          query getNewsDetail {
-            homePage {
-              header
-              footer
-            }
-            newsPage {
-              featuredNews
-              newsList
-            }
-            activeNavigations {
-              id
-              label
-              url
-              icon
-              target
-              children {
-                id
-                label
-                url
-                icon
-                target
-              }
-            }
-          }
-        `;
-
-        const res = await fetch("/api/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query }),
-        });
-
-        const { data, errors } = await res.json();
-
-        if (errors) {
-          setError("載入資料時發生錯誤");
-          return;
-        }
-
-        if (data) {
-          setHeaderData(data.homePage[0]?.header);
-          setFooterData(data.homePage[0]?.footer);
-          setNavigations(data.activeNavigations || []);
-
-          // 搜尋符合 slug 的新聞
-          const pageData: PageData = data.newsPage[0];
-
-          // 先檢查精選新聞
-          const featuredSlug = pageData.featuredNews?.slug || "featured";
-          if (pageData.featuredNews && featuredSlug === slug) {
-            setNews(pageData.featuredNews);
-          } else {
-            // 再檢查新聞列表（支援實際 slug 或 fallback 的 item-{index} 格式）
-            let foundNews = pageData.newsList?.find((n: News) => n.slug === slug);
-
-            // 如果沒找到，嘗試用 item-{index} 格式匹配
-            if (!foundNews && slug.startsWith("item-")) {
-              const indexStr = slug.replace("item-", "");
-              const index = parseInt(indexStr, 10);
-              if (!isNaN(index) && pageData.newsList && pageData.newsList[index]) {
-                foundNews = pageData.newsList[index];
-              }
-            }
-
-            if (foundNews) {
-              setNews(foundNews);
-            } else {
-              setError("找不到此新聞");
-            }
-          }
-        }
-      } catch (err) {
-        setError("載入資料時發生錯誤：" + err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (slug) {
-      fetchData();
+    if (!process.env.NEXTAUTH_URL) {
+      return null;
     }
-  }, [slug]);
 
-  if (isLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-4 border-t-blue-500 border-gray-200 rounded-full animate-spin mb-4 mx-auto"></div>
-          <p className="text-lg text-gray-600">載入中...</p>
-        </div>
-      </main>
-    );
+    const query = `
+      query getNewsDetail {
+        homePage {
+          header
+          footer
+        }
+        newsPage {
+          featuredNews
+          newsList
+        }
+        activeNavigations {
+          id
+          label
+          url
+          icon
+          target
+          children {
+            id
+            label
+            url
+            icon
+            target
+          }
+        }
+      }
+    `;
+
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    const { data, errors } = await res.json();
+
+    if (errors || !data) {
+      return null;
+    }
+
+    const headerData = data.homePage[0]?.header;
+    const footerData = data.homePage[0]?.footer;
+    const navigations = data.activeNavigations || [];
+    const pageData: PageData = data.newsPage[0];
+
+    // 搜尋符合 slug 的新聞
+    let news: News | null = null;
+    const featuredSlug = pageData.featuredNews?.slug || "featured";
+
+    if (pageData.featuredNews && featuredSlug === slug) {
+      news = pageData.featuredNews;
+    } else {
+      // 再檢查新聞列表（支援實際 slug 或 fallback 的 item-{index} 格式）
+      let foundNews = pageData.newsList?.find((n: News) => n.slug === slug);
+
+      // 如果沒找到，嘗試用 item-{index} 格式匹配
+      if (!foundNews && slug.startsWith("item-")) {
+        const indexStr = slug.replace("item-", "");
+        const index = parseInt(indexStr, 10);
+        if (!isNaN(index) && pageData.newsList && pageData.newsList[index]) {
+          foundNews = pageData.newsList[index];
+        }
+      }
+
+      if (foundNews) {
+        news = foundNews;
+      }
+    }
+
+    return {
+      news,
+      headerData,
+      footerData,
+      navigations,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// 動態生成 Metadata
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const data = await getNewsData(slug);
+
+  if (!data?.news) {
+    return {
+      title: "找不到此新聞",
+      description: "您所尋找的新聞不存在或已被移除。",
+    };
   }
 
-  if (error || !news) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <span className="material-symbols-outlined text-6xl text-gray-300 mb-4 block">
-            error
-          </span>
-          <p className="text-xl text-gray-600 mb-4">{error || "找不到此新聞"}</p>
-          <Link
-            href="/news"
-            className="inline-flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-brand-primary/90 transition-all"
-          >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
-            <span>返回新聞列表</span>
-          </Link>
-        </div>
-      </main>
-    );
+  const { news } = data;
+  const siteUrl = process.env.NEXTAUTH_URL || "https://yoshi3166.com";
+
+  return {
+    title: news.title,
+    description: news.excerpt,
+    openGraph: {
+      title: news.title,
+      description: news.excerpt,
+      type: "article",
+      url: `${siteUrl}/news/${slug}`,
+      images: [
+        {
+          url: news.image,
+          width: 1200,
+          height: 630,
+          alt: news.title,
+        },
+      ],
+      publishedTime: news.date,
+      section: news.category,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: news.title,
+      description: news.excerpt,
+      images: [news.image],
+    },
+    alternates: {
+      canonical: `${siteUrl}/news/${slug}`,
+    },
+  };
+}
+
+export default async function NewsDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const data = await getNewsData(slug);
+
+  if (!data?.news) {
+    notFound();
   }
+
+  const { news, headerData, footerData, navigations } = data;
+  const siteUrl = process.env.NEXTAUTH_URL || "https://yoshi3166.com";
 
   return (
     <main className="relative flex min-h-screen w-full flex-col">
+      {/* JSON-LD 結構化數據 */}
+      <ArticleJsonLd
+        title={news.title}
+        description={news.excerpt}
+        url={`${siteUrl}/news/${slug}`}
+        image={news.image}
+        datePublished={news.date}
+        authorName="佑羲人力"
+        publisherName="佑羲人力"
+        publisherLogo={`${siteUrl}/logo.png`}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "首頁", url: siteUrl },
+          { name: "最新消息", url: `${siteUrl}/news` },
+          { name: news.title, url: `${siteUrl}/news/${slug}` },
+        ]}
+      />
+
       {headerData && (
         <Header
           logo={headerData.logo}
@@ -232,76 +277,7 @@ export default function NewsDetailPage() {
       </section>
 
       {/* Custom Styles for News Content */}
-      <style jsx global>{`
-        .news-content h1 {
-          font-size: 2rem;
-          font-weight: 700;
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-          color: #1a1a1a;
-        }
-        .news-content h2 {
-          font-size: 1.5rem;
-          font-weight: 600;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
-          color: #2a2a2a;
-        }
-        .news-content h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          margin-top: 1.25rem;
-          margin-bottom: 0.5rem;
-          color: #3a3a3a;
-        }
-        .news-content p {
-          margin-bottom: 1rem;
-          line-height: 1.8;
-          color: #4a4a4a;
-        }
-        .news-content ul, .news-content ol {
-          margin-bottom: 1rem;
-          padding-left: 1.5rem;
-        }
-        .news-content li {
-          margin-bottom: 0.5rem;
-          line-height: 1.7;
-        }
-        .news-content blockquote {
-          border-left: 4px solid #e5e5e5;
-          padding-left: 1rem;
-          margin: 1.5rem 0;
-          font-style: italic;
-          color: #666;
-        }
-        .news-content img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 0.5rem;
-          margin: 1.5rem 0;
-        }
-        .news-content a {
-          color: var(--brand-primary, #3b82f6);
-          text-decoration: underline;
-        }
-        .news-content a:hover {
-          text-decoration: none;
-        }
-        .news-content table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 1.5rem 0;
-        }
-        .news-content th, .news-content td {
-          border: 1px solid #e5e5e5;
-          padding: 0.75rem;
-          text-align: left;
-        }
-        .news-content th {
-          background-color: #f5f5f5;
-          font-weight: 600;
-        }
-      `}</style>
+      <NewsContentStyles />
 
       {footerData && (
         <Footer
