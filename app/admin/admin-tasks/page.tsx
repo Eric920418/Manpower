@@ -299,6 +299,9 @@ function AdminTasksContent() {
 
   // 切換排序
   const handleSort = (field: SortField) => {
+    // 排序變更時重置到第一頁
+    setCurrentPage(1);
+
     if (sortField === field) {
       // 如果點擊同一欄位，切換排序順序
       if (sortOrder === "asc") {
@@ -419,8 +422,8 @@ function AdminTasksContent() {
 
       // 獲取任務列表
       const tasksQuery = `
-        query AdminTasks($page: Int, $pageSize: Int, $status: String, $taskTypeId: Int, $applicantId: String, $handlerId: String) {
-          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId, applicantId: $applicantId, handlerId: $handlerId) {
+        query AdminTasks($page: Int, $pageSize: Int, $status: String, $taskTypeId: Int, $applicantId: String, $handlerId: String, $sortBy: String, $sortOrder: String) {
+          adminTasks(page: $page, pageSize: $pageSize, status: $status, taskTypeId: $taskTypeId, applicantId: $applicantId, handlerId: $handlerId, sortBy: $sortBy, sortOrder: $sortOrder) {
             items {
               id
               taskNo
@@ -552,6 +555,20 @@ function AdminTasksContent() {
       if (applicantFilter !== "all") variables.applicantId = applicantFilter;
       if (handlerFilter !== "all") variables.handlerId = handlerFilter;
 
+      // 排序參數：將前端欄位名稱映射到後端欄位名稱
+      if (sortField) {
+        const sortFieldMapping: Record<string, string> = {
+          title: "title",
+          type: "taskType",      // 後端會按 taskType.label 排序
+          applicant: "applicantName",
+          status: "status",
+          deadline: "deadline",
+          createdAt: "applicationDate",  // 申請時間對應 applicationDate 欄位
+        };
+        variables.sortBy = sortFieldMapping[sortField] || "applicationDate";
+        variables.sortOrder = sortOrder;
+      }
+
       // 添加時間戳防止緩存
       const timestamp = Date.now();
       const [statsRes, taskTypesRes, usersRes, tasksRes] = await Promise.all([
@@ -641,7 +658,7 @@ function AdminTasksContent() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, typeFilter, applicantFilter, handlerFilter, currentPage]);
+  }, [statusFilter, typeFilter, applicantFilter, handlerFilter, currentPage, sortField, sortOrder]);
 
   // 使用穩定的依賴項避免無限循環
   useEffect(() => {
@@ -687,7 +704,7 @@ function AdminTasksContent() {
   const selectedTaskType = taskTypes.find((t) => Number(t.id) === createForm.taskTypeId);
   const currentQuestions = selectedTaskType?.questions || [];
 
-  // 處理任務分組（將關聯任務分組顯示）
+  // 處理任務分組（將關聯任務分組顯示，同時保持後端排序順序）
   const groupedTasks = useMemo(() => {
     // 先進行關鍵字過濾
     const keyword = searchKeyword.trim().toLowerCase();
@@ -716,84 +733,53 @@ function AdminTasksContent() {
         })
       : tasks;
 
-    // 先找出所有有群組的任務
-    const groups = new Map<string, AdminTask[]>();
-    const processedIds = new Set<number>();
-
-    // 第一步：找出所有群組
+    // 建立群組映射表：groupId -> 所有同組任務
+    const groupMap = new Map<string, AdminTask[]>();
     for (const task of filteredTasks) {
       if (task.groupId) {
-        const existing = groups.get(task.groupId) || [];
+        const existing = groupMap.get(task.groupId) || [];
         existing.push(task);
-        groups.set(task.groupId, existing);
-        processedIds.add(task.id);
+        groupMap.set(task.groupId, existing);
       }
     }
 
-    // 第二步：對每個群組按時間排序，最早的作為主任務
+    // 按照後端返回的順序處理，保持排序順序
+    // 群組位置基於群組中第一個被遍歷到的任務
     const result: { type: "single" | "group"; task: AdminTask; children?: AdminTask[] }[] = [];
+    const processedGroupIds = new Set<string>();
 
-    for (const [, groupTasks] of groups) {
-      // 按創建時間排序
-      groupTasks.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      const mainTask = groupTasks[0];
-      const childTasks = groupTasks.slice(1);
-      result.push({
-        type: "group",
-        task: mainTask,
-        children: childTasks,
-      });
-    }
-
-    // 第三步：添加獨立任務
     for (const task of filteredTasks) {
-      if (!processedIds.has(task.id)) {
+      if (task.groupId) {
+        // 如果這個群組已經處理過，跳過
+        if (processedGroupIds.has(task.groupId)) {
+          continue;
+        }
+        // 標記此群組已處理
+        processedGroupIds.add(task.groupId);
+
+        // 取得同組的所有任務
+        const groupTasks = groupMap.get(task.groupId) || [task];
+
+        // 群組內按創建時間排序，最早的作為主任務（用於顯示）
+        const sortedGroupTasks = [...groupTasks].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        const mainTask = sortedGroupTasks[0];
+        const childTasks = sortedGroupTasks.slice(1);
+
+        result.push({
+          type: groupTasks.length > 1 ? "group" : "single",
+          task: mainTask,
+          children: childTasks.length > 0 ? childTasks : undefined,
+        });
+      } else {
+        // 獨立任務，直接添加
         result.push({ type: "single", task });
       }
     }
 
-    // 排序邏輯
-    result.sort((a, b) => {
-      const taskA = a.task;
-      const taskB = b.task;
-
-      // 如果沒有選擇排序欄位，使用預設的創建時間倒序
-      if (!sortField) {
-        return new Date(taskB.createdAt).getTime() - new Date(taskA.createdAt).getTime();
-      }
-
-      let comparison = 0;
-
-      switch (sortField) {
-        case "title":
-          comparison = (taskA.title || "").localeCompare(taskB.title || "", "zh-TW");
-          break;
-        case "type":
-          comparison = (taskA.taskType?.label || "").localeCompare(taskB.taskType?.label || "", "zh-TW");
-          break;
-        case "applicant":
-          const applicantA = taskA.applicantName || taskA.applicant?.name || taskA.applicant?.email || "";
-          const applicantB = taskB.applicantName || taskB.applicant?.name || taskB.applicant?.email || "";
-          comparison = applicantA.localeCompare(applicantB, "zh-TW");
-          break;
-        case "status":
-          comparison = (statusPriority[taskA.status] || 99) - (statusPriority[taskB.status] || 99);
-          break;
-        case "deadline":
-          const deadlineA = taskA.deadline ? new Date(taskA.deadline).getTime() : Infinity;
-          const deadlineB = taskB.deadline ? new Date(taskB.deadline).getTime() : Infinity;
-          comparison = deadlineA - deadlineB;
-          break;
-        case "createdAt":
-          comparison = new Date(taskA.createdAt).getTime() - new Date(taskB.createdAt).getTime();
-          break;
-      }
-
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-
     return result;
-  }, [tasks, sortField, sortOrder, statusPriority, searchKeyword]);
+  }, [tasks, searchKeyword]);
 
   // 切換群組展開狀態
   const toggleGroup = (groupId: string) => {
@@ -879,9 +865,19 @@ function AdminTasksContent() {
         }
       `;
 
+      // 將 datetime-local 的值轉換為 ISO 格式（保留本地時區）
+      const convertToISOWithTimezone = (localDatetime: string | null): string | null => {
+        if (!localDatetime) return null;
+        // datetime-local 格式是 "YYYY-MM-DDTHH:mm"
+        // 創建本地 Date 對象（會使用瀏覽器的時區）
+        const date = new Date(localDatetime);
+        // 轉換為 ISO 格式，這會保留正確的時區資訊
+        return date.toISOString();
+      };
+
       // 根據期限類型決定發送的值
       const deadlineValue = deadlineType === "date"
-        ? (createForm.deadline || null)
+        ? convertToISOWithTimezone(createForm.deadline)
         : (createForm.deadlineText || null);
 
       // 合併 payload，包含自訂問題答案和補充說明
@@ -1200,11 +1196,23 @@ function AdminTasksContent() {
   const openEditMode = () => {
     if (!selectedTask) return;
 
+    // 將 ISO 日期轉換為本地 datetime-local 格式
+    const toLocalDatetimeString = (isoString: string): string => {
+      const date = new Date(isoString);
+      // 獲取本地時間的各個部分
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     // 初始化表單數據
     setEditForm({
       title: selectedTask.title || "",
       deadline: selectedTask.deadline
-        ? new Date(selectedTask.deadline).toISOString().slice(0, 16)
+        ? toLocalDatetimeString(selectedTask.deadline)
         : "",
       deadlineText: (selectedTask.payload?.deadlineText as string) || "",
       notes: selectedTask.notes || "",
@@ -1328,6 +1336,16 @@ function AdminTasksContent() {
         }
       `;
 
+      // 將 datetime-local 的值轉換為 ISO 格式（保留本地時區）
+      const convertToISOWithTimezone = (localDatetime: string | null): string | null => {
+        if (!localDatetime) return null;
+        // datetime-local 格式是 "YYYY-MM-DDTHH:mm"
+        // 創建本地 Date 對象（會使用瀏覽器的時區）
+        const date = new Date(localDatetime);
+        // 轉換為 ISO 格式，這會保留正確的時區資訊
+        return date.toISOString();
+      };
+
       // 構建 payload
       const newPayload = {
         ...(selectedTask.payload || {}),
@@ -1340,7 +1358,7 @@ function AdminTasksContent() {
         input: {
           id: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
           title: editForm.title,
-          deadline: editDeadlineType === "date" && editForm.deadline ? editForm.deadline : null,
+          deadline: editDeadlineType === "date" && editForm.deadline ? convertToISOWithTimezone(editForm.deadline) : null,
           notes: editForm.notes || null,
           applicantName: selectedTask.applicantName || null,
           payload: newPayload,
@@ -2327,6 +2345,78 @@ function AdminTasksContent() {
                     );
                   })()}
 
+                  {/* 完成確認 & 複審確認 checkbox */}
+                  {(() => {
+                    const isHandler = item.task.handlers?.some(
+                      (h) => h.id === session?.user?.id
+                    );
+                    const isReviewer = item.task.reviewers?.some(
+                      (r) => r.id === session?.user?.id
+                    );
+                    const isSuperAdmin = userRole === "SUPER_ADMIN";
+                    const isCompleteChecked = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                    const isCompleteLoading = togglingCompleteId === item.task.id;
+                    const isApprovedOrCompleted = item.task.status === "APPROVED" || item.task.status === "COMPLETED";
+                    const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+                    const hasHandlers = item.task.handlers && item.task.handlers.length > 0;
+
+                    const isReviewChecked = !!item.task.reviewedAt;
+                    const isReviewLoading = togglingReviewId === item.task.id;
+                    const isCompletedOrReviewed = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
+                    const canReviewCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
+                    const hasReviewers = item.task.reviewers && item.task.reviewers.length > 0;
+
+                    // 只有當有負責人或複審人時才顯示此區域
+                    if (!hasHandlers && !hasReviewers) return null;
+
+                    return (
+                      <div className="flex items-center gap-4 py-2 mb-2 border-t border-gray-100">
+                        {/* 完成確認 */}
+                        {hasHandlers && (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isCompleteChecked}
+                              disabled={!canCompleteCheck || isCompleteLoading}
+                              onChange={(e) =>
+                                handleToggleCompleteCheck(item.task, e.target.checked)
+                              }
+                              className={`w-5 h-5 rounded border-2 ${
+                                canCompleteCheck
+                                  ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
+                                  : "cursor-not-allowed text-gray-400 border-gray-300"
+                              } ${isCompleteLoading ? "opacity-50" : ""}`}
+                            />
+                            <span className={`text-xs ${canCompleteCheck ? "text-gray-700" : "text-gray-400"}`}>
+                              完成確認
+                            </span>
+                          </label>
+                        )}
+                        {/* 複審確認 */}
+                        {hasReviewers && (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isReviewChecked}
+                              disabled={!canReviewCheck || isReviewLoading}
+                              onChange={(e) =>
+                                handleToggleReviewCheck(item.task, e.target.checked)
+                              }
+                              className={`w-5 h-5 rounded border-2 ${
+                                canReviewCheck
+                                  ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
+                                  : "cursor-not-allowed text-gray-400 border-gray-300"
+                              } ${isReviewLoading ? "opacity-50" : ""}`}
+                            />
+                            <span className={`text-xs ${canReviewCheck ? "text-gray-700" : "text-gray-400"}`}>
+                              複審確認
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* 操作按鈕 */}
                   <div className="flex gap-2 pt-2 border-t border-gray-100">
                     <button
@@ -2359,6 +2449,74 @@ function AdminTasksContent() {
                           <span className="text-xs font-medium text-gray-700 line-clamp-1 flex-1">{childTask.title}</span>
                           {getStatusBadge(childTask.status)}
                         </div>
+                        {/* 子任務完成確認 & 複審確認 checkbox */}
+                        {fullChildTask && (() => {
+                          const isHandler = fullChildTask.handlers?.some(
+                            (h) => h.id === session?.user?.id
+                          );
+                          const isReviewer = fullChildTask.reviewers?.some(
+                            (r) => r.id === session?.user?.id
+                          );
+                          const isSuperAdmin = userRole === "SUPER_ADMIN";
+                          const isCompleteChecked = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
+                          const isCompleteLoading = togglingCompleteId === fullChildTask.id;
+                          const isApprovedOrCompleted = fullChildTask.status === "APPROVED" || fullChildTask.status === "COMPLETED";
+                          const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+                          const hasHandlers = fullChildTask.handlers && fullChildTask.handlers.length > 0;
+
+                          const isReviewChecked = !!fullChildTask.reviewedAt;
+                          const isReviewLoading = togglingReviewId === fullChildTask.id;
+                          const isCompletedOrReviewed = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
+                          const canReviewCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
+                          const hasReviewers = fullChildTask.reviewers && fullChildTask.reviewers.length > 0;
+
+                          if (!hasHandlers && !hasReviewers) return null;
+
+                          return (
+                            <div className="flex items-center gap-3 py-1 my-1 border-t border-gray-200">
+                              {hasHandlers && (
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isCompleteChecked}
+                                    disabled={!canCompleteCheck || isCompleteLoading}
+                                    onChange={(e) =>
+                                      handleToggleCompleteCheck(fullChildTask, e.target.checked)
+                                    }
+                                    className={`w-4 h-4 rounded border-2 ${
+                                      canCompleteCheck
+                                        ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
+                                        : "cursor-not-allowed text-gray-400 border-gray-300"
+                                    } ${isCompleteLoading ? "opacity-50" : ""}`}
+                                  />
+                                  <span className={`text-xs ${canCompleteCheck ? "text-gray-700" : "text-gray-400"}`}>
+                                    完成
+                                  </span>
+                                </label>
+                              )}
+                              {hasReviewers && (
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isReviewChecked}
+                                    disabled={!canReviewCheck || isReviewLoading}
+                                    onChange={(e) =>
+                                      handleToggleReviewCheck(fullChildTask, e.target.checked)
+                                    }
+                                    className={`w-4 h-4 rounded border-2 ${
+                                      canReviewCheck
+                                        ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
+                                        : "cursor-not-allowed text-gray-400 border-gray-300"
+                                    } ${isReviewLoading ? "opacity-50" : ""}`}
+                                  />
+                                  <span className={`text-xs ${canReviewCheck ? "text-gray-700" : "text-gray-400"}`}>
+                                    複審
+                                  </span>
+                                </label>
+                              )}
+                            </div>
+                          );
+                        })()}
                         <button
                           onClick={() => {
                             if (fullChildTask) {
@@ -2862,14 +3020,88 @@ function AdminTasksContent() {
                   共 {pageInfo.total} 筆，第 {pageInfo.page} /{" "}
                   {pageInfo.totalPages} 頁
                 </p>
-                <div className="flex gap-2 order-1 md:order-2 w-full md:w-auto justify-center">
+                <div className="flex items-center gap-2 order-1 md:order-2 w-full md:w-auto justify-center flex-wrap">
+                  {/* 上一頁按鈕 */}
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="flex-1 md:flex-none px-4 py-2.5 md:py-1.5 border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 min-h-[44px] md:min-h-0"
+                    className="px-3 py-2 md:py-1.5 border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 min-h-[44px] md:min-h-0"
                   >
                     上一頁
                   </button>
+
+                  {/* 頁碼按鈕 - 桌面版 */}
+                  <div className="hidden md:flex items-center gap-1">
+                    {(() => {
+                      const pages: (number | string)[] = [];
+                      const totalPages = pageInfo.totalPages;
+                      const current = currentPage;
+
+                      if (totalPages <= 7) {
+                        // 少於等於 7 頁，顯示所有頁碼
+                        for (let i = 1; i <= totalPages; i++) {
+                          pages.push(i);
+                        }
+                      } else {
+                        // 超過 7 頁，顯示首尾頁和當前頁附近
+                        pages.push(1);
+
+                        if (current > 3) {
+                          pages.push('...');
+                        }
+
+                        const start = Math.max(2, current - 1);
+                        const end = Math.min(totalPages - 1, current + 1);
+
+                        for (let i = start; i <= end; i++) {
+                          if (!pages.includes(i)) {
+                            pages.push(i);
+                          }
+                        }
+
+                        if (current < totalPages - 2) {
+                          pages.push('...');
+                        }
+
+                        if (!pages.includes(totalPages)) {
+                          pages.push(totalPages);
+                        }
+                      }
+
+                      return pages.map((page, index) => (
+                        page === '...' ? (
+                          <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                        ) : (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page as number)}
+                            className={`min-w-[36px] px-3 py-1.5 border rounded-lg text-sm font-medium transition-colors ${
+                              currentPage === page
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      ));
+                    })()}
+                  </div>
+
+                  {/* 頁碼下拉選單 - 行動版和桌面版皆可用 */}
+                  <select
+                    value={currentPage}
+                    onChange={(e) => setCurrentPage(Number(e.target.value))}
+                    className="md:ml-2 px-3 py-2 md:py-1.5 border rounded-lg text-sm font-medium bg-white hover:bg-gray-50 cursor-pointer min-h-[44px] md:min-h-0"
+                  >
+                    {Array.from({ length: pageInfo.totalPages }, (_, i) => i + 1).map((page) => (
+                      <option key={page} value={page}>
+                        第 {page} 頁
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* 下一頁按鈕 */}
                   <button
                     onClick={() =>
                       setCurrentPage((p) =>
@@ -2877,7 +3109,7 @@ function AdminTasksContent() {
                       )
                     }
                     disabled={currentPage === pageInfo.totalPages}
-                    className="flex-1 md:flex-none px-4 py-2.5 md:py-1.5 border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 min-h-[44px] md:min-h-0"
+                    className="px-3 py-2 md:py-1.5 border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 min-h-[44px] md:min-h-0"
                   >
                     下一頁
                   </button>

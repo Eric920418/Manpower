@@ -481,11 +481,25 @@ export const adminTaskResolvers = {
       const sortBy = args.sortBy || "applicationDate";
       const sortOrder = args.sortOrder === "asc" ? "asc" : "desc";
 
+      // 調試日誌
+      console.log("[adminTasks] 排序參數:", { sortBy, sortOrder, handlerId: args.handlerId });
+
+      // 建立排序條件
+      let orderBy: Prisma.AdminTaskOrderByWithRelationInput;
+      if (sortBy === "taskType") {
+        // 按任務類型名稱排序
+        orderBy = { taskType: { label: sortOrder } };
+      } else {
+        orderBy = { [sortBy]: sortOrder };
+      }
+
+      console.log("[adminTasks] orderBy:", JSON.stringify(orderBy));
+
       const [items, total] = await Promise.all([
         prisma.adminTask.findMany({
           where,
           include: taskInclude,
-          orderBy: { [sortBy]: sortOrder },
+          orderBy,
           skip,
           take: pageSize,
         }),
