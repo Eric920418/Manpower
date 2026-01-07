@@ -113,6 +113,15 @@ export const userResolvers = {
       const pageSize = args.pageSize || 10;
       const skip = (page - 1) * pageSize;
 
+      // 調試分頁參數
+      console.log('[userResolvers.users] Pagination:', JSON.stringify({
+        requestedPage: args.page,
+        requestedPageSize: args.pageSize,
+        actualPage: page,
+        actualPageSize: pageSize,
+        skip,
+      }));
+
       // 建立查詢條件
       const where: any = {};
 
@@ -175,7 +184,10 @@ export const userResolvers = {
         where,
         skip,
         take: pageSize,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'asc' },  // 確保排序穩定，避免分頁重複
+        ],
         select: {
           id: true,
           email: true,
@@ -213,6 +225,15 @@ export const userResolvers = {
         createdAt: user.createdAt?.toISOString() ?? null,
         updatedAt: user.updatedAt?.toISOString() ?? null,
         customPermissions: formatCustomPermissions(user.customPermissions),
+      }));
+
+      // 調試返回結果
+      console.log('[userResolvers.users] Result:', JSON.stringify({
+        usersCount: safeUsers.length,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
       }));
 
       return {

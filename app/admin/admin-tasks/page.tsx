@@ -130,6 +130,7 @@ interface AdminTask {
   reviewedBy: string | null;
   reviewers: TaskUser[];
   notes: string | null;
+  remarks: string | null;
   attachments: AdminTaskAttachment[];
   approvalRecords: ApprovalRecord[];
   createdAt: string;
@@ -140,6 +141,7 @@ interface AdminTaskStats {
   total: number;
   pending: number;
   pendingDocuments: number;
+  pendingReview: number;
   revisionRequested: number;
   approved: number;
   rejected: number;
@@ -279,6 +281,10 @@ function AdminTasksContent() {
   const [editExplanationTexts, setEditExplanationTexts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
+  // 備註編輯狀態（詳情彈窗內）
+  const [editableRemarks, setEditableRemarks] = useState<string>("");
+  const [savingRemarks, setSavingRemarks] = useState(false);
+
   // 排序狀態
   type SortField = "title" | "type" | "applicant" | "status" | "deadline" | "createdAt";
   type SortOrder = "asc" | "desc";
@@ -353,6 +359,7 @@ function AdminTasksContent() {
             total
             pending
             pendingDocuments
+            pendingReview
             revisionRequested
             approved
             rejected
@@ -407,10 +414,10 @@ function AdminTasksContent() {
         }
       `;
 
-      // 獲取用戶列表（用於申請人篩選）
+      // 獲取用戶列表（用於申請人篩選）- 設置較大的 pageSize 以獲取全部用戶
       const usersQuery = `
         query {
-          users {
+          users(pageSize: 1000) {
             users {
               id
               name
@@ -509,6 +516,7 @@ function AdminTasksContent() {
               }
               payload
               notes
+              remarks
               attachments {
                 id
                 filename
@@ -693,6 +701,7 @@ function AdminTasksContent() {
       const task = tasks.find((t) => Number(t.id) === taskId);
       if (task) {
         setSelectedTask(task);
+        setEditableRemarks(task.remarks || "");
         setShowDetailModal(true);
         // 清除 URL 參數
         router.replace("/admin/admin-tasks", { scroll: false });
@@ -1664,6 +1673,58 @@ function AdminTasksContent() {
     }
   };
 
+  // 更新任務備註（負責人或複審人可操作，複審後不可編輯）
+  const handleUpdateRemarks = async (task: AdminTask) => {
+    setSavingRemarks(true);
+    try {
+      const mutation = `
+        mutation UpdateTaskRemarks($taskId: Int!, $remarks: String!) {
+          updateTaskRemarks(taskId: $taskId, remarks: $remarks) {
+            id
+            remarks
+          }
+        }
+      `;
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query: mutation,
+          variables: { taskId: Number(task.id), remarks: editableRemarks },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.errors) {
+        throw new Error(data.errors[0].message);
+      }
+
+      // 更新本地狀態
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? { ...t, remarks: editableRemarks }
+            : t
+        )
+      );
+
+      // 更新 selectedTask
+      if (selectedTask && selectedTask.id === task.id) {
+        setSelectedTask({ ...selectedTask, remarks: editableRemarks });
+      }
+
+      addToast({ type: "success", title: "備註已更新" });
+    } catch (error) {
+      console.error("更新備註失敗：", error);
+      addToast({ type: "error", title: `更新失敗：${error instanceof Error ? error.message : "未知錯誤"}` });
+    } finally {
+      setSavingRemarks(false);
+    }
+  };
+
   // 格式化日期
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
@@ -2074,7 +2135,7 @@ function AdminTasksContent() {
 
         {/* 統計卡片 - 可點擊快速篩選 */}
         {stats && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 md:gap-3 mb-4 md:mb-8">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 md:gap-3 mb-4 md:mb-8">
             <button
               onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
               className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "all" ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
@@ -2095,6 +2156,13 @@ function AdminTasksContent() {
             >
               <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待補件</p>
               <p className="text-lg md:text-2xl font-bold text-orange-500">{stats.pendingDocuments}</p>
+            </button>
+            <button
+              onClick={() => { setStatusFilter("PENDING_REVIEW"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-cyan-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING_REVIEW" ? "ring-2 ring-cyan-500 ring-offset-1" : ""}`}
+            >
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待複審</p>
+              <p className="text-lg md:text-2xl font-bold text-cyan-600">{stats.pendingReview}</p>
             </button>
             <button
               onClick={() => { setStatusFilter("REVISION_REQUESTED"); setCurrentPage(1); }}
@@ -2158,6 +2226,7 @@ function AdminTasksContent() {
                 <option value="all">全部</option>
                 <option value="PENDING">待處理</option>
                 <option value="PENDING_DOCUMENTS">待補件</option>
+                <option value="PENDING_REVIEW">待複審</option>
                 <option value="REVISION_REQUESTED">要求修改</option>
                 <option value="APPROVED">已批准</option>
                 <option value="AWAITING_REVIEW_CHECK">待複審打勾</option>
@@ -2422,6 +2491,7 @@ function AdminTasksContent() {
                     <button
                       onClick={() => {
                         setSelectedTask(item.task);
+                        setEditableRemarks(item.task.remarks || "");
                         setApprovalProcessorName(item.task.processorName || "");
                         setShowDetailModal(true);
                       }}
@@ -2521,6 +2591,7 @@ function AdminTasksContent() {
                           onClick={() => {
                             if (fullChildTask) {
                               setSelectedTask(fullChildTask);
+                              setEditableRemarks(fullChildTask.remarks || "");
                               setApprovalProcessorName(fullChildTask.processorName || "");
                               setShowDetailModal(true);
                             }
@@ -2804,6 +2875,7 @@ function AdminTasksContent() {
                             <button
                               onClick={() => {
                                 setSelectedTask(item.task);
+                                setEditableRemarks(item.task.remarks || "");
                                 setApprovalProcessorName(item.task.processorName || "");
                                 setShowDetailModal(true);
                               }}
@@ -2986,6 +3058,7 @@ function AdminTasksContent() {
                                   onClick={() => {
                                     if (fullChildTask) {
                                       setSelectedTask(fullChildTask);
+                                      setEditableRemarks(fullChildTask.remarks || "");
                                       setApprovalProcessorName(fullChildTask.processorName || "");
                                       setShowDetailModal(true);
                                     }
@@ -3822,6 +3895,57 @@ function AdminTasksContent() {
                         </div>
                       </div>
                     )}
+
+                    {/* 備註編輯區（所有任務都顯示，負責人或複審人可編輯，複審後唯讀） */}
+                    {(() => {
+                      const currentUserId = session?.user?.id;
+                      const isHandler = selectedTask.handlers?.some(h => h.id === currentUserId);
+                      const isReviewer = selectedTask.reviewers?.some(r => r.id === currentUserId);
+                      const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
+                      // 可編輯條件：(負責人或複審人或超級管理員) 且 尚未複審完成
+                      const canEditRemarks = (isHandler || isReviewer || isSuperAdmin) && !selectedTask.reviewedAt;
+
+                      return (
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            備註
+                            {selectedTask.reviewedAt && (
+                              <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                已複審，唯讀模式
+                              </span>
+                            )}
+                          </h3>
+                          <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+                            {canEditRemarks ? (
+                              <>
+                                <textarea
+                                  value={editableRemarks}
+                                  onChange={(e) => setEditableRemarks(e.target.value)}
+                                  rows={4}
+                                  placeholder="請輸入備註..."
+                                  className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
+                                />
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={() => handleUpdateRemarks(selectedTask)}
+                                    disabled={savingRemarks || editableRemarks === (selectedTask.remarks || "")}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                                  >
+                                    {savingRemarks ? "保存中..." : "保存備註"}
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="bg-white p-3 rounded-lg border border-blue-200">
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                  {editableRemarks || <span className="text-gray-400">尚無備註</span>}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* 自訂問題答案（顯示模式） */}
                     {(() => {

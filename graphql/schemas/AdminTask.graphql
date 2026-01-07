@@ -91,8 +91,11 @@ type AdminTask {
   reviewedAt: String          # 複審確認時間
   reviewedBy: String          # 複審確認人 ID
 
-  # 備註
+  # 細節（任務創建時填寫）
   notes: String
+
+  # 備註（負責人/複審人後續添加）
+  remarks: String
 
   # 附件
   attachments: [AdminTaskAttachment!]!
@@ -408,4 +411,7 @@ extend type Mutation {
 
   # 複審確認打勾（只有複審人可操作）
   toggleReviewCheck(taskId: Int!, checked: Boolean!): AdminTask!
+
+  # 更新任務備註（負責人或複審人可操作，複審後不可編輯）
+  updateTaskRemarks(taskId: Int!, remarks: String!): AdminTask!
 }

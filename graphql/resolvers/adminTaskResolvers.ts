@@ -273,6 +273,7 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
   reviewedAt: formatDate(task.reviewedAt),
   reviewedBy: task.reviewedBy,
   notes: task.notes,
+  remarks: task.remarks,
   attachments: task.attachments.map((att) => ({
     id: att.id,
     filename: att.filename,
@@ -565,7 +566,7 @@ export const adminTaskResolvers = {
         prisma.adminTask.count({
           where: {
             ...taskTypeFilter,
-            status: { in: ["PENDING", "PENDING_DOCUMENTS", "PENDING_REVIEW", "REVISION_REQUESTED"] },
+            status: { in: ["PENDING", "PENDING_DOCUMENTS", "PENDING_REVIEW", "REVISION_REQUESTED", "APPROVED", "COMPLETED"] },
             deadline: { lt: now },
           },
         }),
@@ -1899,6 +1900,72 @@ export const adminTaskResolvers = {
           details: {
             taskNo: task.taskNo,
             checked: args.checked,
+          },
+        },
+      });
+
+      return formatTask(updatedTask);
+    },
+
+    // 更新任務備註（負責人或複審人可操作，複審後不可編輯）
+    updateTaskRemarks: async (
+      _: unknown,
+      args: { taskId: number; remarks: string },
+      context: Context
+    ) => {
+      const user = requireAuth(context);
+
+      // 獲取任務
+      const task = await prisma.adminTask.findUnique({
+        where: { id: args.taskId },
+        include: {
+          assignments: {
+            select: { userId: true, role: true },
+          },
+        },
+      });
+
+      if (!task) {
+        throw new Error("找不到該行政任務");
+      }
+
+      // 檢查是否已複審（複審後不可編輯）
+      if (task.reviewedAt) {
+        throw new Error("此任務已複審完成，無法編輯備註");
+      }
+
+      // 檢查權限：只有負責人或複審人可以編輯備註
+      const isHandler = task.assignments.some(
+        (a) => a.userId === user.id && a.role === "HANDLER"
+      );
+      const isReviewer = task.assignments.some(
+        (a) => a.userId === user.id && a.role === "REVIEWER"
+      );
+      const isSuperAdmin = user.role === "SUPER_ADMIN";
+
+      if (!isHandler && !isReviewer && !isSuperAdmin) {
+        throw new Error("權限不足：只有負責人或複審人可以編輯備註");
+      }
+
+      // 更新備註
+      const updatedTask = await prisma.adminTask.update({
+        where: { id: args.taskId },
+        data: {
+          remarks: args.remarks,
+        },
+        include: taskInclude,
+      });
+
+      // 記錄活動日誌
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "update_task_remarks",
+          entity: "admin_task",
+          entityId: args.taskId.toString(),
+          details: {
+            taskNo: task.taskNo,
+            remarks: args.remarks,
           },
         },
       });

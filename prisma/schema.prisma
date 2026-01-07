@@ -377,8 +377,11 @@ model AdminTask {
   reviewedAt      DateTime?        // 複審確認時間
   reviewedBy      String?          // 複審確認人 ID
 
-  // 備註
+  // 細節（任務創建時填寫）
   notes           String?          @db.Text
+
+  // 備註（負責人/複審人後續添加，複審後凍結）
+  remarks         String?          @db.Text
 
   // 附件
   attachments     AdminTaskAttachment[]

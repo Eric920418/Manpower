@@ -64,12 +64,10 @@ const cache = new InMemoryCache({
   typePolicies: {
     Query: {
       fields: {
-        // 分頁列表：支援合併或覆蓋
+        // 分頁列表：傳統分頁，每頁獨立快取
         users: {
-          keyArgs: ['filter'], // 根據 filter 區分快取
-          merge(existing, incoming, options) {
-            return paginatedListMerge(existing, incoming, options);
-          },
+          keyArgs: ['filter', 'page', 'pageSize'], // 根據 filter 和分頁參數區分快取
+          merge: false, // 不合併，直接覆蓋
         },
         formSubmissions: {
           keyArgs: ['filter', 'formType'],
