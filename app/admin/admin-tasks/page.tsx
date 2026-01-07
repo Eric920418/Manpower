@@ -1956,8 +1956,18 @@ function AdminTasksContent() {
                   : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
               </svg>
               <span className="font-medium">待處理任務</span>
               {totalPendingCount > 0 && (
@@ -1965,8 +1975,20 @@ function AdminTasksContent() {
                   {totalPendingCount}
                 </span>
               )}
-              <svg className={`w-4 h-4 transition-transform ${showReminderPanel ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <svg
+                className={`w-4 h-4 transition-transform ${
+                  showReminderPanel ? "rotate-180" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
 
@@ -1974,7 +1996,9 @@ function AdminTasksContent() {
             {showReminderPanel && (
               <div className="absolute left-0 top-full mt-2 w-80 md:w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
                 <div className="p-3 bg-gray-50 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-800">需要您處理的任務</h3>
+                  <h3 className="font-semibold text-gray-800">
+                    需要您處理的任務
+                  </h3>
                 </div>
                 <div className="max-h-[400px] overflow-y-auto">
                   {/* 待處理：用戶是負責人/處理人 */}
@@ -1991,7 +2015,9 @@ function AdminTasksContent() {
                         <div className="flex items-center gap-3">
                           <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
                           <span className="text-gray-700">待處理</span>
-                          <span className="text-xs text-gray-400">（您是負責人）</span>
+                          <span className="text-xs text-gray-400">
+                            （您是負責人）
+                          </span>
                         </div>
                         <span className="px-2.5 py-1 text-sm font-semibold bg-yellow-100 text-yellow-800 rounded-full">
                           {myPendingTasks}
@@ -2013,7 +2039,9 @@ function AdminTasksContent() {
                         <div className="flex items-center gap-3">
                           <span className="w-3 h-3 rounded-full bg-orange-500"></span>
                           <span className="text-gray-700">待補件</span>
-                          <span className="text-xs text-gray-400">（您是申請人）</span>
+                          <span className="text-xs text-gray-400">
+                            （您是申請人）
+                          </span>
                         </div>
                         <span className="px-2.5 py-1 text-sm font-semibold bg-orange-100 text-orange-800 rounded-full">
                           {myPendingDocsTasks}
@@ -2035,7 +2063,9 @@ function AdminTasksContent() {
                         <div className="flex items-center gap-3">
                           <span className="w-3 h-3 rounded-full bg-purple-500"></span>
                           <span className="text-gray-700">待複審打勾</span>
-                          <span className="text-xs text-gray-400">（您是複審人）</span>
+                          <span className="text-xs text-gray-400">
+                            （您是複審人）
+                          </span>
                         </div>
                         <span className="px-2.5 py-1 text-sm font-semibold bg-purple-100 text-purple-800 rounded-full">
                           {myAwaitingReviewCheck}
@@ -2057,7 +2087,9 @@ function AdminTasksContent() {
                         <div className="flex items-center gap-3">
                           <span className="w-3 h-3 rounded-full bg-pink-500"></span>
                           <span className="text-gray-700">要求修改</span>
-                          <span className="text-xs text-gray-400">（您是申請人）</span>
+                          <span className="text-xs text-gray-400">
+                            （您是申請人）
+                          </span>
                         </div>
                         <span className="px-2.5 py-1 text-sm font-semibold bg-pink-100 text-pink-800 rounded-full">
                           {myRevisionTasks}
@@ -2068,8 +2100,18 @@ function AdminTasksContent() {
                   {/* 無待處理任務 */}
                   {totalPendingCount === 0 && (
                     <div className="px-4 py-8 text-center text-gray-500">
-                      <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-12 h-12 mx-auto mb-3 text-gray-300"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                       <p>目前沒有待處理的任務</p>
                     </div>
@@ -2108,8 +2150,18 @@ function AdminTasksContent() {
                   onClick={() => setSearchKeyword("")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               )}
@@ -2137,74 +2189,185 @@ function AdminTasksContent() {
         {stats && (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 md:gap-3 mb-4 md:mb-8">
             <button
-              onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "all" ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("all");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "all"
+                  ? "ring-2 ring-blue-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">總計</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                總計
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-gray-900">
+                {stats.total}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("PENDING"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-yellow-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING" ? "ring-2 ring-yellow-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("PENDING");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-yellow-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "PENDING"
+                  ? "ring-2 ring-yellow-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待處理</p>
-              <p className="text-lg md:text-2xl font-bold text-yellow-600">{stats.pending}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                待處理
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-yellow-600">
+                {stats.pending}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("PENDING_DOCUMENTS"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING_DOCUMENTS" ? "ring-2 ring-orange-400 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("PENDING_DOCUMENTS");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "PENDING_DOCUMENTS"
+                  ? "ring-2 ring-orange-400 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待補件</p>
-              <p className="text-lg md:text-2xl font-bold text-orange-500">{stats.pendingDocuments}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                待補件
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-orange-500">
+                {stats.pendingDocuments}
+              </p>
+            </button>
+
+            <button
+              onClick={() => {
+                setStatusFilter("REVISION_REQUESTED");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-pink-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "REVISION_REQUESTED"
+                  ? "ring-2 ring-pink-500 ring-offset-1"
+                  : ""
+              }`}
+            >
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                要求修改
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-pink-600">
+                {stats.revisionRequested}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("PENDING_REVIEW"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-cyan-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING_REVIEW" ? "ring-2 ring-cyan-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("APPROVED");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "APPROVED"
+                  ? "ring-2 ring-green-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待複審</p>
-              <p className="text-lg md:text-2xl font-bold text-cyan-600">{stats.pendingReview}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                已批准
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-green-600">
+                {stats.approved}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("REVISION_REQUESTED"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-pink-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REVISION_REQUESTED" ? "ring-2 ring-pink-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("REJECTED");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-red-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "REJECTED"
+                  ? "ring-2 ring-red-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">要求修改</p>
-              <p className="text-lg md:text-2xl font-bold text-pink-600">{stats.revisionRequested}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                已退回
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-red-600">
+                {stats.rejected}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("APPROVED"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "APPROVED" ? "ring-2 ring-green-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("COMPLETED");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-gray-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "COMPLETED"
+                  ? "ring-2 ring-gray-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已批准</p>
-              <p className="text-lg md:text-2xl font-bold text-green-600">{stats.approved}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                已完成
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-gray-600">
+                {stats.completed}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("REJECTED"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-red-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REJECTED" ? "ring-2 ring-red-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("PENDING_REVIEW");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-cyan-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "PENDING_REVIEW"
+                  ? "ring-2 ring-cyan-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已退回</p>
-              <p className="text-lg md:text-2xl font-bold text-red-600">{stats.rejected}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                待複審
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-cyan-600">
+                {stats.pendingReview}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("COMPLETED"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-gray-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "COMPLETED" ? "ring-2 ring-gray-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("REVIEWED");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-indigo-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "REVIEWED"
+                  ? "ring-2 ring-indigo-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已完成</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-600">{stats.completed}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                已複審
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-indigo-600">
+                {stats.reviewed}
+              </p>
             </button>
             <button
-              onClick={() => { setStatusFilter("REVIEWED"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-indigo-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REVIEWED" ? "ring-2 ring-indigo-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                setStatusFilter("OVERDUE");
+                setCurrentPage(1);
+              }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-purple-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
+                statusFilter === "OVERDUE"
+                  ? "ring-2 ring-purple-500 ring-offset-1"
+                  : ""
+              }`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已複審</p>
-              <p className="text-lg md:text-2xl font-bold text-indigo-600">{stats.reviewed}</p>
-            </button>
-            <button
-              onClick={() => { setStatusFilter("OVERDUE"); setCurrentPage(1); }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-purple-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "OVERDUE" ? "ring-2 ring-purple-500 ring-offset-1" : ""}`}
-            >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">逾期</p>
-              <p className="text-lg md:text-2xl font-bold text-purple-600">{stats.overdue}</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
+                逾期
+              </p>
+              <p className="text-lg md:text-2xl font-bold text-purple-600">
+                {stats.overdue}
+              </p>
             </button>
           </div>
         )}
@@ -2214,7 +2377,9 @@ function AdminTasksContent() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
             {/* 狀態篩選 */}
             <div>
-              <label className="block text-xs md:text-sm text-gray-600 mb-1">狀態</label>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">
+                狀態
+              </label>
               <select
                 value={statusFilter}
                 onChange={(e) => {
@@ -2239,7 +2404,9 @@ function AdminTasksContent() {
 
             {/* 類型篩選 */}
             <div>
-              <label className="block text-xs md:text-sm text-gray-600 mb-1">類型</label>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">
+                類型
+              </label>
               <select
                 value={typeFilter}
                 onChange={(e) => {
@@ -2259,7 +2426,9 @@ function AdminTasksContent() {
 
             {/* 申請人篩選 */}
             <div>
-              <label className="block text-xs md:text-sm text-gray-600 mb-1">申請人</label>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">
+                申請人
+              </label>
               <select
                 value={applicantFilter}
                 onChange={(e) => {
@@ -2279,7 +2448,9 @@ function AdminTasksContent() {
 
             {/* 負責人篩選 */}
             <div>
-              <label className="block text-xs md:text-sm text-gray-600 mb-1">負責人</label>
+              <label className="block text-xs md:text-sm text-gray-600 mb-1">
+                負責人
+              </label>
               <select
                 value={handlerFilter}
                 onChange={(e) => {
@@ -2340,28 +2511,48 @@ function AdminTasksContent() {
                 <div key={`mobile-${item.task.id}`} className="p-3">
                   {/* 標題列：展開按鈕 + 標題 + 狀態 */}
                   <div className="flex items-center gap-2 mb-2">
-                    {item.type === "group" && item.children && item.children.length > 0 && (() => {
-                      const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                      const hasIncompleteChild = item.children?.some(
-                        (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
-                      );
-                      const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
-                      return (
-                        <button
-                          onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
-                          className={`p-1.5 rounded transition-colors flex-shrink-0 ${
-                            shouldHighlight
-                              ? "bg-orange-100 text-orange-600 hover:bg-orange-200 animate-pulse"
-                              : "hover:bg-gray-200 text-gray-500"
-                          }`}
-                          title={shouldHighlight ? "有後續任務待處理，點擊展開查看" : "點擊展開/收起關聯任務"}
-                        >
-                          {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
-                        </button>
-                      );
-                    })()}
+                    {item.type === "group" &&
+                      item.children &&
+                      item.children.length > 0 &&
+                      (() => {
+                        const mainTaskCompleted =
+                          item.task.status === "COMPLETED" ||
+                          item.task.status === "REVIEWED";
+                        const hasIncompleteChild = item.children?.some(
+                          (child) =>
+                            child.status !== "COMPLETED" &&
+                            child.status !== "REVIEWED"
+                        );
+                        const shouldHighlight =
+                          mainTaskCompleted && hasIncompleteChild;
+                        return (
+                          <button
+                            onClick={() =>
+                              item.task.groupId &&
+                              toggleGroup(item.task.groupId)
+                            }
+                            className={`p-1.5 rounded transition-colors flex-shrink-0 ${
+                              shouldHighlight
+                                ? "bg-orange-100 text-orange-600 hover:bg-orange-200 animate-pulse"
+                                : "hover:bg-gray-200 text-gray-500"
+                            }`}
+                            title={
+                              shouldHighlight
+                                ? "有後續任務待處理，點擊展開查看"
+                                : "點擊展開/收起關聯任務"
+                            }
+                          >
+                            {item.task.groupId &&
+                            expandedGroups.has(item.task.groupId)
+                              ? "▼"
+                              : "▶"}
+                          </button>
+                        );
+                      })()}
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-900 line-clamp-2">{item.task.title}</span>
+                      <span className="text-sm font-medium text-gray-900 line-clamp-2">
+                        {item.task.title}
+                      </span>
                     </div>
                     <div className="flex-shrink-0">
                       {getStatusBadge(item.task.status)}
@@ -2371,14 +2562,23 @@ function AdminTasksContent() {
                   {/* 資訊區：類型、申請人、負責人、期限 */}
                   <div className="space-y-1 text-xs text-gray-600 mb-2">
                     <div className="flex items-center justify-between">
-                      <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded">{item.task.taskType?.label || "未知"}</span>
-                      <span>申請人：{item.task.applicantName || item.task.applicant?.name || "-"}</span>
+                      <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded">
+                        {item.task.taskType?.label || "未知"}
+                      </span>
+                      <span>
+                        申請人：
+                        {item.task.applicantName ||
+                          item.task.applicant?.name ||
+                          "-"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400">負責人：</span>
                       <span className="truncate max-w-[180px]">
                         {item.task.handlers && item.task.handlers.length > 0
-                          ? item.task.handlers.map(h => h.name || h.email).join(", ")
+                          ? item.task.handlers
+                              .map((h) => h.name || h.email)
+                              .join(", ")
                           : "-"}
                       </span>
                     </div>
@@ -2386,12 +2586,19 @@ function AdminTasksContent() {
                       <span className="text-gray-400">期限：</span>
                       {(() => {
                         const deadline = item.task.deadline;
-                        const deadlineText = item.task.payload?.deadlineText as string;
-                        if (!deadline && !deadlineText) return <span className="text-gray-400">-</span>;
-                        if (deadlineText && !deadline) return <span>{deadlineText}</span>;
+                        const deadlineText = item.task.payload
+                          ?.deadlineText as string;
+                        if (!deadline && !deadlineText)
+                          return <span className="text-gray-400">-</span>;
+                        if (deadlineText && !deadline)
+                          return <span>{deadlineText}</span>;
                         const urgency = getDeadlineUrgency(deadline);
                         return (
-                          <span className={`px-1.5 py-0.5 rounded text-xs ${getDeadlineStyle(urgency)}`}>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-xs ${getDeadlineStyle(
+                              urgency
+                            )}`}
+                          >
                             {formatDeadlineDate(deadline)}
                           </span>
                         );
@@ -2400,19 +2607,37 @@ function AdminTasksContent() {
                   </div>
 
                   {/* 群組標記 */}
-                  {item.type === "group" && item.children && item.children.length > 0 && (() => {
-                    const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                    const hasIncompleteChild = item.children?.some(
-                      (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
-                    );
-                    const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
-                    return (
-                      <div className={`text-xs font-medium mb-2 ${shouldHighlight ? "text-orange-600" : "text-blue-600"}`}>
-                        📎 {item.children.length + 1} 個關聯
-                        {shouldHighlight && <span className="ml-1 text-orange-500">⚠️ 有待處理</span>}
-                      </div>
-                    );
-                  })()}
+                  {item.type === "group" &&
+                    item.children &&
+                    item.children.length > 0 &&
+                    (() => {
+                      const mainTaskCompleted =
+                        item.task.status === "COMPLETED" ||
+                        item.task.status === "REVIEWED";
+                      const hasIncompleteChild = item.children?.some(
+                        (child) =>
+                          child.status !== "COMPLETED" &&
+                          child.status !== "REVIEWED"
+                      );
+                      const shouldHighlight =
+                        mainTaskCompleted && hasIncompleteChild;
+                      return (
+                        <div
+                          className={`text-xs font-medium mb-2 ${
+                            shouldHighlight
+                              ? "text-orange-600"
+                              : "text-blue-600"
+                          }`}
+                        >
+                          📎 {item.children.length + 1} 個關聯
+                          {shouldHighlight && (
+                            <span className="ml-1 text-orange-500">
+                              ⚠️ 有待處理
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                   {/* 完成確認 & 複審確認 checkbox */}
                   {(() => {
@@ -2423,17 +2648,28 @@ function AdminTasksContent() {
                       (r) => r.id === session?.user?.id
                     );
                     const isSuperAdmin = userRole === "SUPER_ADMIN";
-                    const isCompleteChecked = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                    const isCompleteLoading = togglingCompleteId === item.task.id;
-                    const isApprovedOrCompleted = item.task.status === "APPROVED" || item.task.status === "COMPLETED";
-                    const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
-                    const hasHandlers = item.task.handlers && item.task.handlers.length > 0;
+                    const isCompleteChecked =
+                      item.task.status === "COMPLETED" ||
+                      item.task.status === "REVIEWED";
+                    const isCompleteLoading =
+                      togglingCompleteId === item.task.id;
+                    const isApprovedOrCompleted =
+                      item.task.status === "APPROVED" ||
+                      item.task.status === "COMPLETED";
+                    const canCompleteCheck =
+                      (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+                    const hasHandlers =
+                      item.task.handlers && item.task.handlers.length > 0;
 
                     const isReviewChecked = !!item.task.reviewedAt;
                     const isReviewLoading = togglingReviewId === item.task.id;
-                    const isCompletedOrReviewed = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                    const canReviewCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
-                    const hasReviewers = item.task.reviewers && item.task.reviewers.length > 0;
+                    const isCompletedOrReviewed =
+                      item.task.status === "COMPLETED" ||
+                      item.task.status === "REVIEWED";
+                    const canReviewCheck =
+                      (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
+                    const hasReviewers =
+                      item.task.reviewers && item.task.reviewers.length > 0;
 
                     // 只有當有負責人或複審人時才顯示此區域
                     if (!hasHandlers && !hasReviewers) return null;
@@ -2448,7 +2684,10 @@ function AdminTasksContent() {
                               checked={isCompleteChecked}
                               disabled={!canCompleteCheck || isCompleteLoading}
                               onChange={(e) =>
-                                handleToggleCompleteCheck(item.task, e.target.checked)
+                                handleToggleCompleteCheck(
+                                  item.task,
+                                  e.target.checked
+                                )
                               }
                               className={`w-5 h-5 rounded border-2 ${
                                 canCompleteCheck
@@ -2456,7 +2695,13 @@ function AdminTasksContent() {
                                   : "cursor-not-allowed text-gray-400 border-gray-300"
                               } ${isCompleteLoading ? "opacity-50" : ""}`}
                             />
-                            <span className={`text-xs ${canCompleteCheck ? "text-gray-700" : "text-gray-400"}`}>
+                            <span
+                              className={`text-xs ${
+                                canCompleteCheck
+                                  ? "text-gray-700"
+                                  : "text-gray-400"
+                              }`}
+                            >
                               完成確認
                             </span>
                           </label>
@@ -2469,7 +2714,10 @@ function AdminTasksContent() {
                               checked={isReviewChecked}
                               disabled={!canReviewCheck || isReviewLoading}
                               onChange={(e) =>
-                                handleToggleReviewCheck(item.task, e.target.checked)
+                                handleToggleReviewCheck(
+                                  item.task,
+                                  e.target.checked
+                                )
                               }
                               className={`w-5 h-5 rounded border-2 ${
                                 canReviewCheck
@@ -2477,7 +2725,13 @@ function AdminTasksContent() {
                                   : "cursor-not-allowed text-gray-400 border-gray-300"
                               } ${isReviewLoading ? "opacity-50" : ""}`}
                             />
-                            <span className={`text-xs ${canReviewCheck ? "text-gray-700" : "text-gray-400"}`}>
+                            <span
+                              className={`text-xs ${
+                                canReviewCheck
+                                  ? "text-gray-700"
+                                  : "text-gray-400"
+                              }`}
+                            >
                               複審確認
                             </span>
                           </label>
@@ -2511,98 +2765,154 @@ function AdminTasksContent() {
                   </div>
 
                   {/* 展開的子任務 */}
-                  {item.type === "group" && item.task.groupId && expandedGroups.has(item.task.groupId) && item.children?.map((childTask) => {
-                    const fullChildTask = tasks.find(t => t.id === childTask.id) as AdminTask | undefined;
-                    return (
-                      <div key={`mobile-child-${childTask.id}`} className="mt-2 ml-3 p-2 bg-gray-50 rounded-lg border-l-2 border-gray-300">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-gray-700 line-clamp-1 flex-1">{childTask.title}</span>
-                          {getStatusBadge(childTask.status)}
-                        </div>
-                        {/* 子任務完成確認 & 複審確認 checkbox */}
-                        {fullChildTask && (() => {
-                          const isHandler = fullChildTask.handlers?.some(
-                            (h) => h.id === session?.user?.id
-                          );
-                          const isReviewer = fullChildTask.reviewers?.some(
-                            (r) => r.id === session?.user?.id
-                          );
-                          const isSuperAdmin = userRole === "SUPER_ADMIN";
-                          const isCompleteChecked = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
-                          const isCompleteLoading = togglingCompleteId === fullChildTask.id;
-                          const isApprovedOrCompleted = fullChildTask.status === "APPROVED" || fullChildTask.status === "COMPLETED";
-                          const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
-                          const hasHandlers = fullChildTask.handlers && fullChildTask.handlers.length > 0;
-
-                          const isReviewChecked = !!fullChildTask.reviewedAt;
-                          const isReviewLoading = togglingReviewId === fullChildTask.id;
-                          const isCompletedOrReviewed = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
-                          const canReviewCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
-                          const hasReviewers = fullChildTask.reviewers && fullChildTask.reviewers.length > 0;
-
-                          if (!hasHandlers && !hasReviewers) return null;
-
-                          return (
-                            <div className="flex items-center gap-3 py-1 my-1 border-t border-gray-200">
-                              {hasHandlers && (
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={isCompleteChecked}
-                                    disabled={!canCompleteCheck || isCompleteLoading}
-                                    onChange={(e) =>
-                                      handleToggleCompleteCheck(fullChildTask, e.target.checked)
-                                    }
-                                    className={`w-4 h-4 rounded border-2 ${
-                                      canCompleteCheck
-                                        ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
-                                        : "cursor-not-allowed text-gray-400 border-gray-300"
-                                    } ${isCompleteLoading ? "opacity-50" : ""}`}
-                                  />
-                                  <span className={`text-xs ${canCompleteCheck ? "text-gray-700" : "text-gray-400"}`}>
-                                    完成
-                                  </span>
-                                </label>
-                              )}
-                              {hasReviewers && (
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={isReviewChecked}
-                                    disabled={!canReviewCheck || isReviewLoading}
-                                    onChange={(e) =>
-                                      handleToggleReviewCheck(fullChildTask, e.target.checked)
-                                    }
-                                    className={`w-4 h-4 rounded border-2 ${
-                                      canReviewCheck
-                                        ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
-                                        : "cursor-not-allowed text-gray-400 border-gray-300"
-                                    } ${isReviewLoading ? "opacity-50" : ""}`}
-                                  />
-                                  <span className={`text-xs ${canReviewCheck ? "text-gray-700" : "text-gray-400"}`}>
-                                    複審
-                                  </span>
-                                </label>
-                              )}
-                            </div>
-                          );
-                        })()}
-                        <button
-                          onClick={() => {
-                            if (fullChildTask) {
-                              setSelectedTask(fullChildTask);
-                              setEditableRemarks(fullChildTask.remarks || "");
-                              setApprovalProcessorName(fullChildTask.processorName || "");
-                              setShowDetailModal(true);
-                            }
-                          }}
-                          className="text-xs text-blue-600 active:text-blue-800 py-1"
+                  {item.type === "group" &&
+                    item.task.groupId &&
+                    expandedGroups.has(item.task.groupId) &&
+                    item.children?.map((childTask) => {
+                      const fullChildTask = tasks.find(
+                        (t) => t.id === childTask.id
+                      ) as AdminTask | undefined;
+                      return (
+                        <div
+                          key={`mobile-child-${childTask.id}`}
+                          className="mt-2 ml-3 p-2 bg-gray-50 rounded-lg border-l-2 border-gray-300"
                         >
-                          查看詳情
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-700 line-clamp-1 flex-1">
+                              {childTask.title}
+                            </span>
+                            {getStatusBadge(childTask.status)}
+                          </div>
+                          {/* 子任務完成確認 & 複審確認 checkbox */}
+                          {fullChildTask &&
+                            (() => {
+                              const isHandler = fullChildTask.handlers?.some(
+                                (h) => h.id === session?.user?.id
+                              );
+                              const isReviewer = fullChildTask.reviewers?.some(
+                                (r) => r.id === session?.user?.id
+                              );
+                              const isSuperAdmin = userRole === "SUPER_ADMIN";
+                              const isCompleteChecked =
+                                fullChildTask.status === "COMPLETED" ||
+                                fullChildTask.status === "REVIEWED";
+                              const isCompleteLoading =
+                                togglingCompleteId === fullChildTask.id;
+                              const isApprovedOrCompleted =
+                                fullChildTask.status === "APPROVED" ||
+                                fullChildTask.status === "COMPLETED";
+                              const canCompleteCheck =
+                                (isHandler || isSuperAdmin) &&
+                                isApprovedOrCompleted;
+                              const hasHandlers =
+                                fullChildTask.handlers &&
+                                fullChildTask.handlers.length > 0;
+
+                              const isReviewChecked =
+                                !!fullChildTask.reviewedAt;
+                              const isReviewLoading =
+                                togglingReviewId === fullChildTask.id;
+                              const isCompletedOrReviewed =
+                                fullChildTask.status === "COMPLETED" ||
+                                fullChildTask.status === "REVIEWED";
+                              const canReviewCheck =
+                                (isReviewer || isSuperAdmin) &&
+                                isCompletedOrReviewed;
+                              const hasReviewers =
+                                fullChildTask.reviewers &&
+                                fullChildTask.reviewers.length > 0;
+
+                              if (!hasHandlers && !hasReviewers) return null;
+
+                              return (
+                                <div className="flex items-center gap-3 py-1 my-1 border-t border-gray-200">
+                                  {hasHandlers && (
+                                    <label className="flex items-center gap-1.5 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={isCompleteChecked}
+                                        disabled={
+                                          !canCompleteCheck || isCompleteLoading
+                                        }
+                                        onChange={(e) =>
+                                          handleToggleCompleteCheck(
+                                            fullChildTask,
+                                            e.target.checked
+                                          )
+                                        }
+                                        className={`w-4 h-4 rounded border-2 ${
+                                          canCompleteCheck
+                                            ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
+                                            : "cursor-not-allowed text-gray-400 border-gray-300"
+                                        } ${
+                                          isCompleteLoading ? "opacity-50" : ""
+                                        }`}
+                                      />
+                                      <span
+                                        className={`text-xs ${
+                                          canCompleteCheck
+                                            ? "text-gray-700"
+                                            : "text-gray-400"
+                                        }`}
+                                      >
+                                        完成
+                                      </span>
+                                    </label>
+                                  )}
+                                  {hasReviewers && (
+                                    <label className="flex items-center gap-1.5 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={isReviewChecked}
+                                        disabled={
+                                          !canReviewCheck || isReviewLoading
+                                        }
+                                        onChange={(e) =>
+                                          handleToggleReviewCheck(
+                                            fullChildTask,
+                                            e.target.checked
+                                          )
+                                        }
+                                        className={`w-4 h-4 rounded border-2 ${
+                                          canReviewCheck
+                                            ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
+                                            : "cursor-not-allowed text-gray-400 border-gray-300"
+                                        } ${
+                                          isReviewLoading ? "opacity-50" : ""
+                                        }`}
+                                      />
+                                      <span
+                                        className={`text-xs ${
+                                          canReviewCheck
+                                            ? "text-gray-700"
+                                            : "text-gray-400"
+                                        }`}
+                                      >
+                                        複審
+                                      </span>
+                                    </label>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          <button
+                            onClick={() => {
+                              if (fullChildTask) {
+                                setSelectedTask(fullChildTask);
+                                setEditableRemarks(fullChildTask.remarks || "");
+                                setApprovalProcessorName(
+                                  fullChildTask.processorName || ""
+                                );
+                                setShowDetailModal(true);
+                              }
+                            }}
+                            className="text-xs text-blue-600 active:text-blue-800 py-1"
+                          >
+                            查看詳情
+                          </button>
+                        </div>
+                      );
+                    })}
                 </div>
               ))}
             </div>
@@ -2685,49 +2995,88 @@ function AdminTasksContent() {
                     <React.Fragment key={`group-${item.task.id}`}>
                       {/* 主任務行 */}
                       <tr
-                        className={`hover:bg-gray-50 ${item.type === "group" ? "bg-blue-50/50" : ""}`}
+                        className={`hover:bg-gray-50 ${
+                          item.type === "group" ? "bg-blue-50/50" : ""
+                        }`}
                       >
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             {/* 展開/收起按鈕（僅群組顯示） */}
-                            {item.type === "group" && item.children && item.children.length > 0 && (() => {
-                              const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                              const hasIncompleteChild = item.children?.some(
-                                (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
-                              );
-                              const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
-                              return (
-                                <button
-                                  onClick={() => item.task.groupId && toggleGroup(item.task.groupId)}
-                                  className={`p-1 rounded transition-colors ${
-                                    shouldHighlight
-                                      ? "bg-orange-100 text-orange-600 hover:bg-orange-200 animate-pulse"
-                                      : "hover:bg-gray-200 text-gray-500"
-                                  }`}
-                                  title={shouldHighlight ? "有後續任務待處理，點擊展開查看" : "點擊展開/收起關聯任務"}
-                                >
-                                  {item.task.groupId && expandedGroups.has(item.task.groupId) ? "▼" : "▶"}
-                                </button>
-                              );
-                            })()}
+                            {item.type === "group" &&
+                              item.children &&
+                              item.children.length > 0 &&
+                              (() => {
+                                const mainTaskCompleted =
+                                  item.task.status === "COMPLETED" ||
+                                  item.task.status === "REVIEWED";
+                                const hasIncompleteChild = item.children?.some(
+                                  (child) =>
+                                    child.status !== "COMPLETED" &&
+                                    child.status !== "REVIEWED"
+                                );
+                                const shouldHighlight =
+                                  mainTaskCompleted && hasIncompleteChild;
+                                return (
+                                  <button
+                                    onClick={() =>
+                                      item.task.groupId &&
+                                      toggleGroup(item.task.groupId)
+                                    }
+                                    className={`p-1 rounded transition-colors ${
+                                      shouldHighlight
+                                        ? "bg-orange-100 text-orange-600 hover:bg-orange-200 animate-pulse"
+                                        : "hover:bg-gray-200 text-gray-500"
+                                    }`}
+                                    title={
+                                      shouldHighlight
+                                        ? "有後續任務待處理，點擊展開查看"
+                                        : "點擊展開/收起關聯任務"
+                                    }
+                                  >
+                                    {item.task.groupId &&
+                                    expandedGroups.has(item.task.groupId)
+                                      ? "▼"
+                                      : "▶"}
+                                  </button>
+                                );
+                              })()}
                             <div>
                               <div className="text-sm font-medium text-gray-900 max-w-[180px] truncate">
                                 {item.task.title}
                               </div>
                               {/* 群組標記 */}
-                              {item.type === "group" && item.children && item.children.length > 0 && (() => {
-                                const mainTaskCompleted = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                                const hasIncompleteChild = item.children?.some(
-                                  (child) => child.status !== "COMPLETED" && child.status !== "REVIEWED"
-                                );
-                                const shouldHighlight = mainTaskCompleted && hasIncompleteChild;
-                                return (
-                                  <span className={`text-xs font-medium ${shouldHighlight ? "text-orange-600" : "text-blue-600"}`}>
-                                    📎 {item.children.length + 1} 個關聯
-                                    {shouldHighlight && <span className="ml-1 text-orange-500">⚠️ 有待處理</span>}
-                                  </span>
-                                );
-                              })()}
+                              {item.type === "group" &&
+                                item.children &&
+                                item.children.length > 0 &&
+                                (() => {
+                                  const mainTaskCompleted =
+                                    item.task.status === "COMPLETED" ||
+                                    item.task.status === "REVIEWED";
+                                  const hasIncompleteChild =
+                                    item.children?.some(
+                                      (child) =>
+                                        child.status !== "COMPLETED" &&
+                                        child.status !== "REVIEWED"
+                                    );
+                                  const shouldHighlight =
+                                    mainTaskCompleted && hasIncompleteChild;
+                                  return (
+                                    <span
+                                      className={`text-xs font-medium ${
+                                        shouldHighlight
+                                          ? "text-orange-600"
+                                          : "text-blue-600"
+                                      }`}
+                                    >
+                                      📎 {item.children.length + 1} 個關聯
+                                      {shouldHighlight && (
+                                        <span className="ml-1 text-orange-500">
+                                          ⚠️ 有待處理
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })()}
                             </div>
                           </div>
                         </td>
@@ -2745,9 +3094,14 @@ function AdminTasksContent() {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 max-w-[100px] truncate">
-                            {item.task.handlers && item.task.handlers.length > 0
-                              ? item.task.handlers.map(h => h.name || h.email).join(", ")
-                              : <span className="text-gray-400">-</span>}
+                            {item.task.handlers &&
+                            item.task.handlers.length > 0 ? (
+                              item.task.handlers
+                                .map((h) => h.name || h.email)
+                                .join(", ")
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
@@ -2756,16 +3110,27 @@ function AdminTasksContent() {
                         <td className="px-4 py-4 whitespace-nowrap">
                           {(() => {
                             const deadline = item.task.deadline;
-                            const deadlineText = item.task.payload?.deadlineText as string;
+                            const deadlineText = item.task.payload
+                              ?.deadlineText as string;
                             if (!deadline && !deadlineText) {
-                              return <span className="text-sm text-gray-400">-</span>;
+                              return (
+                                <span className="text-sm text-gray-400">-</span>
+                              );
                             }
                             if (deadlineText && !deadline) {
-                              return <span className="text-sm text-gray-600">{deadlineText}</span>;
+                              return (
+                                <span className="text-sm text-gray-600">
+                                  {deadlineText}
+                                </span>
+                              );
                             }
                             const urgency = getDeadlineUrgency(deadline);
                             return (
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${getDeadlineStyle(urgency)}`}>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium ${getDeadlineStyle(
+                                  urgency
+                                )}`}
+                              >
                                 {formatDeadlineDate(deadline)}
                               </span>
                             );
@@ -2783,14 +3148,24 @@ function AdminTasksContent() {
                               (h) => h.id === session?.user?.id
                             );
                             const isSuperAdmin = userRole === "SUPER_ADMIN";
-                            const isCompleteChecked = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                            const isCompleteLoading = togglingCompleteId === item.task.id;
+                            const isCompleteChecked =
+                              item.task.status === "COMPLETED" ||
+                              item.task.status === "REVIEWED";
+                            const isCompleteLoading =
+                              togglingCompleteId === item.task.id;
                             // 只有已批准或已完成狀態才能操作 checkbox
-                            const isApprovedOrCompleted = item.task.status === "APPROVED" || item.task.status === "COMPLETED";
-                            const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+                            const isApprovedOrCompleted =
+                              item.task.status === "APPROVED" ||
+                              item.task.status === "COMPLETED";
+                            const canCompleteCheck =
+                              (isHandler || isSuperAdmin) &&
+                              isApprovedOrCompleted;
 
                             // 沒有負責人時不顯示
-                            if (!item.task.handlers || item.task.handlers.length === 0) {
+                            if (
+                              !item.task.handlers ||
+                              item.task.handlers.length === 0
+                            ) {
                               return <span className="text-gray-300">-</span>;
                             }
 
@@ -2800,9 +3175,14 @@ function AdminTasksContent() {
                                 <input
                                   type="checkbox"
                                   checked={isCompleteChecked}
-                                  disabled={!canCompleteCheck || isCompleteLoading}
+                                  disabled={
+                                    !canCompleteCheck || isCompleteLoading
+                                  }
                                   onChange={(e) =>
-                                    handleToggleCompleteCheck(item.task, e.target.checked)
+                                    handleToggleCompleteCheck(
+                                      item.task,
+                                      e.target.checked
+                                    )
                                   }
                                   className={`w-5 h-5 rounded border-2 ${
                                     canCompleteCheck
@@ -2813,10 +3193,10 @@ function AdminTasksContent() {
                                     !isApprovedOrCompleted
                                       ? "只有已批准狀態才能標記完成"
                                       : canCompleteCheck
-                                        ? isCompleteChecked
-                                          ? "點擊取消完成標記"
-                                          : "點擊標記為完成"
-                                        : "只有負責人可以操作"
+                                      ? isCompleteChecked
+                                        ? "點擊取消完成標記"
+                                        : "點擊標記為完成"
+                                      : "只有負責人可以操作"
                                   }
                                 />
                               </div>
@@ -2833,11 +3213,18 @@ function AdminTasksContent() {
                             const isChecked = !!item.task.reviewedAt;
                             const isLoading = togglingReviewId === item.task.id;
                             // 只有已完成或已複審狀態才能操作 checkbox
-                            const isCompletedOrReviewed = item.task.status === "COMPLETED" || item.task.status === "REVIEWED";
-                            const canCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
+                            const isCompletedOrReviewed =
+                              item.task.status === "COMPLETED" ||
+                              item.task.status === "REVIEWED";
+                            const canCheck =
+                              (isReviewer || isSuperAdmin) &&
+                              isCompletedOrReviewed;
 
                             // 沒有複審人時不顯示
-                            if (!item.task.reviewers || item.task.reviewers.length === 0) {
+                            if (
+                              !item.task.reviewers ||
+                              item.task.reviewers.length === 0
+                            ) {
                               return <span className="text-gray-300">-</span>;
                             }
 
@@ -2849,7 +3236,10 @@ function AdminTasksContent() {
                                   checked={isChecked}
                                   disabled={!canCheck || isLoading}
                                   onChange={(e) =>
-                                    handleToggleReviewCheck(item.task, e.target.checked)
+                                    handleToggleReviewCheck(
+                                      item.task,
+                                      e.target.checked
+                                    )
                                   }
                                   className={`w-5 h-5 rounded border-2 ${
                                     canCheck
@@ -2860,10 +3250,10 @@ function AdminTasksContent() {
                                     !isCompletedOrReviewed
                                       ? "只有已完成狀態才能複審"
                                       : canCheck
-                                        ? isChecked
-                                          ? "點擊取消複審確認"
-                                          : "點擊確認複審"
-                                        : "只有複審人可以操作"
+                                      ? isChecked
+                                        ? "點擊取消複審確認"
+                                        : "點擊確認複審"
+                                      : "只有複審人可以操作"
                                   }
                                 />
                               </div>
@@ -2876,7 +3266,9 @@ function AdminTasksContent() {
                               onClick={() => {
                                 setSelectedTask(item.task);
                                 setEditableRemarks(item.task.remarks || "");
-                                setApprovalProcessorName(item.task.processorName || "");
+                                setApprovalProcessorName(
+                                  item.task.processorName || ""
+                                );
                                 setShowDetailModal(true);
                               }}
                               className="text-blue-600 hover:text-blue-800 font-medium text-sm"
@@ -2901,185 +3293,256 @@ function AdminTasksContent() {
                         item.task.groupId &&
                         expandedGroups.has(item.task.groupId) &&
                         item.children?.map((childTask) => {
-                          const fullChildTask = tasks.find(t => t.id === childTask.id) as AdminTask | undefined;
+                          const fullChildTask = tasks.find(
+                            (t) => t.id === childTask.id
+                          ) as AdminTask | undefined;
                           return (
-                          <tr
-                            key={childTask.id}
-                            className="bg-gray-50 hover:bg-gray-100"
-                          >
-                            <td className="px-4 py-3 pl-10">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-400">└</span>
-                                <div className="text-sm text-gray-700 max-w-[160px] truncate">
-                                  {childTask.title}
+                            <tr
+                              key={childTask.id}
+                              className="bg-gray-50 hover:bg-gray-100"
+                            >
+                              <td className="px-4 py-3 pl-10">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400">└</span>
+                                  <div className="text-sm text-gray-700 max-w-[160px] truncate">
+                                    {childTask.title}
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded">
-                                {childTask.taskType?.label || "未知類型"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm text-gray-600 max-w-[80px] truncate">
-                                {fullChildTask?.applicantName ||
-                                  fullChildTask?.applicant?.name ||
-                                  fullChildTask?.applicant?.email ||
-                                  "-"}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm text-gray-600 max-w-[100px] truncate">
-                                {fullChildTask?.handlers && fullChildTask.handlers.length > 0
-                                  ? fullChildTask.handlers.map(h => h.name || h.email).join(", ")
-                                  : <span className="text-gray-400">-</span>}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              {getStatusBadge(childTask.status)}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              {(() => {
-                                const deadline = fullChildTask?.deadline;
-                                const deadlineText = fullChildTask?.payload?.deadlineText as string;
-                                if (!deadline && !deadlineText) {
-                                  return <span className="text-sm text-gray-400">-</span>;
-                                }
-                                if (deadlineText && !deadline) {
-                                  return <span className="text-sm text-gray-500">{deadlineText}</span>;
-                                }
-                                const urgency = getDeadlineUrgency(deadline ?? null);
-                                return (
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${getDeadlineStyle(urgency)}`}>
-                                    {formatDeadlineDate(deadline ?? null)}
-                                  </span>
-                                );
-                              })()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm text-gray-500">
-                                {formatDeadlineDate(childTask.createdAt)}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center">
-                              {/* 子任務完成確認 checkbox */}
-                              {(() => {
-                                if (!fullChildTask) return <span className="text-gray-300">-</span>;
-                                const isHandler = fullChildTask.handlers?.some(
-                                  (h) => h.id === session?.user?.id
-                                );
-                                const isSuperAdmin = userRole === "SUPER_ADMIN";
-                                const isCompleteChecked = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
-                                const isCompleteLoading = togglingCompleteId === fullChildTask.id;
-                                const isApprovedOrCompleted = fullChildTask.status === "APPROVED" || fullChildTask.status === "COMPLETED";
-                                const canCompleteCheck = (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded">
+                                  {childTask.taskType?.label || "未知類型"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="text-sm text-gray-600 max-w-[80px] truncate">
+                                  {fullChildTask?.applicantName ||
+                                    fullChildTask?.applicant?.name ||
+                                    fullChildTask?.applicant?.email ||
+                                    "-"}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="text-sm text-gray-600 max-w-[100px] truncate">
+                                  {fullChildTask?.handlers &&
+                                  fullChildTask.handlers.length > 0 ? (
+                                    fullChildTask.handlers
+                                      .map((h) => h.name || h.email)
+                                      .join(", ")
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                {getStatusBadge(childTask.status)}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                {(() => {
+                                  const deadline = fullChildTask?.deadline;
+                                  const deadlineText = fullChildTask?.payload
+                                    ?.deadlineText as string;
+                                  if (!deadline && !deadlineText) {
+                                    return (
+                                      <span className="text-sm text-gray-400">
+                                        -
+                                      </span>
+                                    );
+                                  }
+                                  if (deadlineText && !deadline) {
+                                    return (
+                                      <span className="text-sm text-gray-500">
+                                        {deadlineText}
+                                      </span>
+                                    );
+                                  }
+                                  const urgency = getDeadlineUrgency(
+                                    deadline ?? null
+                                  );
+                                  return (
+                                    <span
+                                      className={`px-2 py-1 rounded text-xs font-medium ${getDeadlineStyle(
+                                        urgency
+                                      )}`}
+                                    >
+                                      {formatDeadlineDate(deadline ?? null)}
+                                    </span>
+                                  );
+                                })()}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="text-sm text-gray-500">
+                                  {formatDeadlineDate(childTask.createdAt)}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                {/* 子任務完成確認 checkbox */}
+                                {(() => {
+                                  if (!fullChildTask)
+                                    return (
+                                      <span className="text-gray-300">-</span>
+                                    );
+                                  const isHandler =
+                                    fullChildTask.handlers?.some(
+                                      (h) => h.id === session?.user?.id
+                                    );
+                                  const isSuperAdmin =
+                                    userRole === "SUPER_ADMIN";
+                                  const isCompleteChecked =
+                                    fullChildTask.status === "COMPLETED" ||
+                                    fullChildTask.status === "REVIEWED";
+                                  const isCompleteLoading =
+                                    togglingCompleteId === fullChildTask.id;
+                                  const isApprovedOrCompleted =
+                                    fullChildTask.status === "APPROVED" ||
+                                    fullChildTask.status === "COMPLETED";
+                                  const canCompleteCheck =
+                                    (isHandler || isSuperAdmin) &&
+                                    isApprovedOrCompleted;
 
-                                if (!fullChildTask.handlers || fullChildTask.handlers.length === 0) {
-                                  return <span className="text-gray-300">-</span>;
-                                }
+                                  if (
+                                    !fullChildTask.handlers ||
+                                    fullChildTask.handlers.length === 0
+                                  ) {
+                                    return (
+                                      <span className="text-gray-300">-</span>
+                                    );
+                                  }
 
-                                return (
-                                  <div className="flex items-center justify-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={isCompleteChecked}
-                                      disabled={!canCompleteCheck || isCompleteLoading}
-                                      onChange={(e) =>
-                                        handleToggleCompleteCheck(fullChildTask, e.target.checked)
-                                      }
-                                      className={`w-5 h-5 rounded border-2 ${
-                                        canCompleteCheck
-                                          ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
-                                          : "cursor-not-allowed text-gray-400 border-gray-300"
-                                      } ${isCompleteLoading ? "opacity-50" : ""}`}
-                                      title={
-                                        !isApprovedOrCompleted
-                                          ? "只有已批准狀態才能標記完成"
-                                          : canCompleteCheck
+                                  return (
+                                    <div className="flex items-center justify-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={isCompleteChecked}
+                                        disabled={
+                                          !canCompleteCheck || isCompleteLoading
+                                        }
+                                        onChange={(e) =>
+                                          handleToggleCompleteCheck(
+                                            fullChildTask,
+                                            e.target.checked
+                                          )
+                                        }
+                                        className={`w-5 h-5 rounded border-2 ${
+                                          canCompleteCheck
+                                            ? "cursor-pointer text-green-600 border-green-300 focus:ring-green-500"
+                                            : "cursor-not-allowed text-gray-400 border-gray-300"
+                                        } ${
+                                          isCompleteLoading ? "opacity-50" : ""
+                                        }`}
+                                        title={
+                                          !isApprovedOrCompleted
+                                            ? "只有已批准狀態才能標記完成"
+                                            : canCompleteCheck
                                             ? isCompleteChecked
                                               ? "點擊取消完成標記"
                                               : "點擊標記為完成"
                                             : "只有負責人可以操作"
-                                      }
-                                    />
-                                  </div>
-                                );
-                              })()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center">
-                              {/* 子任務複審確認 checkbox */}
-                              {(() => {
-                                if (!fullChildTask) return <span className="text-gray-300">-</span>;
-                                const isReviewer = fullChildTask.reviewers?.some(
-                                  (r) => r.id === session?.user?.id
-                                );
-                                const isSuperAdmin = userRole === "SUPER_ADMIN";
-                                const isChecked = !!fullChildTask.reviewedAt;
-                                const isLoading = togglingReviewId === fullChildTask.id;
-                                // 只有已完成或已複審狀態才能操作 checkbox
-                                const isCompletedOrReviewed = fullChildTask.status === "COMPLETED" || fullChildTask.status === "REVIEWED";
-                                const canCheck = (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
+                                        }
+                                      />
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                {/* 子任務複審確認 checkbox */}
+                                {(() => {
+                                  if (!fullChildTask)
+                                    return (
+                                      <span className="text-gray-300">-</span>
+                                    );
+                                  const isReviewer =
+                                    fullChildTask.reviewers?.some(
+                                      (r) => r.id === session?.user?.id
+                                    );
+                                  const isSuperAdmin =
+                                    userRole === "SUPER_ADMIN";
+                                  const isChecked = !!fullChildTask.reviewedAt;
+                                  const isLoading =
+                                    togglingReviewId === fullChildTask.id;
+                                  // 只有已完成或已複審狀態才能操作 checkbox
+                                  const isCompletedOrReviewed =
+                                    fullChildTask.status === "COMPLETED" ||
+                                    fullChildTask.status === "REVIEWED";
+                                  const canCheck =
+                                    (isReviewer || isSuperAdmin) &&
+                                    isCompletedOrReviewed;
 
-                                if (!fullChildTask.reviewers || fullChildTask.reviewers.length === 0) {
-                                  return <span className="text-gray-300">-</span>;
-                                }
+                                  if (
+                                    !fullChildTask.reviewers ||
+                                    fullChildTask.reviewers.length === 0
+                                  ) {
+                                    return (
+                                      <span className="text-gray-300">-</span>
+                                    );
+                                  }
 
-                                return (
-                                  <div className="flex items-center justify-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      disabled={!canCheck || isLoading}
-                                      onChange={(e) =>
-                                        handleToggleReviewCheck(fullChildTask, e.target.checked)
-                                      }
-                                      className={`w-5 h-5 rounded border-2 ${
-                                        canCheck
-                                          ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
-                                          : "cursor-not-allowed text-gray-400 border-gray-300"
-                                      } ${isLoading ? "opacity-50" : ""}`}
-                                      title={
-                                        !isCompletedOrReviewed
-                                          ? "只有已完成狀態才能複審"
-                                          : canCheck
+                                  return (
+                                    <div className="flex items-center justify-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        disabled={!canCheck || isLoading}
+                                        onChange={(e) =>
+                                          handleToggleReviewCheck(
+                                            fullChildTask,
+                                            e.target.checked
+                                          )
+                                        }
+                                        className={`w-5 h-5 rounded border-2 ${
+                                          canCheck
+                                            ? "cursor-pointer text-purple-600 border-purple-300 focus:ring-purple-500"
+                                            : "cursor-not-allowed text-gray-400 border-gray-300"
+                                        } ${isLoading ? "opacity-50" : ""}`}
+                                        title={
+                                          !isCompletedOrReviewed
+                                            ? "只有已完成狀態才能複審"
+                                            : canCheck
                                             ? isChecked
                                               ? "點擊取消複審確認"
                                               : "點擊確認複審"
                                             : "只有複審人可以操作"
-                                      }
-                                    />
-                                  </div>
-                                );
-                              })()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => {
-                                    if (fullChildTask) {
-                                      setSelectedTask(fullChildTask);
-                                      setEditableRemarks(fullChildTask.remarks || "");
-                                      setApprovalProcessorName(fullChildTask.processorName || "");
-                                      setShowDetailModal(true);
-                                    }
-                                  }}
-                                  className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                                >
-                                  詳情
-                                </button>
-                                {can("admin_task:delete") && (
+                                        }
+                                      />
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
                                   <button
-                                    onClick={() => handleDeleteTask(childTask.id)}
-                                    disabled={deleting}
-                                    className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                                    onClick={() => {
+                                      if (fullChildTask) {
+                                        setSelectedTask(fullChildTask);
+                                        setEditableRemarks(
+                                          fullChildTask.remarks || ""
+                                        );
+                                        setApprovalProcessorName(
+                                          fullChildTask.processorName || ""
+                                        );
+                                        setShowDetailModal(true);
+                                      }
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                                   >
-                                    刪除
+                                    詳情
                                   </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );})}
+                                  {can("admin_task:delete") && (
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteTask(childTask.id)
+                                      }
+                                      disabled={deleting}
+                                      className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                                    >
+                                      刪除
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </React.Fragment>
                   ))}
                 </tbody>
@@ -3120,7 +3583,7 @@ function AdminTasksContent() {
                         pages.push(1);
 
                         if (current > 3) {
-                          pages.push('...');
+                          pages.push("...");
                         }
 
                         const start = Math.max(2, current - 1);
@@ -3133,7 +3596,7 @@ function AdminTasksContent() {
                         }
 
                         if (current < totalPages - 2) {
-                          pages.push('...');
+                          pages.push("...");
                         }
 
                         if (!pages.includes(totalPages)) {
@@ -3141,23 +3604,28 @@ function AdminTasksContent() {
                         }
                       }
 
-                      return pages.map((page, index) => (
-                        page === '...' ? (
-                          <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                      return pages.map((page, index) =>
+                        page === "..." ? (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="px-2 text-gray-400"
+                          >
+                            ...
+                          </span>
                         ) : (
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page as number)}
                             className={`min-w-[36px] px-3 py-1.5 border rounded-lg text-sm font-medium transition-colors ${
                               currentPage === page
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'hover:bg-gray-50'
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "hover:bg-gray-50"
                             }`}
                           >
                             {page}
                           </button>
                         )
-                      ));
+                      );
                     })()}
                   </div>
 
@@ -3167,7 +3635,10 @@ function AdminTasksContent() {
                     onChange={(e) => setCurrentPage(Number(e.target.value))}
                     className="md:ml-2 px-3 py-2 md:py-1.5 border rounded-lg text-sm font-medium bg-white hover:bg-gray-50 cursor-pointer min-h-[44px] md:min-h-0"
                   >
-                    {Array.from({ length: pageInfo.totalPages }, (_, i) => i + 1).map((page) => (
+                    {Array.from(
+                      { length: pageInfo.totalPages },
+                      (_, i) => i + 1
+                    ).map((page) => (
                       <option key={page} value={page}>
                         第 {page} 頁
                       </option>
@@ -3264,7 +3735,9 @@ function AdminTasksContent() {
                       onChange={(e) =>
                         setCreateForm({ ...createForm, title: e.target.value })
                       }
-                      placeholder={selectedTaskType?.titlePlaceholder || "請輸入任務標題"}
+                      placeholder={
+                        selectedTaskType?.titlePlaceholder || "請輸入任務標題"
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -3436,31 +3909,39 @@ function AdminTasksContent() {
                           )}
 
                           {/* 補充說明輸入（當選擇的答案需要補充說明時顯示） */}
-                          {question.type === "RADIO" && customAnswers[question.id] && (() => {
-                            const selectedAnswer = customAnswers[question.id] as string;
-                            const explanation = question.explanations?.find(e => e.answer === selectedAnswer);
-                            if (!explanation) return null;
-                            const explanationKey = `${question.id}_${selectedAnswer}`;
-                            return (
-                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <label className="block text-sm font-medium text-blue-800 mb-2">
-                                  📝 {explanation.prompt}
-                                </label>
-                                <textarea
-                                  value={explanationTexts[explanationKey] || ""}
-                                  onChange={(e) =>
-                                    setExplanationTexts({
-                                      ...explanationTexts,
-                                      [explanationKey]: e.target.value,
-                                    })
-                                  }
-                                  placeholder="請輸入補充說明..."
-                                  rows={3}
-                                  className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
-                                />
-                              </div>
-                            );
-                          })()}
+                          {question.type === "RADIO" &&
+                            customAnswers[question.id] &&
+                            (() => {
+                              const selectedAnswer = customAnswers[
+                                question.id
+                              ] as string;
+                              const explanation = question.explanations?.find(
+                                (e) => e.answer === selectedAnswer
+                              );
+                              if (!explanation) return null;
+                              const explanationKey = `${question.id}_${selectedAnswer}`;
+                              return (
+                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <label className="block text-sm font-medium text-blue-800 mb-2">
+                                    📝 {explanation.prompt}
+                                  </label>
+                                  <textarea
+                                    value={
+                                      explanationTexts[explanationKey] || ""
+                                    }
+                                    onChange={(e) =>
+                                      setExplanationTexts({
+                                        ...explanationTexts,
+                                        [explanationKey]: e.target.value,
+                                      })
+                                    }
+                                    placeholder="請輸入補充說明..."
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                  />
+                                </div>
+                              );
+                            })()}
 
                           {/* 複選題 */}
                           {question.type === "CHECKBOX" && (
@@ -3561,18 +4042,28 @@ function AdminTasksContent() {
                 {selectedTask.applicant?.id === session?.user?.id &&
                   selectedTask.status === "REVISION_REQUESTED" &&
                   !isEditMode && (
-                  <div className="flex justify-end">
-                    <button
-                      onClick={openEditMode}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      編輯任務
-                    </button>
-                  </div>
-                )}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={openEditMode}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        編輯任務
+                      </button>
+                    </div>
+                  )}
 
                 {/* 編輯表單（編輯模式時顯示） */}
                 {isEditMode ? (
@@ -3580,20 +4071,36 @@ function AdminTasksContent() {
                     {/* 編輯模式標題 */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 text-blue-800">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
                         </svg>
-                        <span className="font-medium">編輯模式 - 請修改後重新送出審批</span>
+                        <span className="font-medium">
+                          編輯模式 - 請修改後重新送出審批
+                        </span>
                       </div>
                     </div>
 
                     {/* 基本資訊編輯 */}
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">基本資訊</h3>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        基本資訊
+                      </h3>
                       <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
                         {/* 類型（唯讀） */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">類型</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            類型
+                          </label>
                           <p className="px-3 py-2 bg-gray-100 rounded-lg text-gray-600">
                             {selectedTask.taskType?.label || "未知類型"}
                           </p>
@@ -3607,14 +4114,21 @@ function AdminTasksContent() {
                           <input
                             type="text"
                             value={editForm.title}
-                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                title: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
 
                         {/* 完成限期 */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">完成限期</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            完成限期
+                          </label>
                           <div className="flex gap-2 mb-2">
                             <button
                               type="button"
@@ -3643,14 +4157,24 @@ function AdminTasksContent() {
                             <input
                               type="datetime-local"
                               value={editForm.deadline}
-                              onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  deadline: e.target.value,
+                                })
+                              }
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           ) : (
                             <input
                               type="text"
                               value={editForm.deadlineText}
-                              onChange={(e) => setEditForm({ ...editForm, deadlineText: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  deadlineText: e.target.value,
+                                })
+                              }
                               placeholder="例如：待定、盡快、下週前..."
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
@@ -3661,10 +4185,14 @@ function AdminTasksContent() {
 
                     {/* 細節編輯 */}
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">細節</h3>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        細節
+                      </h3>
                       <textarea
                         value={editForm.notes}
-                        onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, notes: e.target.value })
+                        }
                         rows={4}
                         placeholder="請輸入細節..."
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -3672,121 +4200,174 @@ function AdminTasksContent() {
                     </div>
 
                     {/* 自訂問題答案編輯 */}
-                    {selectedTask.taskType?.questions && selectedTask.taskType.questions.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">類型問題回答</h3>
-                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
-                          {selectedTask.taskType.questions.map((question: Question, index: number) => (
-                            <div key={question.id} className="space-y-2">
-                              <label className="block text-sm font-medium text-gray-700">
-                                {index + 1}. {question.label}
-                                {question.required && <span className="text-red-500 ml-1">*</span>}
-                              </label>
+                    {selectedTask.taskType?.questions &&
+                      selectedTask.taskType.questions.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-4">
+                            類型問題回答
+                          </h3>
+                          <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                            {selectedTask.taskType.questions.map(
+                              (question: Question, index: number) => (
+                                <div key={question.id} className="space-y-2">
+                                  <label className="block text-sm font-medium text-gray-700">
+                                    {index + 1}. {question.label}
+                                    {question.required && (
+                                      <span className="text-red-500 ml-1">
+                                        *
+                                      </span>
+                                    )}
+                                  </label>
 
-                              {/* 文字回答 */}
-                              {question.type === "TEXT" && (
-                                <input
-                                  type="text"
-                                  value={(editCustomAnswers[question.id] as string) || ""}
-                                  onChange={(e) =>
-                                    setEditCustomAnswers({
-                                      ...editCustomAnswers,
-                                      [question.id]: e.target.value,
-                                    })
-                                  }
-                                  placeholder="請輸入..."
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                />
-                              )}
-
-                              {/* 單選題 */}
-                              {question.type === "RADIO" && (
-                                <div className="space-y-2">
-                                  {question.options.map((option, optIndex) => (
-                                    <label key={optIndex} className="flex items-center gap-2 cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        name={`edit_question_${question.id}`}
-                                        value={option}
-                                        checked={editCustomAnswers[question.id] === option}
-                                        onChange={(e) =>
-                                          setEditCustomAnswers({
-                                            ...editCustomAnswers,
-                                            [question.id]: e.target.value,
-                                          })
-                                        }
-                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                                      />
-                                      <span className="text-sm text-gray-700">{option}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* 補充說明輸入 */}
-                              {question.type === "RADIO" && editCustomAnswers[question.id] && (() => {
-                                const selectedAnswer = editCustomAnswers[question.id] as string;
-                                const explanation = question.explanations?.find(e => e.answer === selectedAnswer);
-                                if (!explanation) return null;
-                                const explanationKey = `${question.id}_${selectedAnswer}`;
-                                return (
-                                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <label className="block text-sm font-medium text-blue-800 mb-2">
-                                      {explanation.prompt}
-                                    </label>
-                                    <textarea
-                                      value={editExplanationTexts[explanationKey] || ""}
+                                  {/* 文字回答 */}
+                                  {question.type === "TEXT" && (
+                                    <input
+                                      type="text"
+                                      value={
+                                        (editCustomAnswers[
+                                          question.id
+                                        ] as string) || ""
+                                      }
                                       onChange={(e) =>
-                                        setEditExplanationTexts({
-                                          ...editExplanationTexts,
-                                          [explanationKey]: e.target.value,
+                                        setEditCustomAnswers({
+                                          ...editCustomAnswers,
+                                          [question.id]: e.target.value,
                                         })
                                       }
-                                      placeholder="請輸入補充說明..."
-                                      rows={3}
-                                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                      placeholder="請輸入..."
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                     />
-                                  </div>
-                                );
-                              })()}
+                                  )}
 
-                              {/* 複選題 */}
-                              {question.type === "CHECKBOX" && (
-                                <div className="space-y-2">
-                                  {question.options.map((option, optIndex) => {
-                                    const currentValues = (editCustomAnswers[question.id] as string[]) || [];
-                                    const isChecked = currentValues.includes(option);
-                                    return (
-                                      <label key={optIndex} className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          value={option}
-                                          checked={isChecked}
-                                          onChange={(e) => {
-                                            let newValues: string[];
-                                            if (e.target.checked) {
-                                              newValues = [...currentValues, option];
-                                            } else {
-                                              newValues = currentValues.filter((v) => v !== option);
+                                  {/* 單選題 */}
+                                  {question.type === "RADIO" && (
+                                    <div className="space-y-2">
+                                      {question.options.map(
+                                        (option, optIndex) => (
+                                          <label
+                                            key={optIndex}
+                                            className="flex items-center gap-2 cursor-pointer"
+                                          >
+                                            <input
+                                              type="radio"
+                                              name={`edit_question_${question.id}`}
+                                              value={option}
+                                              checked={
+                                                editCustomAnswers[
+                                                  question.id
+                                                ] === option
+                                              }
+                                              onChange={(e) =>
+                                                setEditCustomAnswers({
+                                                  ...editCustomAnswers,
+                                                  [question.id]: e.target.value,
+                                                })
+                                              }
+                                              className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700">
+                                              {option}
+                                            </span>
+                                          </label>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* 補充說明輸入 */}
+                                  {question.type === "RADIO" &&
+                                    editCustomAnswers[question.id] &&
+                                    (() => {
+                                      const selectedAnswer = editCustomAnswers[
+                                        question.id
+                                      ] as string;
+                                      const explanation =
+                                        question.explanations?.find(
+                                          (e) => e.answer === selectedAnswer
+                                        );
+                                      if (!explanation) return null;
+                                      const explanationKey = `${question.id}_${selectedAnswer}`;
+                                      return (
+                                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                          <label className="block text-sm font-medium text-blue-800 mb-2">
+                                            {explanation.prompt}
+                                          </label>
+                                          <textarea
+                                            value={
+                                              editExplanationTexts[
+                                                explanationKey
+                                              ] || ""
                                             }
-                                            setEditCustomAnswers({
-                                              ...editCustomAnswers,
-                                              [question.id]: newValues,
-                                            });
-                                          }}
-                                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                        />
-                                        <span className="text-sm text-gray-700">{option}</span>
-                                      </label>
-                                    );
-                                  })}
+                                            onChange={(e) =>
+                                              setEditExplanationTexts({
+                                                ...editExplanationTexts,
+                                                [explanationKey]:
+                                                  e.target.value,
+                                              })
+                                            }
+                                            placeholder="請輸入補充說明..."
+                                            rows={3}
+                                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                                          />
+                                        </div>
+                                      );
+                                    })()}
+
+                                  {/* 複選題 */}
+                                  {question.type === "CHECKBOX" && (
+                                    <div className="space-y-2">
+                                      {question.options.map(
+                                        (option, optIndex) => {
+                                          const currentValues =
+                                            (editCustomAnswers[
+                                              question.id
+                                            ] as string[]) || [];
+                                          const isChecked =
+                                            currentValues.includes(option);
+                                          return (
+                                            <label
+                                              key={optIndex}
+                                              className="flex items-center gap-2 cursor-pointer"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                value={option}
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                  let newValues: string[];
+                                                  if (e.target.checked) {
+                                                    newValues = [
+                                                      ...currentValues,
+                                                      option,
+                                                    ];
+                                                  } else {
+                                                    newValues =
+                                                      currentValues.filter(
+                                                        (v) => v !== option
+                                                      );
+                                                  }
+                                                  setEditCustomAnswers({
+                                                    ...editCustomAnswers,
+                                                    [question.id]: newValues,
+                                                  });
+                                                }}
+                                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                              />
+                                              <span className="text-sm text-gray-700">
+                                                {option}
+                                              </span>
+                                            </label>
+                                          );
+                                        }
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          ))}
+                              )
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* 編輯操作按鈕 */}
                     <div className="flex gap-3 pt-4 border-t">
@@ -3840,8 +4421,11 @@ function AdminTasksContent() {
                         <div>
                           <p className="text-xs text-gray-600 mb-1">負責人</p>
                           <p className="text-sm font-medium text-gray-900">
-                            {selectedTask.handlers && selectedTask.handlers.length > 0
-                              ? selectedTask.handlers.map(h => h.name || h.email).join("、")
+                            {selectedTask.handlers &&
+                            selectedTask.handlers.length > 0
+                              ? selectedTask.handlers
+                                  .map((h) => h.name || h.email)
+                                  .join("、")
                               : selectedTask.processorName ||
                                 selectedTask.processor?.name ||
                                 selectedTask.processor?.email ||
@@ -3859,13 +4443,15 @@ function AdminTasksContent() {
                           <p className="text-sm text-gray-900">
                             {selectedTask.deadline
                               ? formatDate(selectedTask.deadline)
-                              : (selectedTask.payload?.deadlineText as string) ||
-                                "-"}
+                              : (selectedTask.payload
+                                  ?.deadlineText as string) || "-"}
                           </p>
                         </div>
                         {selectedTask.completedAt && (
                           <div>
-                            <p className="text-xs text-gray-600 mb-1">已完成時間</p>
+                            <p className="text-xs text-gray-600 mb-1">
+                              已完成時間
+                            </p>
                             <p className="text-sm text-gray-900">
                               {formatDate(selectedTask.completedAt)}
                             </p>
@@ -3873,7 +4459,9 @@ function AdminTasksContent() {
                         )}
                         {selectedTask.reviewedAt && (
                           <div>
-                            <p className="text-xs text-gray-600 mb-1">已複審時間</p>
+                            <p className="text-xs text-gray-600 mb-1">
+                              已複審時間
+                            </p>
                             <p className="text-sm text-gray-900">
                               {formatDate(selectedTask.reviewedAt)}
                             </p>
@@ -3899,11 +4487,18 @@ function AdminTasksContent() {
                     {/* 備註編輯區（所有任務都顯示，負責人或複審人可編輯，複審後唯讀） */}
                     {(() => {
                       const currentUserId = session?.user?.id;
-                      const isHandler = selectedTask.handlers?.some(h => h.id === currentUserId);
-                      const isReviewer = selectedTask.reviewers?.some(r => r.id === currentUserId);
-                      const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
+                      const isHandler = selectedTask.handlers?.some(
+                        (h) => h.id === currentUserId
+                      );
+                      const isReviewer = selectedTask.reviewers?.some(
+                        (r) => r.id === currentUserId
+                      );
+                      const isSuperAdmin =
+                        session?.user?.role === "SUPER_ADMIN";
                       // 可編輯條件：(負責人或複審人或超級管理員) 且 尚未複審完成
-                      const canEditRemarks = (isHandler || isReviewer || isSuperAdmin) && !selectedTask.reviewedAt;
+                      const canEditRemarks =
+                        (isHandler || isReviewer || isSuperAdmin) &&
+                        !selectedTask.reviewedAt;
 
                       return (
                         <div>
@@ -3920,15 +4515,23 @@ function AdminTasksContent() {
                               <>
                                 <textarea
                                   value={editableRemarks}
-                                  onChange={(e) => setEditableRemarks(e.target.value)}
+                                  onChange={(e) =>
+                                    setEditableRemarks(e.target.value)
+                                  }
                                   rows={4}
                                   placeholder="請輸入備註..."
                                   className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
                                 />
                                 <div className="flex justify-end">
                                   <button
-                                    onClick={() => handleUpdateRemarks(selectedTask)}
-                                    disabled={savingRemarks || editableRemarks === (selectedTask.remarks || "")}
+                                    onClick={() =>
+                                      handleUpdateRemarks(selectedTask)
+                                    }
+                                    disabled={
+                                      savingRemarks ||
+                                      editableRemarks ===
+                                        (selectedTask.remarks || "")
+                                    }
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                                   >
                                     {savingRemarks ? "保存中..." : "保存備註"}
@@ -3938,7 +4541,11 @@ function AdminTasksContent() {
                             ) : (
                               <div className="bg-white p-3 rounded-lg border border-blue-200">
                                 <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                                  {editableRemarks || <span className="text-gray-400">尚無備註</span>}
+                                  {editableRemarks || (
+                                    <span className="text-gray-400">
+                                      尚無備註
+                                    </span>
+                                  )}
                                 </p>
                               </div>
                             )}
@@ -3973,7 +4580,8 @@ function AdminTasksContent() {
                                 if (
                                   answer === undefined ||
                                   answer === null ||
-                                  (Array.isArray(answer) && answer.length === 0) ||
+                                  (Array.isArray(answer) &&
+                                    answer.length === 0) ||
                                   answer === ""
                                 ) {
                                   return null;
@@ -4002,296 +4610,348 @@ function AdminTasksContent() {
 
                     {/* 審批記錄 */}
                     {selectedTask.approvalRecords.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      審批記錄
-                    </h3>
-                    <div className="space-y-3">
-                      {selectedTask.approvalRecords.map((record) => (
-                        <div
-                          key={record.id}
-                          className="bg-gray-50 p-4 rounded-lg"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <span
-                                className={`px-2 py-1 text-xs rounded font-medium ${
-                                  record.action === "approve"
-                                    ? "bg-green-100 text-green-800"
-                                    : record.action === "reject"
-                                    ? "bg-red-100 text-red-800"
-                                    : record.action === "pending_documents"
-                                    ? "bg-orange-100 text-orange-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                                }`}
-                              >
-                                {record.action === "approve"
-                                  ? "批准"
-                                  : record.action === "reject"
-                                  ? "退回"
-                                  : record.action === "pending_documents"
-                                  ? "待補件"
-                                  : "要求修改"}
-                              </span>
-                              <span className="ml-2 text-sm text-gray-600">
-                                {record.approver?.name ||
-                                  record.approver?.email}
-                              </span>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {formatDate(record.createdAt)}
-                            </span>
-                          </div>
-                          {record.comment && (
-                            <p className="mt-2 text-sm text-gray-700">
-                              {record.comment}
-                            </p>
-                          )}
-                          {/* 要求修改詳情 */}
-                          {record.action === "request_revision" && (record.revisionReason || record.revisionDetail || record.revisionDeadline) && (
-                            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              {record.revisionReason && (
-                                <div className="flex items-center gap-2 text-sm mb-1">
-                                  <span className="font-medium text-yellow-800">原因類別：</span>
-                                  <span className="text-gray-700">{record.revisionReason}</span>
-                                </div>
-                              )}
-                              {record.revisionDetail && (
-                                <div className="text-sm mb-1">
-                                  <span className="font-medium text-yellow-800">修改說明：</span>
-                                  <p className="text-gray-700 mt-1">{record.revisionDetail}</p>
-                                </div>
-                              )}
-                              {record.revisionDeadline && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="font-medium text-yellow-800">修改期限：</span>
-                                  <span className="text-gray-700">{formatDate(record.revisionDeadline)}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 審批操作（僅待處理/待補件狀態且有審批權限才顯示） */}
-                {can('admin_task:approve') &&
-                  (selectedTask.status === "PENDING" ||
-                  selectedTask.status === "PENDING_DOCUMENTS") && (
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      審批操作
-                    </h3>
-                    <div className="bg-blue-50 p-4 rounded-lg space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          操作
-                        </label>
-                        <div className="flex flex-wrap gap-3">
-                          <button
-                            onClick={() => setApprovalAction("approve")}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              approvalAction === "approve"
-                                ? "bg-green-600 text-white"
-                                : "bg-white border border-green-600 text-green-600 hover:bg-green-50"
-                            }`}
-                          >
-                            批准
-                          </button>
-                          <button
-                            onClick={() => setApprovalAction("reject")}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              approvalAction === "reject"
-                                ? "bg-red-600 text-white"
-                                : "bg-white border border-red-600 text-red-600 hover:bg-red-50"
-                            }`}
-                          >
-                            退回
-                          </button>
-                          <button
-                            onClick={() =>
-                              setApprovalAction("pending_documents")
-                            }
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              approvalAction === "pending_documents"
-                                ? "bg-orange-600 text-white"
-                                : "bg-white border border-orange-600 text-orange-600 hover:bg-orange-50"
-                            }`}
-                          >
-                            待補件
-                          </button>
-                          <button
-                            onClick={() =>
-                              setApprovalAction("request_revision")
-                            }
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              approvalAction === "request_revision"
-                                ? "bg-yellow-600 text-white"
-                                : "bg-white border border-yellow-600 text-yellow-600 hover:bg-yellow-50"
-                            }`}
-                          >
-                            要求修改
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 要求修改專用欄位 */}
-                      {approvalAction === "request_revision" && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-4">
-                          <h4 className="font-medium text-yellow-800 flex items-center gap-2">
-                            <span>⚠️</span> 修改要求詳情
-                          </h4>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              修改原因類別 <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                              value={revisionReason}
-                              onChange={(e) => setRevisionReason(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">
+                          審批記錄
+                        </h3>
+                        <div className="space-y-3">
+                          {selectedTask.approvalRecords.map((record) => (
+                            <div
+                              key={record.id}
+                              className="bg-gray-50 p-4 rounded-lg"
                             >
-                              <option value="">請選擇原因類別</option>
-                              <option value="資料不完整">資料不完整</option>
-                              <option value="格式錯誤">格式錯誤</option>
-                              <option value="內容有誤">內容有誤</option>
-                              <option value="缺少附件">缺少附件</option>
-                              <option value="需補充說明">需補充說明</option>
-                              <option value="其他">其他</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              具體修改說明 <span className="text-red-500">*</span>
-                            </label>
-                            <textarea
-                              value={revisionDetail}
-                              onChange={(e) => setRevisionDetail(e.target.value)}
-                              rows={3}
-                              placeholder="請詳細說明需要修改的內容..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              修改期限 <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="date"
-                              value={revisionDeadline}
-                              onChange={(e) => setRevisionDeadline(e.target.value)}
-                              min={new Date().toISOString().split("T")[0]}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          審批意見
-                        </label>
-                        <textarea
-                          value={approvalComment}
-                          onChange={(e) => setApprovalComment(e.target.value)}
-                          rows={3}
-                          placeholder="請輸入審批意見..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                        />
-                      </div>
-                      <button
-                        onClick={handleApproval}
-                        disabled={
-                          !approvalAction ||
-                          approving ||
-                          (approvalAction === "request_revision" && (!revisionReason || !revisionDetail || !revisionDeadline))
-                        }
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {approving ? "處理中..." : "確認審批"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* 重新送出區塊（申請人可見，當狀態為要求修改或待補件時） */}
-                {selectedTask.applicant?.id === session?.user?.id &&
-                  (selectedTask.status === "REVISION_REQUESTED" ||
-                  selectedTask.status === "PENDING_DOCUMENTS") && (
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      重新送出案件
-                    </h3>
-                    <div className="bg-pink-50 border border-pink-200 p-4 rounded-lg space-y-4">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">📝</span>
-                        <div>
-                          <p className="font-medium text-pink-800">
-                            {selectedTask.status === "REVISION_REQUESTED"
-                              ? "此案件需要修改後重新送出"
-                              : "此案件需要補件後重新送出"}
-                          </p>
-                          <p className="text-sm text-pink-600 mt-1">
-                            請確認已完成必要的修改或補件，然後點擊下方按鈕重新送出案件。
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 顯示最新的修改要求（如果有） */}
-                      {selectedTask.approvalRecords && selectedTask.approvalRecords.length > 0 && (
-                        (() => {
-                          const latestRevision = selectedTask.approvalRecords.find(
-                            (r: ApprovalRecord) => r.action === "request_revision" || r.action === "pending_documents"
-                          );
-                          if (latestRevision) {
-                            return (
-                              <div className="bg-white border border-pink-100 rounded-lg p-3 text-sm">
-                                <p className="font-medium text-gray-700 mb-2">審批意見：</p>
-                                {latestRevision.revisionReason && (
-                                  <p className="text-gray-600">原因類別：{latestRevision.revisionReason}</p>
-                                )}
-                                {latestRevision.revisionDetail && (
-                                  <p className="text-gray-600 mt-1">修改說明：{latestRevision.revisionDetail}</p>
-                                )}
-                                {latestRevision.revisionDeadline && (
-                                  <p className="text-gray-600 mt-1">
-                                    期限：{new Date(latestRevision.revisionDeadline).toLocaleDateString("zh-TW")}
-                                  </p>
-                                )}
-                                {latestRevision.comment && !latestRevision.revisionDetail && (
-                                  <p className="text-gray-600">{latestRevision.comment}</p>
-                                )}
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <span
+                                    className={`px-2 py-1 text-xs rounded font-medium ${
+                                      record.action === "approve"
+                                        ? "bg-green-100 text-green-800"
+                                        : record.action === "reject"
+                                        ? "bg-red-100 text-red-800"
+                                        : record.action === "pending_documents"
+                                        ? "bg-orange-100 text-orange-800"
+                                        : "bg-yellow-100 text-yellow-800"
+                                    }`}
+                                  >
+                                    {record.action === "approve"
+                                      ? "批准"
+                                      : record.action === "reject"
+                                      ? "退回"
+                                      : record.action === "pending_documents"
+                                      ? "待補件"
+                                      : "要求修改"}
+                                  </span>
+                                  <span className="ml-2 text-sm text-gray-600">
+                                    {record.approver?.name ||
+                                      record.approver?.email}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {formatDate(record.createdAt)}
+                                </span>
                               </div>
-                            );
-                          }
-                          return null;
-                        })()
+                              {record.comment && (
+                                <p className="mt-2 text-sm text-gray-700">
+                                  {record.comment}
+                                </p>
+                              )}
+                              {/* 要求修改詳情 */}
+                              {record.action === "request_revision" &&
+                                (record.revisionReason ||
+                                  record.revisionDetail ||
+                                  record.revisionDeadline) && (
+                                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    {record.revisionReason && (
+                                      <div className="flex items-center gap-2 text-sm mb-1">
+                                        <span className="font-medium text-yellow-800">
+                                          原因類別：
+                                        </span>
+                                        <span className="text-gray-700">
+                                          {record.revisionReason}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {record.revisionDetail && (
+                                      <div className="text-sm mb-1">
+                                        <span className="font-medium text-yellow-800">
+                                          修改說明：
+                                        </span>
+                                        <p className="text-gray-700 mt-1">
+                                          {record.revisionDetail}
+                                        </p>
+                                      </div>
+                                    )}
+                                    {record.revisionDeadline && (
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium text-yellow-800">
+                                          修改期限：
+                                        </span>
+                                        <span className="text-gray-700">
+                                          {formatDate(record.revisionDeadline)}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 審批操作（僅待處理/待補件狀態且有審批權限才顯示） */}
+                    {can("admin_task:approve") &&
+                      (selectedTask.status === "PENDING" ||
+                        selectedTask.status === "PENDING_DOCUMENTS") && (
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-4">
+                            審批操作
+                          </h3>
+                          <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                操作
+                              </label>
+                              <div className="flex flex-wrap gap-3">
+                                <button
+                                  onClick={() => setApprovalAction("approve")}
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    approvalAction === "approve"
+                                      ? "bg-green-600 text-white"
+                                      : "bg-white border border-green-600 text-green-600 hover:bg-green-50"
+                                  }`}
+                                >
+                                  批准
+                                </button>
+                                <button
+                                  onClick={() => setApprovalAction("reject")}
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    approvalAction === "reject"
+                                      ? "bg-red-600 text-white"
+                                      : "bg-white border border-red-600 text-red-600 hover:bg-red-50"
+                                  }`}
+                                >
+                                  退回
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setApprovalAction("pending_documents")
+                                  }
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    approvalAction === "pending_documents"
+                                      ? "bg-orange-600 text-white"
+                                      : "bg-white border border-orange-600 text-orange-600 hover:bg-orange-50"
+                                  }`}
+                                >
+                                  待補件
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setApprovalAction("request_revision")
+                                  }
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    approvalAction === "request_revision"
+                                      ? "bg-yellow-600 text-white"
+                                      : "bg-white border border-yellow-600 text-yellow-600 hover:bg-yellow-50"
+                                  }`}
+                                >
+                                  要求修改
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 要求修改專用欄位 */}
+                            {approvalAction === "request_revision" && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-4">
+                                <h4 className="font-medium text-yellow-800 flex items-center gap-2">
+                                  <span>⚠️</span> 修改要求詳情
+                                </h4>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    修改原因類別{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  <select
+                                    value={revisionReason}
+                                    onChange={(e) =>
+                                      setRevisionReason(e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                  >
+                                    <option value="">請選擇原因類別</option>
+                                    <option value="資料不完整">
+                                      資料不完整
+                                    </option>
+                                    <option value="格式錯誤">格式錯誤</option>
+                                    <option value="內容有誤">內容有誤</option>
+                                    <option value="缺少附件">缺少附件</option>
+                                    <option value="需補充說明">
+                                      需補充說明
+                                    </option>
+                                    <option value="其他">其他</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    具體修改說明{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  <textarea
+                                    value={revisionDetail}
+                                    onChange={(e) =>
+                                      setRevisionDetail(e.target.value)
+                                    }
+                                    rows={3}
+                                    placeholder="請詳細說明需要修改的內容..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    修改期限{" "}
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={revisionDeadline}
+                                    onChange={(e) =>
+                                      setRevisionDeadline(e.target.value)
+                                    }
+                                    min={new Date().toISOString().split("T")[0]}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                審批意見
+                              </label>
+                              <textarea
+                                value={approvalComment}
+                                onChange={(e) =>
+                                  setApprovalComment(e.target.value)
+                                }
+                                rows={3}
+                                placeholder="請輸入審批意見..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              />
+                            </div>
+                            <button
+                              onClick={handleApproval}
+                              disabled={
+                                !approvalAction ||
+                                approving ||
+                                (approvalAction === "request_revision" &&
+                                  (!revisionReason ||
+                                    !revisionDetail ||
+                                    !revisionDeadline))
+                              }
+                              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {approving ? "處理中..." : "確認審批"}
+                            </button>
+                          </div>
+                        </div>
                       )}
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          備註說明（選填）
-                        </label>
-                        <textarea
-                          value={resubmitNotes}
-                          onChange={(e) => setResubmitNotes(e.target.value)}
-                          rows={3}
-                          placeholder="說明您所做的修改或補件內容..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
-                        />
-                      </div>
+                    {/* 重新送出區塊（申請人可見，當狀態為要求修改或待補件時） */}
+                    {selectedTask.applicant?.id === session?.user?.id &&
+                      (selectedTask.status === "REVISION_REQUESTED" ||
+                        selectedTask.status === "PENDING_DOCUMENTS") && (
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-4">
+                            重新送出案件
+                          </h3>
+                          <div className="bg-pink-50 border border-pink-200 p-4 rounded-lg space-y-4">
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl">📝</span>
+                              <div>
+                                <p className="font-medium text-pink-800">
+                                  {selectedTask.status === "REVISION_REQUESTED"
+                                    ? "此案件需要修改後重新送出"
+                                    : "此案件需要補件後重新送出"}
+                                </p>
+                                <p className="text-sm text-pink-600 mt-1">
+                                  請確認已完成必要的修改或補件，然後點擊下方按鈕重新送出案件。
+                                </p>
+                              </div>
+                            </div>
 
-                      <button
-                        onClick={handleResubmit}
-                        disabled={resubmitting}
-                        className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                      >
-                        {resubmitting ? "送出中..." : "確認重新送出"}
-                      </button>
-                    </div>
-                  </div>
-                    )}
+                            {/* 顯示最新的修改要求（如果有） */}
+                            {selectedTask.approvalRecords &&
+                              selectedTask.approvalRecords.length > 0 &&
+                              (() => {
+                                const latestRevision =
+                                  selectedTask.approvalRecords.find(
+                                    (r: ApprovalRecord) =>
+                                      r.action === "request_revision" ||
+                                      r.action === "pending_documents"
+                                  );
+                                if (latestRevision) {
+                                  return (
+                                    <div className="bg-white border border-pink-100 rounded-lg p-3 text-sm">
+                                      <p className="font-medium text-gray-700 mb-2">
+                                        審批意見：
+                                      </p>
+                                      {latestRevision.revisionReason && (
+                                        <p className="text-gray-600">
+                                          原因類別：
+                                          {latestRevision.revisionReason}
+                                        </p>
+                                      )}
+                                      {latestRevision.revisionDetail && (
+                                        <p className="text-gray-600 mt-1">
+                                          修改說明：
+                                          {latestRevision.revisionDetail}
+                                        </p>
+                                      )}
+                                      {latestRevision.revisionDeadline && (
+                                        <p className="text-gray-600 mt-1">
+                                          期限：
+                                          {new Date(
+                                            latestRevision.revisionDeadline
+                                          ).toLocaleDateString("zh-TW")}
+                                        </p>
+                                      )}
+                                      {latestRevision.comment &&
+                                        !latestRevision.revisionDetail && (
+                                          <p className="text-gray-600">
+                                            {latestRevision.comment}
+                                          </p>
+                                        )}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                備註說明（選填）
+                              </label>
+                              <textarea
+                                value={resubmitNotes}
+                                onChange={(e) =>
+                                  setResubmitNotes(e.target.value)
+                                }
+                                rows={3}
+                                placeholder="說明您所做的修改或補件內容..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                              />
+                            </div>
+
+                            <button
+                              onClick={handleResubmit}
+                              disabled={resubmitting}
+                              className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                            >
+                              {resubmitting ? "送出中..." : "確認重新送出"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                   </>
                 )}
               </div>
@@ -4320,9 +4980,13 @@ function AdminTasksContent() {
                       className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
                     >
                       <div>
-                        <p className="font-medium text-gray-900">{type.label}</p>
+                        <p className="font-medium text-gray-900">
+                          {type.label}
+                        </p>
                         {type.description && (
-                          <p className="text-sm text-gray-600">{type.description}</p>
+                          <p className="text-sm text-gray-600">
+                            {type.description}
+                          </p>
                         )}
                       </div>
                       <button
@@ -4348,7 +5012,12 @@ function AdminTasksContent() {
                 <div className="flex gap-3 pt-4 border-t">
                   <button
                     onClick={async () => {
-                      console.log("[稍後處理] 點擊，lastCreatedTaskId:", lastCreatedTaskId, "triggeredTaskTypes:", triggeredTaskTypes);
+                      console.log(
+                        "[稍後處理] 點擊，lastCreatedTaskId:",
+                        lastCreatedTaskId,
+                        "triggeredTaskTypes:",
+                        triggeredTaskTypes
+                      );
                       // 創建待處理提醒
                       if (lastCreatedTaskId && triggeredTaskTypes.length > 0) {
                         try {
@@ -4356,8 +5025,14 @@ function AdminTasksContent() {
                             taskTypeId: Number(t.id),
                             taskTypeLabel: t.label,
                           }));
-                          console.log("[稍後處理] 準備創建提醒:", remindersData);
-                          await createReminders(lastCreatedTaskId, remindersData);
+                          console.log(
+                            "[稍後處理] 準備創建提醒:",
+                            remindersData
+                          );
+                          await createReminders(
+                            lastCreatedTaskId,
+                            remindersData
+                          );
                           console.log("[稍後處理] 提醒創建成功");
                         } catch (e) {
                           console.error("[稍後處理] 創建提醒失敗:", e);
