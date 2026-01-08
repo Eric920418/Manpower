@@ -191,8 +191,8 @@ export const FranchisePage = () => {
   const sections = [
     { id: "hero", label: "Hero 區塊" },
     { id: "marketOpportunity", label: "市場趨勢" },
-    { id: "partnershipAdvantages", label: "合作優勢" },
-    { id: "franchiseProcess", label: "加盟詳情" },
+    { id: "partnershipAdvantages", label: "加盟詳情" },
+    { id: "franchiseProcess", label: "加盟流程" },
     { id: "franchiseeSharing", label: "加盟主分享" },
     { id: "cta", label: "CTA 區塊" },
   ];
