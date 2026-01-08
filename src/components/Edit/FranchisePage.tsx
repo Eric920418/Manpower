@@ -190,9 +190,9 @@ export const FranchisePage = () => {
 
   const sections = [
     { id: "hero", label: "Hero 區塊" },
-    { id: "marketOpportunity", label: "市場機會" },
+    { id: "marketOpportunity", label: "市場趨勢" },
     { id: "partnershipAdvantages", label: "合作優勢" },
-    { id: "franchiseProcess", label: "加盟流程" },
+    { id: "franchiseProcess", label: "加盟詳情" },
     { id: "franchiseeSharing", label: "加盟主分享" },
     { id: "cta", label: "CTA 區塊" },
   ];
@@ -272,10 +272,10 @@ export const FranchisePage = () => {
         </div>
       )}
 
-      {/* 市場機會 */}
+      {/* 市場趨勢 */}
       {activeSection === "marketOpportunity" && (
         <div className="bg-gray-100 p-6 rounded-lg mb-6">
-          <h2 className="text-2xl font-bold mb-4">市場機會設定</h2>
+          <h2 className="text-2xl font-bold mb-4">市場趨勢設定</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">標題</label>
@@ -704,10 +704,10 @@ export const FranchisePage = () => {
         </div>
       )}
 
-      {/* 加盟流程 */}
+      {/* 加盟詳情 */}
       {activeSection === "franchiseProcess" && (
         <div className="bg-gray-100 p-6 rounded-lg mb-6">
-          <h2 className="text-2xl font-bold mb-4">加盟流程設定</h2>
+          <h2 className="text-2xl font-bold mb-4">加盟詳情設定</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">標題</label>

@@ -72,6 +72,7 @@ const actionLabels: Record<string, string> = {
   set_assignments: "設定分配",
   update_permissions: "更新權限",
   apply_global_assignments: "套用預設分配",
+  sync_global_assignment_batch: "同步預設分配",
   complete_check: "標記完成",
   complete_uncheck: "取消完成",
   review_check: "標記複審",
@@ -120,6 +121,247 @@ const formatDetails = (action: string, entity: string, details: Record<string, u
   if (details.comment) parts.push(`${details.comment}`);
 
   return parts.join(" | ");
+};
+
+// 狀態中文對照
+const statusLabels: Record<string, string> = {
+  PENDING: "待處理",
+  PENDING_DOCUMENTS: "待補件",
+  PENDING_REVIEW: "待複審",
+  REVISION_REQUESTED: "要求修改",
+  APPROVED: "已批准",
+  REJECTED: "已退回",
+  COMPLETED: "已完成",
+  REVIEWED: "已複審",
+};
+
+// 判斷是否有可展開的詳情（行政任務的操作）
+const hasExpandableDetails = (action: string, entity: string, details: Record<string, unknown> | null): boolean => {
+  if (entity !== "admin_task") return false;
+  if (!details) return false;
+
+  // 刪除操作使用原有的 snapshot 邏輯
+  if (action === "delete") return !!details.snapshot;
+
+  // 更新操作：檢查是否有詳細的變更資訊
+  if (action === "update") {
+    return !!(details.basicInfoChanges || details.notesChange || details.payloadChanges);
+  }
+
+  // 狀態變更操作
+  if (action === "update_status") {
+    return !!(details.oldStatus || details.newStatus);
+  }
+
+  // 審批相關操作
+  if (["approve", "reject", "pending_documents", "request_revision"].includes(action)) {
+    return !!(details.action || details.comment || details.newStatus);
+  }
+
+  // 複審相關操作
+  if (["submit_for_review", "review_approve", "review_reject"].includes(action)) {
+    return !!(details.taskNo || details.action || details.comment);
+  }
+
+  // 完成確認和複審確認
+  if (["complete_check", "complete_uncheck", "review_check", "review_uncheck"].includes(action)) {
+    return !!(details.checked !== undefined || details.newStatus);
+  }
+
+  // 重新送出
+  if (action === "resubmit") {
+    return !!(details.previousStatus || details.newStatus);
+  }
+
+  // 分配操作
+  if (["assign_processor", "assign_approver"].includes(action)) {
+    return !!(details.processorId || details.approverId);
+  }
+
+  // 備註更新
+  if (action === "update_task_remarks") {
+    return !!details.remarks;
+  }
+
+  // 附件操作
+  if (["upload_attachment", "delete_attachment"].includes(action)) {
+    return !!details.filename;
+  }
+
+  return false;
+};
+
+// 格式化操作詳情（用於展開視窗）
+interface ChangeDetail {
+  label: string;
+  oldValue?: string | null;
+  newValue?: string | null;
+  value?: string;
+}
+
+const formatActionDetails = (action: string, details: Record<string, unknown>): ChangeDetail[] => {
+  const result: ChangeDetail[] = [];
+
+  // 更新操作
+  if (action === "update") {
+    // 基本資訊變更
+    const basicChanges = details.basicInfoChanges as Array<{
+      field: string;
+      fieldLabel: string;
+      oldValue: string | null;
+      newValue: string | null;
+    }> | undefined;
+
+    if (basicChanges && basicChanges.length > 0) {
+      for (const change of basicChanges) {
+        result.push({
+          label: change.fieldLabel,
+          oldValue: change.oldValue || "(空)",
+          newValue: change.newValue || "(空)",
+        });
+      }
+    }
+
+    // notes 變更
+    const notesChange = details.notesChange as { oldValue: string | null; newValue: string | null } | undefined;
+    if (notesChange) {
+      result.push({
+        label: "內部備註",
+        oldValue: notesChange.oldValue || "(空)",
+        newValue: notesChange.newValue || "(空)",
+      });
+    }
+
+    // payload 變更
+    const payloadChanges = details.payloadChanges as Array<{
+      field: string;
+      oldValue: unknown;
+      newValue: unknown;
+    }> | undefined;
+
+    if (payloadChanges && payloadChanges.length > 0) {
+      for (const change of payloadChanges) {
+        const formatValue = (val: unknown): string => {
+          if (val === null || val === undefined || val === "") return "(空)";
+          if (typeof val === "object") return JSON.stringify(val);
+          return String(val);
+        };
+        result.push({
+          label: `表單欄位: ${change.field}`,
+          oldValue: formatValue(change.oldValue),
+          newValue: formatValue(change.newValue),
+        });
+      }
+    }
+  }
+
+  // 狀態變更
+  if (action === "update_status") {
+    const oldStatus = details.oldStatus as string | undefined;
+    const newStatus = details.newStatus as string | undefined;
+    if (oldStatus || newStatus) {
+      result.push({
+        label: "狀態變更",
+        oldValue: statusLabels[oldStatus || ""] || oldStatus || "(空)",
+        newValue: statusLabels[newStatus || ""] || newStatus || "(空)",
+      });
+    }
+  }
+
+  // 審批操作
+  if (["approve", "reject", "pending_documents", "request_revision"].includes(action)) {
+    if (details.newStatus) {
+      result.push({
+        label: "新狀態",
+        value: statusLabels[details.newStatus as string] || (details.newStatus as string),
+      });
+    }
+    if (details.comment) {
+      result.push({
+        label: "審批意見",
+        value: details.comment as string,
+      });
+    }
+  }
+
+  // 完成確認和複審確認
+  if (["complete_check", "complete_uncheck", "review_check", "review_uncheck"].includes(action)) {
+    const checked = details.checked as boolean | undefined;
+    if (checked !== undefined) {
+      result.push({
+        label: "操作",
+        value: checked ? "打勾確認" : "取消確認",
+      });
+    }
+    const hasReviewer = details.hasReviewer as boolean | undefined;
+    if (hasReviewer !== undefined) {
+      result.push({
+        label: "有複審人",
+        value: hasReviewer ? "是" : "否",
+      });
+    }
+    if (details.newStatus) {
+      result.push({
+        label: "新狀態",
+        value: statusLabels[details.newStatus as string] || (details.newStatus as string),
+      });
+    }
+  }
+
+  // 重新送出
+  if (action === "resubmit") {
+    if (details.previousStatus) {
+      result.push({
+        label: "原狀態",
+        value: statusLabels[details.previousStatus as string] || (details.previousStatus as string),
+      });
+    }
+    if (details.newStatus) {
+      result.push({
+        label: "新狀態",
+        value: statusLabels[details.newStatus as string] || (details.newStatus as string),
+      });
+    }
+  }
+
+  // 備註更新
+  if (action === "update_task_remarks") {
+    if (details.remarks) {
+      result.push({
+        label: "備註內容",
+        value: details.remarks as string,
+      });
+    }
+  }
+
+  // 附件操作
+  if (["upload_attachment", "delete_attachment"].includes(action)) {
+    if (details.filename) {
+      result.push({
+        label: "檔案名稱",
+        value: details.filename as string,
+      });
+    }
+    if (details.size) {
+      const sizeInKB = Math.round((details.size as number) / 1024);
+      result.push({
+        label: "檔案大小",
+        value: sizeInKB > 1024 ? `${(sizeInKB / 1024).toFixed(2)} MB` : `${sizeInKB} KB`,
+      });
+    }
+  }
+
+  // 複審相關操作
+  if (["submit_for_review", "review_approve", "review_reject"].includes(action)) {
+    if (details.comment) {
+      result.push({
+        label: "意見",
+        value: details.comment as string,
+      });
+    }
+  }
+
+  return result;
 };
 
 export default function ActivityLogsPage() {
@@ -906,13 +1148,20 @@ export default function ActivityLogsPage() {
                                   <div className="text-gray-800">
                                     {formatDetails(log.action, log.entity, log.details) || "操作已完成"}
                                   </div>
-                                  {/* 刪除操作且有快照時顯示展開按鈕 */}
-                                  {log.action === "delete" && snapshot && (
+                                  {/* 行政任務操作且有可展開的詳情時顯示展開按鈕 */}
+                                  {hasExpandableDetails(log.action, log.entity, log.details) && (
                                     <button
                                       onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
                                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                                     >
-                                      <span>{isExpanded ? "▼ 收合詳情" : "▶ 查看被刪除的內容"}</span>
+                                      <span>
+                                        {isExpanded
+                                          ? "▼ 收合詳情"
+                                          : log.action === "delete"
+                                            ? "▶ 查看被刪除的內容"
+                                            : "▶ 查看變更詳情"
+                                        }
+                                      </span>
                                     </button>
                                   )}
                                 </div>
@@ -921,8 +1170,8 @@ export default function ActivityLogsPage() {
                               )}
                             </td>
                           </tr>
-                          {/* 展開的詳情列 */}
-                          {isExpanded && snapshot && (
+                          {/* 展開的詳情列 - 刪除操作 */}
+                          {isExpanded && log.action === "delete" && snapshot && (
                             <tr className="bg-gray-50">
                               <td colSpan={5} className="px-4 py-4">
                                 <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -953,6 +1202,44 @@ export default function ActivityLogsPage() {
                                       </p>
                                     </div>
                                   )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          {/* 展開的詳情列 - 其他操作（更新、審批等） */}
+                          {isExpanded && log.action !== "delete" && details && hasExpandableDetails(log.action, log.entity, details) && (
+                            <tr className="bg-blue-50/30">
+                              <td colSpan={5} className="px-4 py-4">
+                                <div className="bg-white rounded-lg border border-blue-200 p-4">
+                                  <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                                    <span className="text-blue-500">📝</span>
+                                    {actionLabels[log.action] || log.action}操作詳情
+                                  </h4>
+                                  <div className="space-y-3">
+                                    {formatActionDetails(log.action, details).map((item, index) => (
+                                      <div key={index} className="bg-gray-50 rounded px-3 py-2">
+                                        <div className="text-xs text-gray-500 mb-1">{item.label}</div>
+                                        {item.oldValue !== undefined && item.newValue !== undefined ? (
+                                          <div className="flex items-center gap-2 text-sm">
+                                            <span className="text-red-600 line-through bg-red-50 px-2 py-0.5 rounded">
+                                              {item.oldValue}
+                                            </span>
+                                            <span className="text-gray-400">→</span>
+                                            <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                              {item.newValue}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <div className="text-sm text-gray-900 break-all">
+                                            {item.value}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {formatActionDetails(log.action, details).length === 0 && (
+                                      <div className="text-sm text-gray-500">無詳細變更資訊</div>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
                             </tr>

@@ -34,6 +34,22 @@ type RemarkRecord {
   timestamp: String!
 }
 
+# 基本資訊變更項目
+type BasicInfoChange {
+  field: String!
+  fieldLabel: String!
+  oldValue: String
+  newValue: String
+}
+
+# 基本資訊編輯記錄
+type BasicInfoRecord {
+  userId: String!
+  userName: String!
+  changes: [BasicInfoChange!]!
+  timestamp: String!
+}
+
 # 行政任務附件
 type AdminTaskAttachment {
   id: ID!
@@ -101,10 +117,14 @@ type AdminTask {
 
   # 細節（任務創建時填寫）
   notes: String
+  notesHistory: [RemarkRecord!]!  # 細節編輯記錄
 
   # 備註（負責人/複審人後續添加）
   remarks: String
   remarksHistory: [RemarkRecord!]!  # 備註編輯記錄
+
+  # 基本資訊編輯記錄
+  basicInfoHistory: [BasicInfoRecord!]!
 
   # 附件
   attachments: [AdminTaskAttachment!]!

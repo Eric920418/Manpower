@@ -273,8 +273,10 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
   reviewedAt: formatDate(task.reviewedAt),
   reviewedBy: task.reviewedBy,
   notes: task.notes,
+  notesHistory: (task.notesHistory as Array<{ userId: string; userName: string; content: string; timestamp: string }>) || [],
   remarks: task.remarks,
   remarksHistory: (task.remarksHistory as Array<{ userId: string; userName: string; content: string; timestamp: string }>) || [],
+  basicInfoHistory: (task.basicInfoHistory as Array<{ userId: string; userName: string; changes: Array<{ field: string; fieldLabel: string; oldValue: string | null; newValue: string | null }>; timestamp: string }>) || [],
   attachments: task.attachments.map((att) => ({
     id: att.id,
     filename: att.filename,
@@ -459,7 +461,7 @@ export const adminTaskResolvers = {
         where.assignments = {
           some: {
             userId: args.handlerId,
-            role: "HANDLER",
+            role: "HANDLER" as const,
           },
         };
       }
@@ -1038,15 +1040,87 @@ export const adminTaskResolvers = {
 
       const updateData: Prisma.AdminTaskUpdateInput = {};
 
-      if (args.input.title !== undefined) updateData.title = args.input.title;
+      // 記錄基本資訊變更
+      const basicInfoChanges: Array<{ field: string; fieldLabel: string; oldValue: string | null; newValue: string | null }> = [];
+
+      // 欄位標籤映射
+      const fieldLabels: Record<string, string> = {
+        title: "任務標題",
+        deadline: "完成限期",
+        applicantName: "申請人名稱",
+        processorName: "負責人名稱",
+        approvalRoute: "審批路線",
+      };
+
+      // 格式化日期顯示
+      const formatDateDisplay = (date: Date | string | null | undefined): string | null => {
+        if (!date) return null;
+        const d = typeof date === "string" ? new Date(date) : date;
+        return d.toLocaleString("zh-TW", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      };
+
+      if (args.input.title !== undefined && args.input.title !== existingTask.title) {
+        basicInfoChanges.push({
+          field: "title",
+          fieldLabel: fieldLabels.title,
+          oldValue: existingTask.title,
+          newValue: args.input.title,
+        });
+        updateData.title = args.input.title;
+      } else if (args.input.title !== undefined) {
+        updateData.title = args.input.title;
+      }
+
       if (args.input.taskTypeId !== undefined) {
         updateData.taskType = { connect: { id: args.input.taskTypeId } };
       }
-      if (args.input.applicantName !== undefined) updateData.applicantName = args.input.applicantName;
-      if (args.input.processorName !== undefined) updateData.processorName = args.input.processorName;
-      if (args.input.deadline !== undefined) {
-        updateData.deadline = args.input.deadline ? new Date(args.input.deadline) : null;
+
+      if (args.input.applicantName !== undefined && args.input.applicantName !== existingTask.applicantName) {
+        basicInfoChanges.push({
+          field: "applicantName",
+          fieldLabel: fieldLabels.applicantName,
+          oldValue: existingTask.applicantName,
+          newValue: args.input.applicantName,
+        });
+        updateData.applicantName = args.input.applicantName;
+      } else if (args.input.applicantName !== undefined) {
+        updateData.applicantName = args.input.applicantName;
       }
+
+      if (args.input.processorName !== undefined && args.input.processorName !== existingTask.processorName) {
+        basicInfoChanges.push({
+          field: "processorName",
+          fieldLabel: fieldLabels.processorName,
+          oldValue: existingTask.processorName,
+          newValue: args.input.processorName,
+        });
+        updateData.processorName = args.input.processorName;
+      } else if (args.input.processorName !== undefined) {
+        updateData.processorName = args.input.processorName;
+      }
+
+      if (args.input.deadline !== undefined) {
+        const newDeadline = args.input.deadline ? new Date(args.input.deadline) : null;
+        const oldDeadlineStr = formatDateDisplay(existingTask.deadline);
+        const newDeadlineStr = formatDateDisplay(newDeadline);
+
+        if (oldDeadlineStr !== newDeadlineStr) {
+          basicInfoChanges.push({
+            field: "deadline",
+            fieldLabel: fieldLabels.deadline,
+            oldValue: oldDeadlineStr,
+            newValue: newDeadlineStr,
+          });
+        }
+        updateData.deadline = newDeadline;
+      }
+
       if (args.input.processorId !== undefined) {
         updateData.processor = args.input.processorId
           ? { connect: { id: args.input.processorId } }
@@ -1057,13 +1131,66 @@ export const adminTaskResolvers = {
           ? { connect: { id: args.input.approverId } }
           : { disconnect: true };
       }
-      if (args.input.approvalRoute !== undefined) {
+      if (args.input.approvalRoute !== undefined && args.input.approvalRoute !== existingTask.approvalRoute) {
+        const routeLabels: Record<string, string> = {
+          V_ROUTE: "V 路線",
+          DASH_ROUTE: "- 路線",
+        };
+        basicInfoChanges.push({
+          field: "approvalRoute",
+          fieldLabel: fieldLabels.approvalRoute,
+          oldValue: routeLabels[existingTask.approvalRoute] || existingTask.approvalRoute,
+          newValue: routeLabels[args.input.approvalRoute] || args.input.approvalRoute,
+        });
+        updateData.approvalRoute = args.input.approvalRoute;
+      } else if (args.input.approvalRoute !== undefined) {
         updateData.approvalRoute = args.input.approvalRoute;
       }
+
       if (args.input.payload !== undefined) {
         updateData.payload = args.input.payload as Prisma.InputJsonValue;
       }
-      if (args.input.notes !== undefined) updateData.notes = args.input.notes;
+
+      // 如果有基本資訊變更，記錄到歷史
+      if (basicInfoChanges.length > 0) {
+        const existingBasicInfoHistory = (existingTask.basicInfoHistory as Array<{
+          userId: string;
+          userName: string;
+          changes: Array<{ field: string; fieldLabel: string; oldValue: string | null; newValue: string | null }>;
+          timestamp: string;
+        }>) || [];
+
+        const newBasicInfoRecord = {
+          userId: user.id,
+          userName: user.name || user.email,
+          changes: basicInfoChanges,
+          timestamp: new Date().toISOString(),
+        };
+
+        updateData.basicInfoHistory = [...existingBasicInfoHistory, newBasicInfoRecord];
+      }
+
+      // 如果 notes 有更新，記錄編輯歷史
+      if (args.input.notes !== undefined && args.input.notes !== existingTask.notes) {
+        // 取得現有的 notes 編輯記錄
+        const existingNotesHistory = (existingTask.notesHistory as Array<{
+          userId: string;
+          userName: string;
+          content: string;
+          timestamp: string;
+        }>) || [];
+
+        // 新增編輯記錄
+        const newNotesRecord = {
+          userId: user.id,
+          userName: user.name || user.email,
+          content: args.input.notes || "",
+          timestamp: new Date().toISOString(),
+        };
+
+        updateData.notes = args.input.notes;
+        updateData.notesHistory = [...existingNotesHistory, newNotesRecord];
+      }
 
       const task = await prisma.adminTask.update({
         where: { id: args.input.id },
@@ -1071,14 +1198,57 @@ export const adminTaskResolvers = {
         include: taskInclude,
       });
 
-      // 記錄活動日誌
+      // 記錄活動日誌（包含完整的變更詳情）
+      const activityDetails: Record<string, unknown> = {
+        taskNo: existingTask.taskNo,
+        changes: Object.keys(updateData),
+      };
+
+      // 記錄基本資訊變更的詳情
+      if (basicInfoChanges.length > 0) {
+        activityDetails.basicInfoChanges = basicInfoChanges;
+      }
+
+      // 記錄 notes 變更
+      if (args.input.notes !== undefined && args.input.notes !== existingTask.notes) {
+        activityDetails.notesChange = {
+          oldValue: existingTask.notes,
+          newValue: args.input.notes,
+        };
+      }
+
+      // 記錄 payload 變更（只記錄有變更的欄位）
+      if (args.input.payload !== undefined) {
+        const oldPayload = (existingTask.payload || {}) as Record<string, unknown>;
+        const newPayload = args.input.payload;
+        const payloadChanges: Array<{ field: string; oldValue: unknown; newValue: unknown }> = [];
+
+        // 比較 payload 中的每個欄位
+        const allKeys = new Set([...Object.keys(oldPayload), ...Object.keys(newPayload)]);
+        for (const key of allKeys) {
+          const oldVal = oldPayload[key];
+          const newVal = newPayload[key];
+          if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+            payloadChanges.push({
+              field: key,
+              oldValue: oldVal,
+              newValue: newVal,
+            });
+          }
+        }
+
+        if (payloadChanges.length > 0) {
+          activityDetails.payloadChanges = payloadChanges;
+        }
+      }
+
       await prisma.activityLog.create({
         data: {
           userId: user.id,
           action: "update",
           entity: "admin_task",
           entityId: task.id.toString(),
-          details: { changes: Object.keys(updateData) },
+          details: activityDetails as Prisma.InputJsonValue,
         },
       });
 

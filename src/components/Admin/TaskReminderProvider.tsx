@@ -296,21 +296,15 @@ export function TaskReminderProvider({ children }: { children: React.ReactNode }
           addToast({
             type: "info",
             title: "待處理任務提醒",
-            message: `您有 ${pendingTasks.length} 個待處理任務`,
-            duration: 0, // 不自動關閉
-            action: {
-              label: "查看任務",
-              onClick: () => {
-                router.push(`/admin/admin-tasks?status=PENDING`);
-              },
-            },
+            message: `您有 ${pendingTasks.length} 個待處理任務，請至左側「待處理任務」面板查看`,
+            duration: 8000, // 8 秒後自動關閉
           });
         }
       }
     } catch (error) {
       console.error("檢查提醒時發生錯誤:", error);
     }
-  }, [status, addToast, router, isLoginPage]);
+  }, [status, addToast, isLoginPage]);
 
   // 獲取所有待處理提醒（用於內部狀態管理）
   const refreshReminders = useCallback(async () => {

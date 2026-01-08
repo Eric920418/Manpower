@@ -46,6 +46,22 @@ interface RemarkRecord {
   timestamp: string;
 }
 
+// 基本資訊變更項目
+interface BasicInfoChange {
+  field: string;
+  fieldLabel: string;
+  oldValue: string | null;
+  newValue: string | null;
+}
+
+// 基本資訊編輯記錄
+interface BasicInfoRecord {
+  userId: string;
+  userName: string;
+  changes: BasicInfoChange[];
+  timestamp: string;
+}
+
 // 問題類型
 type QuestionType = "TEXT" | "RADIO" | "CHECKBOX";
 
@@ -138,8 +154,10 @@ interface AdminTask {
   reviewedBy: string | null;
   reviewers: TaskUser[];
   notes: string | null;
+  notesHistory: RemarkRecord[];
   remarks: string | null;
   remarksHistory: RemarkRecord[];
+  basicInfoHistory: BasicInfoRecord[];
   attachments: AdminTaskAttachment[];
   approvalRecords: ApprovalRecord[];
   createdAt: string;
@@ -204,6 +222,7 @@ function AdminTasksContent() {
   const urlSourceTask = searchParams.get("sourceTask");
   const urlReminderId = searchParams.get("reminderId");
   const urlViewTask = searchParams.get("viewTask");
+  const urlStatus = searchParams.get("status");
 
   // 狀態
   const [tasks, setTasks] = useState<AdminTask[]>([]);
@@ -220,6 +239,8 @@ function AdminTasksContent() {
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [applicants, setApplicants] = useState<{ id: string; name: string | null; email: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  // 我的待處理任務（獨立於篩選條件，用於提醒計算）
+  const [myReminderTasks, setMyReminderTasks] = useState<AdminTask[]>([]);
 
   // 模態框狀態
   const [selectedTask, setSelectedTask] = useState<AdminTask | null>(null);
@@ -293,6 +314,9 @@ function AdminTasksContent() {
   // 備註編輯狀態（詳情彈窗內）
   const [editableRemarks, setEditableRemarks] = useState<string>("");
   const [savingRemarks, setSavingRemarks] = useState(false);
+
+  // 審批記錄展開狀態（追蹤哪些輪次被展開）
+  const [expandedApprovalRounds, setExpandedApprovalRounds] = useState<Set<number>>(new Set());
 
   // 排序狀態
   type SortField = "title" | "type" | "applicant" | "status" | "deadline" | "createdAt";
@@ -525,11 +549,28 @@ function AdminTasksContent() {
               }
               payload
               notes
+              notesHistory {
+                userId
+                userName
+                content
+                timestamp
+              }
               remarks
               remarksHistory {
                 userId
                 userName
                 content
+                timestamp
+              }
+              basicInfoHistory {
+                userId
+                userName
+                changes {
+                  field
+                  fieldLabel
+                  oldValue
+                  newValue
+                }
                 timestamp
               }
               attachments {
@@ -569,6 +610,34 @@ function AdminTasksContent() {
         }
       `;
 
+      // 獲取我的待處理任務（用於提醒計算，不受篩選條件影響）
+      const myReminderTasksQuery = `
+        query MyReminderTasks {
+          adminTasks(pageSize: 1000) {
+            items {
+              id
+              status
+              applicant {
+                id
+              }
+              processor {
+                id
+              }
+              approver {
+                id
+              }
+              handlers {
+                id
+              }
+              reviewers {
+                id
+              }
+              reviewedAt
+            }
+          }
+        }
+      `;
+
       const variables: Record<string, unknown> = {
         page: currentPage,
         pageSize: 20,
@@ -594,7 +663,7 @@ function AdminTasksContent() {
 
       // 添加時間戳防止緩存
       const timestamp = Date.now();
-      const [statsRes, taskTypesRes, usersRes, tasksRes] = await Promise.all([
+      const [statsRes, taskTypesRes, usersRes, tasksRes, myReminderTasksRes] = await Promise.all([
         fetch(`/api/graphql?_t=${timestamp}`, {
           method: "POST",
           headers: {
@@ -639,17 +708,29 @@ function AdminTasksContent() {
           cache: "no-store",
           body: JSON.stringify({ query: tasksQuery, variables }),
         }),
+        fetch(`/api/graphql?_t=${timestamp}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+          },
+          credentials: "include",
+          cache: "no-store",
+          body: JSON.stringify({ query: myReminderTasksQuery }),
+        }),
       ]);
 
-      if (!statsRes.ok || !taskTypesRes.ok || !usersRes.ok || !tasksRes.ok) {
-        throw new Error(`HTTP 錯誤: ${statsRes.status || taskTypesRes.status || usersRes.status || tasksRes.status}`);
+      if (!statsRes.ok || !taskTypesRes.ok || !usersRes.ok || !tasksRes.ok || !myReminderTasksRes.ok) {
+        throw new Error(`HTTP 錯誤: ${statsRes.status || taskTypesRes.status || usersRes.status || tasksRes.status || myReminderTasksRes.status}`);
       }
 
-      const [statsData, taskTypesData, usersData, tasksData] = await Promise.all([
+      const [statsData, taskTypesData, usersData, tasksData, myReminderTasksData] = await Promise.all([
         statsRes.json(),
         taskTypesRes.json(),
         usersRes.json(),
         tasksRes.json(),
+        myReminderTasksRes.json(),
       ]);
 
       if (statsData.errors) {
@@ -668,12 +749,17 @@ function AdminTasksContent() {
         console.error("GraphQL Tasks Error:", tasksData.errors);
         throw new Error(tasksData.errors[0].message);
       }
+      if (myReminderTasksData.errors) {
+        console.error("GraphQL MyReminderTasks Error:", myReminderTasksData.errors);
+        throw new Error(myReminderTasksData.errors[0].message);
+      }
 
       setStats(statsData.data.adminTaskStats);
       setTaskTypes(taskTypesData.data.taskTypes);
       setApplicants(usersData.data.users.users);
       setTasks(tasksData.data.adminTasks.items);
       setPageInfo(tasksData.data.adminTasks.pageInfo);
+      setMyReminderTasks(myReminderTasksData.data.adminTasks.items);
     } catch (err) {
       console.error("載入資料失敗：", err);
       const errorMessage = err instanceof Error ? err.message : "未知錯誤";
@@ -689,6 +775,16 @@ function AdminTasksContent() {
       fetchData();
     }
   }, [status, hasAccess, fetchData]);
+
+  // 處理 URL 的 status 參數（從通知跳轉過來時使用）
+  useEffect(() => {
+    if (urlStatus && urlStatus !== statusFilter) {
+      setStatusFilter(urlStatus);
+      setCurrentPage(1);
+      // 清除 URL 參數，避免重複觸發
+      router.replace("/admin/admin-tasks", { scroll: false });
+    }
+  }, [urlStatus, statusFilter, router]);
 
   // 處理 URL 參數（從提醒跳轉過來時自動打開創建對話框）
   useEffect(() => {
@@ -1465,7 +1561,7 @@ function AdminTasksContent() {
           variables: {
             input: {
               taskId: typeof selectedTask.id === "string" ? parseInt(selectedTask.id, 10) : selectedTask.id,
-              notes: "已完成修改",
+              // 不傳 notes 參數，避免覆蓋細節欄位
             },
           },
         }),
@@ -1848,30 +1944,29 @@ function AdminTasksContent() {
   }
 
   // 計算待處理任務數量（根據用戶在案件中的角色）
+  // 使用 myReminderTasks（獨立於篩選條件）來計算，確保提醒數量不受篩選影響
   const currentUserId = session?.user?.id;
 
-  // 待處理：用戶是負責人/處理人/審批人
-  const myPendingTasks = tasks.filter(t =>
+  // 待處理：用戶是負責人（僅檢查 assignments 表中的 HANDLER）
+  const myPendingTasks = myReminderTasks.filter(t =>
     t.status === "PENDING" &&
-    (t.processor?.id === currentUserId ||
-     t.approver?.id === currentUserId ||
-     t.handlers?.some(h => h.id === currentUserId))
+    t.handlers?.some(h => h.id === currentUserId)
   ).length;
 
   // 待補件：用戶是申請人
-  const myPendingDocsTasks = tasks.filter(t =>
+  const myPendingDocsTasks = myReminderTasks.filter(t =>
     t.status === "PENDING_DOCUMENTS" &&
     t.applicant?.id === currentUserId
   ).length;
 
   // 要求修改：用戶是申請人
-  const myRevisionTasks = tasks.filter(t =>
+  const myRevisionTasks = myReminderTasks.filter(t =>
     t.status === "REVISION_REQUESTED" &&
     t.applicant?.id === currentUserId
   ).length;
 
   // 待複審打勾：用戶是複審人
-  const myAwaitingReviewCheck = tasks.filter(t =>
+  const myAwaitingReviewCheck = myReminderTasks.filter(t =>
     t.status === "APPROVED" &&
     t.reviewers?.some(r => r.id === currentUserId) &&
     !t.reviewedAt
@@ -2021,7 +2116,11 @@ function AdminTasksContent() {
                     <div className="border-b border-gray-100">
                       <button
                         onClick={() => {
+                          // 清除所有篩選器，只保留狀態篩選和負責人為當前用戶
                           setStatusFilter("PENDING");
+                          setTypeFilter("all");
+                          setApplicantFilter("all");
+                          setHandlerFilter(currentUserId || "all");
                           setCurrentPage(1);
                           setShowReminderPanel(false);
                         }}
@@ -2045,7 +2144,11 @@ function AdminTasksContent() {
                     <div className="border-b border-gray-100">
                       <button
                         onClick={() => {
+                          // 清除所有篩選器，只保留狀態篩選和申請人為當前用戶
                           setStatusFilter("PENDING_DOCUMENTS");
+                          setTypeFilter("all");
+                          setApplicantFilter(currentUserId || "all");
+                          setHandlerFilter("all");
                           setCurrentPage(1);
                           setShowReminderPanel(false);
                         }}
@@ -2069,7 +2172,11 @@ function AdminTasksContent() {
                     <div className="border-b border-gray-100">
                       <button
                         onClick={() => {
+                          // 清除所有篩選器，只保留狀態篩選
                           setStatusFilter("AWAITING_REVIEW_CHECK");
+                          setTypeFilter("all");
+                          setApplicantFilter("all");
+                          setHandlerFilter("all");
                           setCurrentPage(1);
                           setShowReminderPanel(false);
                         }}
@@ -2093,7 +2200,11 @@ function AdminTasksContent() {
                     <div className="border-b border-gray-100">
                       <button
                         onClick={() => {
+                          // 清除所有篩選器，只保留狀態篩選和申請人為當前用戶
                           setStatusFilter("REVISION_REQUESTED");
+                          setTypeFilter("all");
+                          setApplicantFilter(currentUserId || "all");
+                          setHandlerFilter("all");
                           setCurrentPage(1);
                           setShowReminderPanel(false);
                         }}
@@ -2563,14 +2674,16 @@ function AdminTasksContent() {
                     const isSuperAdmin = userRole === "SUPER_ADMIN";
                     const isCompleteChecked =
                       item.task.status === "COMPLETED" ||
-                      item.task.status === "REVIEWED";
+                      item.task.status === "REVIEWED" ||
+                      item.task.status === "PENDING_REVIEW";
                     const isCompleteLoading =
                       togglingCompleteId === item.task.id;
-                    const isApprovedOrCompleted =
+                    const canToggleComplete =
                       item.task.status === "APPROVED" ||
-                      item.task.status === "COMPLETED";
+                      item.task.status === "COMPLETED" ||
+                      item.task.status === "PENDING_REVIEW";
                     const canCompleteCheck =
-                      (isHandler || isSuperAdmin) && isApprovedOrCompleted;
+                      (isHandler || isSuperAdmin) && canToggleComplete;
                     const hasHandlers =
                       item.task.handlers && item.task.handlers.length > 0;
 
@@ -2709,15 +2822,17 @@ function AdminTasksContent() {
                               const isSuperAdmin = userRole === "SUPER_ADMIN";
                               const isCompleteChecked =
                                 fullChildTask.status === "COMPLETED" ||
-                                fullChildTask.status === "REVIEWED";
+                                fullChildTask.status === "REVIEWED" ||
+                                fullChildTask.status === "PENDING_REVIEW";
                               const isCompleteLoading =
                                 togglingCompleteId === fullChildTask.id;
-                              const isApprovedOrCompleted =
+                              const canToggleComplete =
                                 fullChildTask.status === "APPROVED" ||
-                                fullChildTask.status === "COMPLETED";
+                                fullChildTask.status === "COMPLETED" ||
+                                fullChildTask.status === "PENDING_REVIEW";
                               const canCompleteCheck =
                                 (isHandler || isSuperAdmin) &&
-                                isApprovedOrCompleted;
+                                canToggleComplete;
                               const hasHandlers =
                                 fullChildTask.handlers &&
                                 fullChildTask.handlers.length > 0;
@@ -3065,16 +3180,18 @@ function AdminTasksContent() {
                             const isSuperAdmin = userRole === "SUPER_ADMIN";
                             const isCompleteChecked =
                               item.task.status === "COMPLETED" ||
-                              item.task.status === "REVIEWED";
+                              item.task.status === "REVIEWED" ||
+                              item.task.status === "PENDING_REVIEW";
                             const isCompleteLoading =
                               togglingCompleteId === item.task.id;
-                            // 只有已批准或已完成狀態才能操作 checkbox
-                            const isApprovedOrCompleted =
+                            // 只有已批准、待複審或已完成狀態才能操作 checkbox
+                            const canToggleComplete =
                               item.task.status === "APPROVED" ||
-                              item.task.status === "COMPLETED";
+                              item.task.status === "COMPLETED" ||
+                              item.task.status === "PENDING_REVIEW";
                             const canCompleteCheck =
                               (isHandler || isSuperAdmin) &&
-                              isApprovedOrCompleted;
+                              canToggleComplete;
 
                             // 沒有負責人時不顯示
                             if (
@@ -3105,7 +3222,7 @@ function AdminTasksContent() {
                                       : "cursor-not-allowed text-gray-400 border-gray-300"
                                   } ${isCompleteLoading ? "opacity-50" : ""}`}
                                   title={
-                                    !isApprovedOrCompleted
+                                    !canToggleComplete
                                       ? "只有已批准狀態才能標記完成"
                                       : canCompleteCheck
                                       ? isCompleteChecked
@@ -3306,15 +3423,17 @@ function AdminTasksContent() {
                                     userRole === "SUPER_ADMIN";
                                   const isCompleteChecked =
                                     fullChildTask.status === "COMPLETED" ||
-                                    fullChildTask.status === "REVIEWED";
+                                    fullChildTask.status === "REVIEWED" ||
+                                    fullChildTask.status === "PENDING_REVIEW";
                                   const isCompleteLoading =
                                     togglingCompleteId === fullChildTask.id;
-                                  const isApprovedOrCompleted =
+                                  const canToggleComplete =
                                     fullChildTask.status === "APPROVED" ||
-                                    fullChildTask.status === "COMPLETED";
+                                    fullChildTask.status === "COMPLETED" ||
+                                    fullChildTask.status === "PENDING_REVIEW";
                                   const canCompleteCheck =
                                     (isHandler || isSuperAdmin) &&
-                                    isApprovedOrCompleted;
+                                    canToggleComplete;
 
                                   if (
                                     !fullChildTask.handlers ||
@@ -3347,7 +3466,7 @@ function AdminTasksContent() {
                                           isCompleteLoading ? "opacity-50" : ""
                                         }`}
                                         title={
-                                          !isApprovedOrCompleted
+                                          !canToggleComplete
                                             ? "只有已批准狀態才能標記完成"
                                             : canCompleteCheck
                                             ? isCompleteChecked
@@ -4385,18 +4504,71 @@ function AdminTasksContent() {
                           </div>
                         )}
                       </div>
+
+                      {/* 基本資訊編輯記錄 */}
+                      {selectedTask.basicInfoHistory && selectedTask.basicInfoHistory.length > 0 && (
+                        <div className="mt-3 border-t border-gray-200 pt-3">
+                          <p className="text-xs font-medium text-gray-600 mb-2">編輯記錄</p>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {selectedTask.basicInfoHistory.map((record, index) => (
+                              <div key={index} className="text-xs bg-white p-3 rounded border border-gray-100">
+                                <div className="flex items-center justify-between text-gray-500 mb-2">
+                                  <span className="font-medium text-gray-700">{record.userName}</span>
+                                  <span>{new Date(record.timestamp).toLocaleString("zh-TW")}</span>
+                                </div>
+                                <div className="space-y-1">
+                                  {record.changes.map((change, changeIndex) => (
+                                    <div key={changeIndex} className="flex items-start gap-2">
+                                      <span className="text-gray-500 whitespace-nowrap">{change.fieldLabel}：</span>
+                                      <div className="flex items-center gap-1 flex-wrap">
+                                        <span className="text-red-600 line-through">
+                                          {change.oldValue || "(空)"}
+                                        </span>
+                                        <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                        </svg>
+                                        <span className="text-green-600">
+                                          {change.newValue || "(空)"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 細節（顯示模式） */}
-                    {selectedTask.notes && (
+                    {(selectedTask.notes || (selectedTask.notesHistory && selectedTask.notesHistory.length > 0)) && (
                       <div>
                         <h3 className="text-lg font-bold text-gray-900 mb-4">
                           細節
                         </h3>
-                        <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                            {selectedTask.notes}
+                            {selectedTask.notes || <span className="text-gray-400">尚無細節</span>}
                           </p>
+
+                          {/* 細節編輯記錄 */}
+                          {selectedTask.notesHistory && selectedTask.notesHistory.length > 0 && (
+                            <div className="border-t border-gray-200 pt-3">
+                              <p className="text-xs font-medium text-gray-600 mb-2">編輯記錄</p>
+                              <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {selectedTask.notesHistory.map((record, index) => (
+                                  <div key={index} className="text-xs bg-white p-2 rounded border border-gray-100">
+                                    <div className="flex items-center justify-between text-gray-500 mb-1">
+                                      <span className="font-medium text-gray-700">{record.userName}</span>
+                                      <span>{new Date(record.timestamp).toLocaleString("zh-TW")}</span>
+                                    </div>
+                                    <p className="text-gray-600 whitespace-pre-wrap">{record.content}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -4463,7 +4635,7 @@ function AdminTasksContent() {
                               <div className="border-t border-blue-200 pt-3">
                                 <p className="text-xs font-medium text-gray-600 mb-2">編輯記錄</p>
                                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                                  {[...selectedTask.remarksHistory].reverse().map((record, index) => (
+                                  {selectedTask.remarksHistory.map((record, index) => (
                                     <div key={index} className="text-xs bg-white p-2 rounded border border-gray-100">
                                       <div className="flex items-center justify-between text-gray-500 mb-1">
                                         <span className="font-medium text-gray-700">{record.userName}</span>
@@ -4534,94 +4706,164 @@ function AdminTasksContent() {
                       );
                     })()}
 
-                    {/* 審批記錄 */}
+                    {/* 審批記錄（分組摺疊） */}
                     {selectedTask.approvalRecords.length > 0 && (
                       <div>
                         <h3 className="text-lg font-bold text-gray-900 mb-4">
                           審批記錄
                         </h3>
-                        <div className="space-y-3">
-                          {selectedTask.approvalRecords.map((record) => (
-                            <div
-                              key={record.id}
-                              className="bg-gray-50 p-4 rounded-lg"
-                            >
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <span
-                                    className={`px-2 py-1 text-xs rounded font-medium ${
-                                      record.action === "approve"
-                                        ? "bg-green-100 text-green-800"
-                                        : record.action === "reject"
-                                        ? "bg-red-100 text-red-800"
-                                        : record.action === "pending_documents"
-                                        ? "bg-orange-100 text-orange-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {record.action === "approve"
-                                      ? "批准"
-                                      : record.action === "reject"
-                                      ? "退回"
-                                      : record.action === "pending_documents"
-                                      ? "待補件"
-                                      : "要求修改"}
-                                  </span>
-                                  <span className="ml-2 text-sm text-gray-600">
-                                    {record.approver?.name ||
-                                      record.approver?.email}
-                                  </span>
-                                </div>
-                                <span className="text-xs text-gray-500">
-                                  {formatDate(record.createdAt)}
-                                </span>
-                              </div>
-                              {record.comment && (
-                                <p className="mt-2 text-sm text-gray-700">
-                                  {record.comment}
-                                </p>
-                              )}
-                              {/* 要求修改詳情 */}
-                              {record.action === "request_revision" &&
-                                (record.revisionReason ||
-                                  record.revisionDetail ||
-                                  record.revisionDeadline) && (
-                                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    {record.revisionReason && (
-                                      <div className="flex items-center gap-2 text-sm mb-1">
-                                        <span className="font-medium text-yellow-800">
-                                          原因類別：
+                        {(() => {
+                          // 先按時間排序（從舊到新）
+                          const sortedRecords = [...selectedTask.approvalRecords].sort(
+                            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                          );
+
+                          // 將審批記錄分組：每次 resubmit 開啟新一輪
+                          const rounds: ApprovalRecord[][] = [];
+                          let currentRound: ApprovalRecord[] = [];
+
+                          sortedRecords.forEach((record) => {
+                            if (record.action === "resubmit" && currentRound.length > 0) {
+                              // resubmit 開啟新一輪
+                              rounds.push(currentRound);
+                              currentRound = [record];
+                            } else {
+                              currentRound.push(record);
+                            }
+                          });
+                          if (currentRound.length > 0) {
+                            rounds.push(currentRound);
+                          }
+
+                          // 取得輪次的最後一筆記錄作為摘要
+                          const getRoundSummary = (round: ApprovalRecord[]) => {
+                            const lastRecord = round[round.length - 1];
+                            const firstRecord = round[0];
+                            const actionLabel: Record<string, string> = {
+                              approve: "批准",
+                              reject: "退回",
+                              pending_documents: "待補件",
+                              request_revision: "要求修改",
+                              resubmit: "重新送出",
+                            };
+                            return {
+                              lastAction: actionLabel[lastRecord.action] || lastRecord.action,
+                              lastDate: lastRecord.createdAt,
+                              firstDate: firstRecord.createdAt,
+                              isResubmit: firstRecord.action === "resubmit",
+                            };
+                          };
+
+                          return (
+                            <div className="space-y-2">
+                              {rounds.map((round, roundIndex) => {
+                                const isExpanded = expandedApprovalRounds.has(roundIndex);
+                                const summary = getRoundSummary(round);
+                                const toggleExpand = () => {
+                                  setExpandedApprovalRounds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(roundIndex)) {
+                                      next.delete(roundIndex);
+                                    } else {
+                                      next.add(roundIndex);
+                                    }
+                                    return next;
+                                  });
+                                };
+
+                                return (
+                                  <div key={roundIndex} className="border border-gray-200 rounded-lg overflow-hidden">
+                                    {/* 摺疊標題 */}
+                                    <button
+                                      onClick={toggleExpand}
+                                      className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-gray-400">{isExpanded ? "▼" : "▶"}</span>
+                                        <span className="text-sm font-medium text-gray-700">
+                                          第 {roundIndex + 1} 輪
+                                          {summary.isResubmit && roundIndex > 0 && " (重新送出)"}
                                         </span>
-                                        <span className="text-gray-700">
-                                          {record.revisionReason}
+                                        <span className={`px-2 py-0.5 text-xs rounded font-medium ${
+                                          summary.lastAction === "批准" ? "bg-green-100 text-green-800" :
+                                          summary.lastAction === "退回" ? "bg-red-100 text-red-800" :
+                                          summary.lastAction === "待補件" ? "bg-orange-100 text-orange-800" :
+                                          summary.lastAction === "要求修改" ? "bg-yellow-100 text-yellow-800" :
+                                          "bg-blue-100 text-blue-800"
+                                        }`}>
+                                          {summary.lastAction}
                                         </span>
                                       </div>
-                                    )}
-                                    {record.revisionDetail && (
-                                      <div className="text-sm mb-1">
-                                        <span className="font-medium text-yellow-800">
-                                          修改說明：
-                                        </span>
-                                        <p className="text-gray-700 mt-1">
-                                          {record.revisionDetail}
-                                        </p>
-                                      </div>
-                                    )}
-                                    {record.revisionDeadline && (
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <span className="font-medium text-yellow-800">
-                                          修改期限：
-                                        </span>
-                                        <span className="text-gray-700">
-                                          {formatDate(record.revisionDeadline)}
-                                        </span>
+                                      <span className="text-xs text-gray-500">
+                                        {formatDate(summary.firstDate)}
+                                      </span>
+                                    </button>
+
+                                    {/* 展開內容 */}
+                                    {isExpanded && (
+                                      <div className="p-4 space-y-3 bg-white">
+                                        {round.map((record) => (
+                                          <div key={record.id} className="bg-gray-50 p-3 rounded-lg">
+                                            <div className="flex items-start justify-between">
+                                              <div>
+                                                <span className={`px-2 py-1 text-xs rounded font-medium ${
+                                                  record.action === "approve" ? "bg-green-100 text-green-800" :
+                                                  record.action === "reject" ? "bg-red-100 text-red-800" :
+                                                  record.action === "pending_documents" ? "bg-orange-100 text-orange-800" :
+                                                  record.action === "resubmit" ? "bg-blue-100 text-blue-800" :
+                                                  "bg-yellow-100 text-yellow-800"
+                                                }`}>
+                                                  {record.action === "approve" ? "批准" :
+                                                   record.action === "reject" ? "退回" :
+                                                   record.action === "pending_documents" ? "待補件" :
+                                                   record.action === "resubmit" ? "重新送出" :
+                                                   "要求修改"}
+                                                </span>
+                                                <span className="ml-2 text-sm text-gray-600">
+                                                  {record.approver?.name || record.approver?.email}
+                                                </span>
+                                              </div>
+                                              <span className="text-xs text-gray-500">
+                                                {formatDate(record.createdAt)}
+                                              </span>
+                                            </div>
+                                            {record.comment && (
+                                              <p className="mt-2 text-sm text-gray-700">{record.comment}</p>
+                                            )}
+                                            {/* 要求修改詳情 */}
+                                            {record.action === "request_revision" &&
+                                              (record.revisionReason || record.revisionDetail || record.revisionDeadline) && (
+                                                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                  {record.revisionReason && (
+                                                    <div className="flex items-center gap-2 text-sm mb-1">
+                                                      <span className="font-medium text-yellow-800">原因類別：</span>
+                                                      <span className="text-gray-700">{record.revisionReason}</span>
+                                                    </div>
+                                                  )}
+                                                  {record.revisionDetail && (
+                                                    <div className="text-sm mb-1">
+                                                      <span className="font-medium text-yellow-800">修改說明：</span>
+                                                      <p className="text-gray-700 mt-1">{record.revisionDetail}</p>
+                                                    </div>
+                                                  )}
+                                                  {record.revisionDeadline && (
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                      <span className="font-medium text-yellow-800">修改期限：</span>
+                                                      <span className="text-gray-700">{formatDate(record.revisionDeadline)}</span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                          </div>
+                                        ))}
                                       </div>
                                     )}
                                   </div>
-                                )}
+                                );
+                              })}
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })()}
                       </div>
                     )}
 

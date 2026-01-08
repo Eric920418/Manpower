@@ -235,12 +235,12 @@ export const taskTypeDefaultAssignmentResolvers = {
         include: defaultAssignmentInclude,
       });
 
-      // 實時同步：將新分配套用到該類型所有未完成的現有任務
+      // 實時同步：將新分配套用到該類型所有現有任務（排除已駁回和已複審）
       const existingTasks = await prisma.adminTask.findMany({
         where: {
           taskTypeId: args.input.taskTypeId,
           status: {
-            notIn: [AdminTaskStatus.COMPLETED, AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
+            notIn: [AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
           },
         },
         select: { id: true },
@@ -307,7 +307,7 @@ export const taskTypeDefaultAssignmentResolvers = {
         throw new Error("分配不存在");
       }
 
-      // 實時同步：從該類型所有未完成的現有任務中移除對應分配
+      // 實時同步：從該類型所有現有任務中移除對應分配（排除已駁回和已複審）
       const deleteResult = await prisma.adminTaskAssignment.deleteMany({
         where: {
           userId: assignment.userId,
@@ -315,7 +315,7 @@ export const taskTypeDefaultAssignmentResolvers = {
           task: {
             taskTypeId: assignment.taskTypeId,
             status: {
-              notIn: [AdminTaskStatus.COMPLETED, AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
+              notIn: [AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
             },
           },
         },
@@ -536,12 +536,12 @@ export const taskTypeDefaultAssignmentResolvers = {
       });
 
       // 實時同步到現有任務（在事務外執行，避免長時間鎖定）
-      // 找出該類型所有未完成的任務
+      // 找出該類型所有任務（排除已駁回和已複審）
       const existingTasks = await prisma.adminTask.findMany({
         where: {
           taskTypeId: args.input.taskTypeId,
           status: {
-            notIn: [AdminTaskStatus.COMPLETED, AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
+            notIn: [AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
           },
         },
         select: { id: true },

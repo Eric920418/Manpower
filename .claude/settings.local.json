@@ -31,7 +31,9 @@
       "Bash(pnpm next build:*)",
       "Bash(pnpm prisma migrate dev:*)",
       "Bash(pnpm prisma generate:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(pnpm lint:*)"
     ],
     "deny": [],
     "ask": []
