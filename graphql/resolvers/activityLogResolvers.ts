@@ -42,6 +42,19 @@ const formatUser = (user: { id: string; name: string | null; email: string; role
   role: user.role,
 });
 
+// 實體類型中文對照
+const getEntityLabel = (entity: string): string => {
+  const labels: Record<string, string> = {
+    user: "用戶",
+    admin_task: "行政任務",
+    task_type: "任務類型",
+    navigation: "導航選單",
+    manpower_request: "人力需求",
+    task_assignment: "任務分配",
+  };
+  return labels[entity] || entity;
+};
+
 export const activityLogResolvers = {
   Query: {
     // 獲取活動日誌列表
@@ -55,22 +68,18 @@ export const activityLogResolvers = {
         entity?: string;
         startDate?: string;
         endDate?: string;
+        search?: string;
       },
       context: Context
     ) => {
       requireSystemLogsPermission(context);
 
       const page = args.page || 1;
-      const pageSize = Math.min(args.pageSize || 20, 100);
+      const pageSize = Math.min(args.pageSize || 20, 99999);
       const skip = (page - 1) * pageSize;
 
       // 構建查詢條件
-      const where: {
-        userId?: string;
-        action?: string;
-        entity?: string;
-        createdAt?: { gte?: Date; lte?: Date };
-      } = {};
+      const where: Prisma.ActivityLogWhereInput = {};
 
       if (args.userId) where.userId = args.userId;
       if (args.action) where.action = args.action;
@@ -79,14 +88,32 @@ export const activityLogResolvers = {
       if (args.startDate || args.endDate) {
         where.createdAt = {};
         if (args.startDate) {
-          where.createdAt.gte = new Date(args.startDate);
+          (where.createdAt as Prisma.DateTimeFilter).gte = new Date(args.startDate);
         }
         if (args.endDate) {
           // 設置為當天結束
           const endDate = new Date(args.endDate);
           endDate.setHours(23, 59, 59, 999);
-          where.createdAt.lte = endDate;
+          (where.createdAt as Prisma.DateTimeFilter).lte = endDate;
         }
+      }
+
+      // 搜尋任務編號或任務名稱（在 details JSON 中）
+      if (args.search) {
+        where.OR = [
+          {
+            details: {
+              path: ["taskNo"],
+              string_contains: args.search,
+            },
+          },
+          {
+            details: {
+              path: ["title"],
+              string_contains: args.search,
+            },
+          },
+        ];
       }
 
       const [items, total] = await Promise.all([
@@ -145,19 +172,17 @@ export const activityLogResolvers = {
           prisma.activityLog.count({
             where: { createdAt: { gte: monthStart } },
           }),
-          // 按操作類型統計
+          // 按操作類型統計（取全部）
           prisma.activityLog.groupBy({
             by: ["action"],
             _count: { action: true },
             orderBy: { _count: { action: "desc" } },
-            take: 10,
           }),
-          // 按實體類型統計
+          // 按實體類型統計（取全部）
           prisma.activityLog.groupBy({
             by: ["entity"],
             _count: { entity: true },
             orderBy: { _count: { entity: "desc" } },
-            take: 10,
           }),
         ]);
 
@@ -218,18 +243,35 @@ export const activityLogResolvers = {
 
         switch (log.entity) {
           case "admin_task": {
-            // 檢查任務編號是否已存在（避免重複）
+            // 檢查任務編號是否已存在，如果已存在則生成新編號
+            let taskNo = snapshot.taskNo as string;
             const existingTask = await prisma.adminTask.findUnique({
-              where: { taskNo: snapshot.taskNo as string },
+              where: { taskNo },
             });
+
             if (existingTask) {
-              return { success: false, message: `任務編號 ${snapshot.taskNo} 已存在，無法復原`, restoredId: null };
+              // 生成新的任務編號
+              const today = new Date();
+              const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+              const prefix = `AT-${dateStr}-`;
+
+              const lastTask = await prisma.adminTask.findFirst({
+                where: { taskNo: { startsWith: prefix } },
+                orderBy: { taskNo: "desc" },
+              });
+
+              let nextNum = 1;
+              if (lastTask) {
+                const lastNum = parseInt(lastTask.taskNo.slice(-4), 10);
+                nextNum = lastNum + 1;
+              }
+              taskNo = `${prefix}${nextNum.toString().padStart(4, "0")}`;
             }
 
             // 復原行政任務
             const restoredTask = await prisma.adminTask.create({
               data: {
-                taskNo: snapshot.taskNo as string,
+                taskNo,
                 taskTypeId: snapshot.taskTypeId as number,
                 title: snapshot.title as string,
                 parentTaskId: snapshot.parentTaskId as number | null,
@@ -243,16 +285,21 @@ export const activityLogResolvers = {
                 deadline: snapshot.deadline ? new Date(snapshot.deadline as string) : null,
                 receivedAt: snapshot.receivedAt ? new Date(snapshot.receivedAt as string) : null,
                 completedAt: snapshot.completedAt ? new Date(snapshot.completedAt as string) : null,
+                reviewedAt: snapshot.reviewedAt ? new Date(snapshot.reviewedAt as string) : null,
+                reviewedBy: snapshot.reviewedBy as string | null,
                 status: snapshot.status as AdminTaskStatus,
                 approvalRoute: snapshot.approvalRoute as ApprovalRoute,
                 approvalMark: snapshot.approvalMark as string | null,
                 payload: snapshot.payload as Prisma.InputJsonValue || {},
                 notes: snapshot.notes as string | null,
+                remarks: snapshot.remarks as string | null,
+                remarksHistory: snapshot.remarksHistory as Prisma.InputJsonValue || [],
               },
             });
             restoredId = restoredTask.id.toString();
 
             // 記錄復原操作
+            const originalTaskNo = snapshot.taskNo as string;
             await prisma.activityLog.create({
               data: {
                 userId: context.user.id,
@@ -263,10 +310,17 @@ export const activityLogResolvers = {
                   taskNo: restoredTask.taskNo,
                   title: restoredTask.title,
                   originalLogId: args.logId,
+                  ...(originalTaskNo !== restoredTask.taskNo && { originalTaskNo }),
                 },
               },
             });
-            break;
+
+            // 回傳成功訊息（包含新編號提示）
+            const message = originalTaskNo !== restoredTask.taskNo
+              ? `任務已復原，原編號 ${originalTaskNo} 已存在，已分配新編號 ${restoredTask.taskNo}`
+              : `任務 ${restoredTask.taskNo} 已成功復原`;
+
+            return { success: true, message, restoredId };
           }
 
           case "user": {
@@ -507,17 +561,4 @@ export const activityLogResolvers = {
       }
     },
   },
-};
-
-// 實體類型中文對照
-const getEntityLabel = (entity: string): string => {
-  const labels: Record<string, string> = {
-    user: "用戶",
-    admin_task: "行政任務",
-    task_type: "任務類型",
-    navigation: "導航選單",
-    manpower_request: "人力需求",
-    task_assignment: "任務分配",
-  };
-  return labels[entity] || entity;
 };

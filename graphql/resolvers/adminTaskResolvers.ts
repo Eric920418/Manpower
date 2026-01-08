@@ -274,6 +274,7 @@ const formatTask = (task: Prisma.AdminTaskGetPayload<{
   reviewedBy: task.reviewedBy,
   notes: task.notes,
   remarks: task.remarks,
+  remarksHistory: (task.remarksHistory as Array<{ userId: string; userName: string; content: string; timestamp: string }>) || [],
   attachments: task.attachments.map((att) => ({
     id: att.id,
     filename: att.filename,
@@ -438,10 +439,10 @@ export const adminTaskResolvers = {
           some: { role: "REVIEWER" },
         };
       } else if ((args.status as string) === "OVERDUE") {
-        // 特殊篩選：逾期的（截止日期已過 + 狀態非已複審/已退回）
+        // 特殊篩選：逾期的（截止日期已過 + 尚未完成的狀態）
         where.deadline = { lt: new Date() };
         where.status = {
-          in: ["PENDING", "PENDING_DOCUMENTS", "PENDING_REVIEW", "REVISION_REQUESTED", "APPROVED", "COMPLETED"],
+          in: ["PENDING", "PENDING_DOCUMENTS", "REVISION_REQUESTED", "APPROVED"],
         };
       } else if (args.status) {
         where.status = args.status as AdminTaskStatus;
@@ -566,7 +567,7 @@ export const adminTaskResolvers = {
         prisma.adminTask.count({
           where: {
             ...taskTypeFilter,
-            status: { in: ["PENDING", "PENDING_DOCUMENTS", "PENDING_REVIEW", "REVISION_REQUESTED", "APPROVED", "COMPLETED"] },
+            status: { in: ["PENDING", "PENDING_DOCUMENTS", "REVISION_REQUESTED", "APPROVED"] },
             deadline: { lt: now },
           },
         }),
@@ -1780,7 +1781,7 @@ export const adminTaskResolvers = {
       return formatTask(updatedTask);
     },
 
-    // 完成確認打勾（只有負責人可操作，將已批准改為已完成）
+    // 完成確認打勾（只有負責人可操作，將已批准改為已完成或待複審）
     toggleCompleteCheck: async (
       _: unknown,
       args: { taskId: number; checked: boolean },
@@ -1788,14 +1789,11 @@ export const adminTaskResolvers = {
     ) => {
       const user = requireAuth(context);
 
-      // 獲取任務
+      // 獲取任務（包含負責人和複審人）
       const task = await prisma.adminTask.findUnique({
         where: { id: args.taskId },
         include: {
-          assignments: {
-            where: { role: "HANDLER" },
-            select: { userId: true },
-          },
+          assignments: true,
         },
       });
 
@@ -1804,28 +1802,38 @@ export const adminTaskResolvers = {
       }
 
       // 檢查是否為負責人（只有負責人可以打勾）
-      const isHandler = task.assignments.some((a) => a.userId === user.id);
+      const isHandler = task.assignments.some((a) => a.userId === user.id && a.role === "HANDLER");
       const isSuperAdmin = user.role === "SUPER_ADMIN";
 
       if (!isHandler && !isSuperAdmin) {
         throw new Error("權限不足：只有被指定的負責人可以進行完成確認");
       }
 
-      // 檢查狀態：打勾時必須是已批准，取消時必須是已完成
+      // 檢查是否有複審人
+      const hasReviewer = task.assignments.some((a) => a.role === "REVIEWER");
+
+      // 檢查狀態：打勾時必須是已批准，取消時必須是已完成或待複審
       if (args.checked && task.status !== "APPROVED") {
         throw new Error("只有已批准狀態的案件才能標記為完成");
       }
-      if (!args.checked && task.status !== "COMPLETED") {
-        throw new Error("只有已完成狀態的案件才能取消完成標記");
+      if (!args.checked && task.status !== "COMPLETED" && task.status !== "PENDING_REVIEW") {
+        throw new Error("只有已完成或待複審狀態的案件才能取消完成標記");
+      }
+
+      // 決定新狀態：有複審人則待複審，無複審人則已完成
+      let newStatus: "COMPLETED" | "PENDING_REVIEW" | "APPROVED";
+      if (args.checked) {
+        newStatus = hasReviewer ? "PENDING_REVIEW" : "COMPLETED";
+      } else {
+        newStatus = "APPROVED";
       }
 
       // 更新完成確認狀態
       const updatedTask = await prisma.adminTask.update({
         where: { id: args.taskId },
         data: {
-          // 打勾時狀態改為已完成，取消打勾時改回已批准
-          status: args.checked ? "COMPLETED" : "APPROVED",
-          completedAt: args.checked ? new Date() : null,
+          status: newStatus,
+          completedAt: args.checked && !hasReviewer ? new Date() : null,
         },
         include: taskInclude,
       });
@@ -1840,6 +1848,8 @@ export const adminTaskResolvers = {
           details: {
             taskNo: task.taskNo,
             checked: args.checked,
+            hasReviewer,
+            newStatus,
           },
         },
       });
@@ -1878,14 +1888,23 @@ export const adminTaskResolvers = {
         throw new Error("權限不足：只有被指定的複審人可以進行複審確認");
       }
 
-      // 更新複審確認狀態，打勾時狀態改為已複審，取消時改回已完成
+      // 檢查狀態：打勾時必須是待複審或已完成，取消時必須是已複審
+      if (args.checked && task.status !== "PENDING_REVIEW" && task.status !== "COMPLETED") {
+        throw new Error("只有待複審或已完成狀態的案件才能進行複審確認");
+      }
+      if (!args.checked && task.status !== "REVIEWED") {
+        throw new Error("只有已複審狀態的案件才能取消複審確認");
+      }
+
+      // 更新複審確認狀態
       const updatedTask = await prisma.adminTask.update({
         where: { id: args.taskId },
         data: {
           reviewedAt: args.checked ? new Date() : null,
           reviewedBy: args.checked ? user.id : null,
-          // 打勾時狀態改為已複審，取消打勾時改回已完成
-          status: args.checked ? "REVIEWED" : "COMPLETED",
+          completedAt: args.checked ? new Date() : null,
+          // 打勾時狀態改為已複審，取消打勾時改回待複審
+          status: args.checked ? "REVIEWED" : "PENDING_REVIEW",
         },
         include: taskInclude,
       });
@@ -1907,7 +1926,7 @@ export const adminTaskResolvers = {
       return formatTask(updatedTask);
     },
 
-    // 更新任務備註（負責人或複審人可操作，複審後不可編輯）
+    // 更新任務備註（有新增申請權限即可編輯，複審後不可編輯）
     updateTaskRemarks: async (
       _: unknown,
       args: { taskId: number; remarks: string },
@@ -1915,14 +1934,20 @@ export const adminTaskResolvers = {
     ) => {
       const user = requireAuth(context);
 
+      // 檢查權限：有 admin_task:create 權限即可編輯備註
+      const hasCreatePermission = hasPermissionWithCustom(
+        user.role as Role,
+        "admin_task:create",
+        user.customPermissions as CustomPermissions | undefined
+      );
+
+      if (!hasCreatePermission) {
+        throw new Error("權限不足：需要新增申請權限才能編輯備註");
+      }
+
       // 獲取任務
       const task = await prisma.adminTask.findUnique({
         where: { id: args.taskId },
-        include: {
-          assignments: {
-            select: { userId: true, role: true },
-          },
-        },
       });
 
       if (!task) {
@@ -1934,24 +1959,28 @@ export const adminTaskResolvers = {
         throw new Error("此任務已複審完成，無法編輯備註");
       }
 
-      // 檢查權限：只有負責人或複審人可以編輯備註
-      const isHandler = task.assignments.some(
-        (a) => a.userId === user.id && a.role === "HANDLER"
-      );
-      const isReviewer = task.assignments.some(
-        (a) => a.userId === user.id && a.role === "REVIEWER"
-      );
-      const isSuperAdmin = user.role === "SUPER_ADMIN";
+      // 取得現有的備註編輯記錄
+      const existingHistory = (task.remarksHistory as Array<{
+        userId: string;
+        userName: string;
+        content: string;
+        timestamp: string;
+      }>) || [];
 
-      if (!isHandler && !isReviewer && !isSuperAdmin) {
-        throw new Error("權限不足：只有負責人或複審人可以編輯備註");
-      }
+      // 新增編輯記錄
+      const newRecord = {
+        userId: user.id,
+        userName: user.name || user.email,
+        content: args.remarks,
+        timestamp: new Date().toISOString(),
+      };
 
-      // 更新備註
+      // 更新備註和編輯記錄
       const updatedTask = await prisma.adminTask.update({
         where: { id: args.taskId },
         data: {
           remarks: args.remarks,
+          remarksHistory: [...existingHistory, newRecord],
         },
         include: taskInclude,
       });

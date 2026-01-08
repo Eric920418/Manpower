@@ -38,6 +38,14 @@ interface ApprovalRecord {
   createdAt: string;
 }
 
+// 備註編輯記錄
+interface RemarkRecord {
+  userId: string;
+  userName: string;
+  content: string;
+  timestamp: string;
+}
+
 // 問題類型
 type QuestionType = "TEXT" | "RADIO" | "CHECKBOX";
 
@@ -131,6 +139,7 @@ interface AdminTask {
   reviewers: TaskUser[];
   notes: string | null;
   remarks: string | null;
+  remarksHistory: RemarkRecord[];
   attachments: AdminTaskAttachment[];
   approvalRecords: ApprovalRecord[];
   createdAt: string;
@@ -517,6 +526,12 @@ function AdminTasksContent() {
               payload
               notes
               remarks
+              remarksHistory {
+                userId
+                userName
+                content
+                timestamp
+              }
               attachments {
                 id
                 filename
@@ -2188,186 +2203,85 @@ function AdminTasksContent() {
         {/* 統計卡片 - 可點擊快速篩選 */}
         {stats && (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 md:gap-3 mb-4 md:mb-8">
+            {/* 待處理 */}
             <button
-              onClick={() => {
-                setStatusFilter("all");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "all"
-                  ? "ring-2 ring-blue-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("PENDING"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-yellow-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING" ? "ring-2 ring-yellow-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                總計
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-gray-900">
-                {stats.total}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待處理</p>
+              <p className="text-lg md:text-2xl font-bold text-yellow-600">{stats.pending}</p>
             </button>
+            {/* 待補件 */}
             <button
-              onClick={() => {
-                setStatusFilter("PENDING");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-yellow-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "PENDING"
-                  ? "ring-2 ring-yellow-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("PENDING_DOCUMENTS"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING_DOCUMENTS" ? "ring-2 ring-orange-400 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                待處理
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-yellow-600">
-                {stats.pending}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待補件</p>
+              <p className="text-lg md:text-2xl font-bold text-orange-500">{stats.pendingDocuments}</p>
             </button>
+            {/* 要求修改 */}
             <button
-              onClick={() => {
-                setStatusFilter("PENDING_DOCUMENTS");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-orange-400 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "PENDING_DOCUMENTS"
-                  ? "ring-2 ring-orange-400 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("REVISION_REQUESTED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-pink-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REVISION_REQUESTED" ? "ring-2 ring-pink-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                待補件
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-orange-500">
-                {stats.pendingDocuments}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">要求修改</p>
+              <p className="text-lg md:text-2xl font-bold text-pink-600">{stats.revisionRequested}</p>
             </button>
-
+            {/* 已批准 */}
             <button
-              onClick={() => {
-                setStatusFilter("REVISION_REQUESTED");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-pink-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "REVISION_REQUESTED"
-                  ? "ring-2 ring-pink-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("APPROVED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "APPROVED" ? "ring-2 ring-green-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                要求修改
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-pink-600">
-                {stats.revisionRequested}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已批准</p>
+              <p className="text-lg md:text-2xl font-bold text-green-600">{stats.approved}</p>
             </button>
+            {/* 已退回 */}
             <button
-              onClick={() => {
-                setStatusFilter("APPROVED");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-green-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "APPROVED"
-                  ? "ring-2 ring-green-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("REJECTED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-red-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REJECTED" ? "ring-2 ring-red-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                已批准
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-green-600">
-                {stats.approved}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已退回</p>
+              <p className="text-lg md:text-2xl font-bold text-red-600">{stats.rejected}</p>
             </button>
+            {/* 已完成 */}
             <button
-              onClick={() => {
-                setStatusFilter("REJECTED");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-red-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "REJECTED"
-                  ? "ring-2 ring-red-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("COMPLETED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-gray-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "COMPLETED" ? "ring-2 ring-gray-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                已退回
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-red-600">
-                {stats.rejected}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已完成</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-600">{stats.completed}</p>
             </button>
+            {/* 待複審 */}
             <button
-              onClick={() => {
-                setStatusFilter("COMPLETED");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-gray-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "COMPLETED"
-                  ? "ring-2 ring-gray-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("PENDING_REVIEW"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-cyan-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "PENDING_REVIEW" ? "ring-2 ring-cyan-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                已完成
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-gray-600">
-                {stats.completed}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">待複審</p>
+              <p className="text-lg md:text-2xl font-bold text-cyan-600">{stats.pendingReview}</p>
             </button>
+            {/* 已複審 */}
             <button
-              onClick={() => {
-                setStatusFilter("PENDING_REVIEW");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-cyan-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "PENDING_REVIEW"
-                  ? "ring-2 ring-cyan-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("REVIEWED"); setCurrentPage(1); }}
+              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-indigo-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "REVIEWED" ? "ring-2 ring-indigo-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                待複審
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-cyan-600">
-                {stats.pendingReview}
-              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">已複審</p>
+              <p className="text-lg md:text-2xl font-bold text-indigo-600">{stats.reviewed}</p>
             </button>
+            {/* 總計 */}
             <button
-              onClick={() => {
-                setStatusFilter("REVIEWED");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-indigo-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "REVIEWED"
-                  ? "ring-2 ring-indigo-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
+              className={`bg-blue-50 rounded-xl shadow-md p-2 md:p-4 border-l-4 border-blue-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "all" ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                已複審
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-indigo-600">
-                {stats.reviewed}
-              </p>
+              <p className="text-xs md:text-sm text-blue-600 mb-0.5 md:mb-1">= 總計</p>
+              <p className="text-lg md:text-2xl font-bold text-blue-700">{stats.total}</p>
             </button>
+            {/* 逾期 - 特殊樣式：虛線邊框 + 淺紫色背景，表示這是交叉統計 */}
             <button
-              onClick={() => {
-                setStatusFilter("OVERDUE");
-                setCurrentPage(1);
-              }}
-              className={`bg-white rounded-xl shadow-md p-2 md:p-4 border-l-4 border-purple-500 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${
-                statusFilter === "OVERDUE"
-                  ? "ring-2 ring-purple-500 ring-offset-1"
-                  : ""
-              }`}
+              onClick={() => { setStatusFilter("OVERDUE"); setCurrentPage(1); }}
+              className={`bg-purple-50 rounded-xl shadow-md p-2 md:p-4 border-2 border-dashed border-purple-400 text-left transition-all hover:shadow-lg hover:scale-[1.02] ${statusFilter === "OVERDUE" ? "ring-2 ring-purple-500 ring-offset-1" : ""}`}
             >
-              <p className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">
-                逾期
-              </p>
-              <p className="text-lg md:text-2xl font-bold text-purple-600">
-                {stats.overdue}
-              </p>
+              <p className="text-xs md:text-sm text-purple-600 mb-0.5 md:mb-1">⚠ 逾期</p>
+              <p className="text-lg md:text-2xl font-bold text-purple-600">{stats.overdue}</p>
             </button>
           </div>
         )}
@@ -2391,14 +2305,13 @@ function AdminTasksContent() {
                 <option value="all">全部</option>
                 <option value="PENDING">待處理</option>
                 <option value="PENDING_DOCUMENTS">待補件</option>
-                <option value="PENDING_REVIEW">待複審</option>
                 <option value="REVISION_REQUESTED">要求修改</option>
                 <option value="APPROVED">已批准</option>
-                <option value="AWAITING_REVIEW_CHECK">待複審打勾</option>
-                <option value="OVERDUE">逾期的</option>
                 <option value="REJECTED">已退回</option>
                 <option value="COMPLETED">已完成</option>
+                <option value="PENDING_REVIEW">待複審</option>
                 <option value="REVIEWED">已複審</option>
+                <option value="OVERDUE">逾期的</option>
               </select>
             </div>
 
@@ -2663,11 +2576,12 @@ function AdminTasksContent() {
 
                     const isReviewChecked = !!item.task.reviewedAt;
                     const isReviewLoading = togglingReviewId === item.task.id;
-                    const isCompletedOrReviewed =
+                    const canReviewStatus =
+                      item.task.status === "PENDING_REVIEW" ||
                       item.task.status === "COMPLETED" ||
                       item.task.status === "REVIEWED";
                     const canReviewCheck =
-                      (isReviewer || isSuperAdmin) && isCompletedOrReviewed;
+                      (isReviewer || isSuperAdmin) && canReviewStatus;
                     const hasReviewers =
                       item.task.reviewers && item.task.reviewers.length > 0;
 
@@ -2812,12 +2726,13 @@ function AdminTasksContent() {
                                 !!fullChildTask.reviewedAt;
                               const isReviewLoading =
                                 togglingReviewId === fullChildTask.id;
-                              const isCompletedOrReviewed =
+                              const canReviewStatus =
+                                fullChildTask.status === "PENDING_REVIEW" ||
                                 fullChildTask.status === "COMPLETED" ||
                                 fullChildTask.status === "REVIEWED";
                               const canReviewCheck =
                                 (isReviewer || isSuperAdmin) &&
-                                isCompletedOrReviewed;
+                                canReviewStatus;
                               const hasReviewers =
                                 fullChildTask.reviewers &&
                                 fullChildTask.reviewers.length > 0;
@@ -3212,13 +3127,14 @@ function AdminTasksContent() {
                             const isSuperAdmin = userRole === "SUPER_ADMIN";
                             const isChecked = !!item.task.reviewedAt;
                             const isLoading = togglingReviewId === item.task.id;
-                            // 只有已完成或已複審狀態才能操作 checkbox
-                            const isCompletedOrReviewed =
+                            // 只有待複審、已完成或已複審狀態才能操作 checkbox
+                            const canReviewStatus =
+                              item.task.status === "PENDING_REVIEW" ||
                               item.task.status === "COMPLETED" ||
                               item.task.status === "REVIEWED";
                             const canCheck =
                               (isReviewer || isSuperAdmin) &&
-                              isCompletedOrReviewed;
+                              canReviewStatus;
 
                             // 沒有複審人時不顯示
                             if (
@@ -3247,8 +3163,8 @@ function AdminTasksContent() {
                                       : "cursor-not-allowed text-gray-400 border-gray-300"
                                   } ${isLoading ? "opacity-50" : ""}`}
                                   title={
-                                    !isCompletedOrReviewed
-                                      ? "只有已完成狀態才能複審"
+                                    !canReviewStatus
+                                      ? "只有待複審或已完成狀態才能複審"
                                       : canCheck
                                       ? isChecked
                                         ? "點擊取消複審確認"
@@ -3460,13 +3376,14 @@ function AdminTasksContent() {
                                   const isChecked = !!fullChildTask.reviewedAt;
                                   const isLoading =
                                     togglingReviewId === fullChildTask.id;
-                                  // 只有已完成或已複審狀態才能操作 checkbox
-                                  const isCompletedOrReviewed =
+                                  // 只有待複審、已完成或已複審狀態才能操作 checkbox
+                                  const canReviewStatus =
+                                    fullChildTask.status === "PENDING_REVIEW" ||
                                     fullChildTask.status === "COMPLETED" ||
                                     fullChildTask.status === "REVIEWED";
                                   const canCheck =
                                     (isReviewer || isSuperAdmin) &&
-                                    isCompletedOrReviewed;
+                                    canReviewStatus;
 
                                   if (
                                     !fullChildTask.reviewers ||
@@ -3495,8 +3412,8 @@ function AdminTasksContent() {
                                             : "cursor-not-allowed text-gray-400 border-gray-300"
                                         } ${isLoading ? "opacity-50" : ""}`}
                                         title={
-                                          !isCompletedOrReviewed
-                                            ? "只有已完成狀態才能複審"
+                                          !canReviewStatus
+                                            ? "只有待複審或已完成狀態才能複審"
                                             : canCheck
                                             ? isChecked
                                               ? "點擊取消複審確認"
@@ -4484,21 +4401,11 @@ function AdminTasksContent() {
                       </div>
                     )}
 
-                    {/* 備註編輯區（所有任務都顯示，負責人或複審人可編輯，複審後唯讀） */}
+                    {/* 備註編輯區（有新增申請權限即可編輯，複審後唯讀） */}
                     {(() => {
-                      const currentUserId = session?.user?.id;
-                      const isHandler = selectedTask.handlers?.some(
-                        (h) => h.id === currentUserId
-                      );
-                      const isReviewer = selectedTask.reviewers?.some(
-                        (r) => r.id === currentUserId
-                      );
-                      const isSuperAdmin =
-                        session?.user?.role === "SUPER_ADMIN";
-                      // 可編輯條件：(負責人或複審人或超級管理員) 且 尚未複審完成
+                      // 可編輯條件：有 admin_task:create 權限 且 尚未複審完成
                       const canEditRemarks =
-                        (isHandler || isReviewer || isSuperAdmin) &&
-                        !selectedTask.reviewedAt;
+                        can("admin_task:create") && !selectedTask.reviewedAt;
 
                       return (
                         <div>
@@ -4510,7 +4417,8 @@ function AdminTasksContent() {
                               </span>
                             )}
                           </h3>
-                          <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+                          <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+                            {/* 備註輸入區 */}
                             {canEditRemarks ? (
                               <>
                                 <textarea
@@ -4547,6 +4455,24 @@ function AdminTasksContent() {
                                     </span>
                                   )}
                                 </p>
+                              </div>
+                            )}
+
+                            {/* 編輯記錄 */}
+                            {selectedTask.remarksHistory && selectedTask.remarksHistory.length > 0 && (
+                              <div className="border-t border-blue-200 pt-3">
+                                <p className="text-xs font-medium text-gray-600 mb-2">編輯記錄</p>
+                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                  {[...selectedTask.remarksHistory].reverse().map((record, index) => (
+                                    <div key={index} className="text-xs bg-white p-2 rounded border border-gray-100">
+                                      <div className="flex items-center justify-between text-gray-500 mb-1">
+                                        <span className="font-medium text-gray-700">{record.userName}</span>
+                                        <span>{new Date(record.timestamp).toLocaleString("zh-TW")}</span>
+                                      </div>
+                                      <p className="text-gray-600 whitespace-pre-wrap">{record.content}</p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>

@@ -382,6 +382,7 @@ model AdminTask {
 
   // 備註（負責人/複審人後續添加，複審後凍結）
   remarks         String?          @db.Text
+  remarksHistory  Json             @default("[]")  // 備註編輯記錄 [{userId, userName, content, timestamp}]
 
   // 附件
   attachments     AdminTaskAttachment[]

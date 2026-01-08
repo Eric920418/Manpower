@@ -44,6 +44,7 @@ interface User {
 // 操作類型中文對照
 const actionLabels: Record<string, string> = {
   login: "登入",
+  login_failed: "登入失敗",
   logout: "登出",
   create: "新增",
   update: "更新",
@@ -54,15 +55,27 @@ const actionLabels: Record<string, string> = {
   pending_documents: "待補件",
   request_revision: "要求修改",
   resubmit: "重新送出",
+  submit_for_review: "送出複審",
   upload: "上傳",
   upload_attachment: "上傳附件",
   delete_attachment: "刪除附件",
   update_status: "狀態變更",
+  update_task_remarks: "更新任務備註",
+  update_task_notes: "更新任務備註",
   assign_processor: "分配處理人",
   assign_approver: "分配審批人",
   toggle_status: "切換狀態",
   reset_password: "重置密碼",
   reorder: "排序調整",
+  bulk_create: "批量新增",
+  replace: "取代分配",
+  set_assignments: "設定分配",
+  update_permissions: "更新權限",
+  apply_global_assignments: "套用預設分配",
+  complete_check: "標記完成",
+  complete_uncheck: "取消完成",
+  review_check: "標記複審",
+  review_uncheck: "取消複審",
 };
 
 // 實體類型中文對照
@@ -78,6 +91,7 @@ const entityLabels: Record<string, string> = {
   workflow: "工作流程",
   image: "圖片",
   file: "檔案",
+  franchise: "加盟店",
 };
 
 // 角色中文對照
@@ -88,179 +102,24 @@ const roleLabels: Record<string, string> = {
   STAFF: "業務人員",
 };
 
-// 將詳情轉換為白話文描述
+// 將詳情轉換為白話文描述（只顯示行政任務的任務編號和備註）
 const formatDetails = (action: string, entity: string, details: Record<string, unknown> | null): string => {
   if (!details) return "";
 
+  // 只顯示行政任務的詳情
+  if (entity !== "admin_task") return "";
+
   const parts: string[] = [];
 
-  // 根據不同的操作和實體類型生成描述
-  switch (entity) {
-    case "user":
-      if (details.targetEmail) parts.push(`對象：${details.targetEmail}`);
-      if (details.targetRole) parts.push(`角色：${roleLabels[details.targetRole as string] || details.targetRole}`);
-      if (details.newStatus !== undefined) parts.push(`狀態：${details.newStatus ? "啟用" : "停用"}`);
-      if (details.changes && typeof details.changes === "object") {
-        const changeKeys = Object.keys(details.changes as object);
-        if (changeKeys.length > 0) {
-          const changeLabels: Record<string, string> = {
-            name: "姓名",
-            email: "信箱",
-            role: "角色",
-            department: "部門",
-            phone: "電話",
-            isActive: "狀態",
-            avatar: "頭像",
-          };
-          const changedFields = changeKeys.map(k => changeLabels[k] || k).join("、");
-          parts.push(`修改欄位：${changedFields}`);
-        }
-      }
-      break;
+  // 顯示任務編號
+  if (details.taskNo) parts.push(`${details.taskNo}`);
 
-    case "admin_task":
-      if (details.taskNo) parts.push(`任務編號：${details.taskNo}`);
-      if (details.title) parts.push(`標題：${details.title}`);
-      if (details.action) {
-        const actionMap: Record<string, string> = {
-          approve: "審批通過",
-          reject: "退回",
-          pending_documents: "待補件",
-          request_revision: "要求修改",
-          resubmit: "重新送出",
-        };
-        parts.push(`審批動作：${actionMap[details.action as string] || details.action}`);
-      }
-      if (details.newStatus) {
-        const statusMap: Record<string, string> = {
-          PENDING: "待處理",
-          PENDING_DOCUMENTS: "待補件",
-          PENDING_REVIEW: "待複審",
-          REVISION_REQUESTED: "要求修改",
-          APPROVED: "已批准",
-          REJECTED: "已退回",
-          COMPLETED: "已完成",
-          REVIEWED: "已複審",
-        };
-        parts.push(`新狀態：${statusMap[details.newStatus as string] || details.newStatus}`);
-      }
-      if (details.oldStatus && details.newStatus) {
-        const statusMap: Record<string, string> = {
-          PENDING: "待處理",
-          PENDING_DOCUMENTS: "待補件",
-          PENDING_REVIEW: "待複審",
-          REVISION_REQUESTED: "要求修改",
-          APPROVED: "已批准",
-          REJECTED: "已退回",
-          COMPLETED: "已完成",
-          REVIEWED: "已複審",
-        };
-        parts.push(`狀態變更：${statusMap[details.oldStatus as string] || details.oldStatus} → ${statusMap[details.newStatus as string] || details.newStatus}`);
-      }
-      if (details.processorId) parts.push("已分配處理人");
-      if (details.approverId) parts.push("已分配審批人");
-      if (details.comment) parts.push(`備註：${details.comment}`);
-      if (details.filename) parts.push(`檔案：${details.filename}`);
-      if (details.attachmentId) parts.push(`附件 ID：${details.attachmentId}`);
-      if (details.changes && Array.isArray(details.changes)) {
-        const fieldLabels: Record<string, string> = {
-          title: "標題",
-          notes: "備註",
-          deadline: "期限",
-          payload: "表單內容",
-          status: "狀態",
-        };
-        const changedFields = (details.changes as string[]).map(k => fieldLabels[k] || k).join("、");
-        parts.push(`修改欄位：${changedFields}`);
-      }
-      break;
+  // 顯示備註內容（可能是 remarks, notes, 或 comment）
+  if (details.remarks) parts.push(`${details.remarks}`);
+  if (details.notes) parts.push(`${details.notes}`);
+  if (details.comment) parts.push(`${details.comment}`);
 
-    case "task_type":
-      if (details.code) parts.push(`代碼：${details.code}`);
-      if (details.label) parts.push(`名稱：${details.label}`);
-      if (details.count !== undefined) parts.push(`數量：${details.count}`);
-      break;
-
-    case "page":
-      if (details.pageName) parts.push(`頁面：${details.pageName}`);
-      if (details.changedFields && Array.isArray(details.changedFields)) {
-        parts.push(`修改區塊：${(details.changedFields as string[]).join("、")}`);
-      }
-      break;
-
-    case "navigation":
-      if (details.label) parts.push(`名稱：${details.label}`);
-      if (details.url) parts.push(`連結：${details.url}`);
-      if (details.changes && Array.isArray(details.changes)) {
-        const fieldLabels: Record<string, string> = {
-          label: "名稱",
-          url: "連結",
-          order: "排序",
-          isActive: "狀態",
-          parentId: "父項目",
-          icon: "圖示",
-          target: "開啟方式",
-        };
-        const changedFields = (details.changes as string[]).map(k => fieldLabels[k] || k).join("、");
-        parts.push(`修改欄位：${changedFields}`);
-      }
-      if (details.reorderedIds) parts.push(`重新排序了 ${(details.reorderedIds as unknown[]).length} 個項目`);
-      break;
-
-    case "manpower_request":
-      if (details.requestNo) parts.push(`需求編號：${details.requestNo}`);
-      if (details.contactPerson) parts.push(`聯絡人：${details.contactPerson}`);
-      if (details.changes && typeof details.changes === "object") {
-        const changeKeys = Object.keys(details.changes as object);
-        if (changeKeys.length > 0) {
-          const fieldLabels: Record<string, string> = {
-            status: "狀態",
-            notes: "備註",
-            processedBy: "處理人",
-          };
-          const changedFields = changeKeys.map(k => fieldLabels[k] || k).join("、");
-          parts.push(`修改欄位：${changedFields}`);
-        }
-      }
-      break;
-
-    case "workflow":
-      if (details.nodesUpdated !== undefined) parts.push(`更新了 ${details.nodesUpdated} 個節點位置`);
-      if (details.flowsCreated !== undefined) parts.push(`建立了 ${details.flowsCreated} 條流程連線`);
-      if (details.flowsDeleted !== undefined && (details.flowsDeleted as number) > 0) {
-        parts.push(`刪除了 ${details.flowsDeleted} 條流程連線`);
-      }
-      break;
-
-    case "image":
-    case "admin_task_attachment":
-      if (details.originalName || details.filename) parts.push(`檔案：${details.originalName || details.filename}`);
-      if (details.originalSize) {
-        const sizeKB = ((details.originalSize as number) / 1024).toFixed(1);
-        parts.push(`大小：${sizeKB} KB`);
-      }
-      if (details.mimeType) {
-        const typeMap: Record<string, string> = {
-          "image/jpeg": "JPEG 圖片",
-          "image/png": "PNG 圖片",
-          "image/gif": "GIF 圖片",
-          "image/webp": "WebP 圖片",
-          "application/pdf": "PDF 文件",
-        };
-        parts.push(`類型：${typeMap[details.mimeType as string] || details.mimeType}`);
-      }
-      if (details.taskId) parts.push(`關聯任務 ID：${details.taskId}`);
-      break;
-
-    default:
-      // 通用處理
-      if (details.label) parts.push(`名稱：${details.label}`);
-      if (details.title) parts.push(`標題：${details.title}`);
-      if (details.name) parts.push(`名稱：${details.name}`);
-      break;
-  }
-
-  return parts.length > 0 ? parts.join(" | ") : "";
+  return parts.join(" | ");
 };
 
 export default function ActivityLogsPage() {
@@ -289,6 +148,7 @@ export default function ActivityLogsPage() {
   const [filterEntity, setFilterEntity] = useState("");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
 
   // 展開詳情的日誌 ID
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
@@ -303,7 +163,7 @@ export default function ActivityLogsPage() {
       const query = `
         query {
           users(page: 1, pageSize: 1000) {
-            items {
+            users {
               id
               name
               email
@@ -320,8 +180,8 @@ export default function ActivityLogsPage() {
       });
 
       const json = await res.json();
-      if (json.data?.users?.items) {
-        setUsers(json.data.users.items);
+      if (json.data?.users?.users) {
+        setUsers(json.data.users.users);
       }
     } catch (err) {
       console.error("載入用戶列表失敗:", err);
@@ -372,7 +232,7 @@ export default function ActivityLogsPage() {
 
     try {
       const query = `
-        query($page: Int, $pageSize: Int, $userId: String, $action: String, $entity: String, $startDate: String, $endDate: String) {
+        query($page: Int, $pageSize: Int, $userId: String, $action: String, $entity: String, $startDate: String, $endDate: String, $search: String) {
           activityLogs(
             page: $page
             pageSize: $pageSize
@@ -381,6 +241,7 @@ export default function ActivityLogsPage() {
             entity: $entity
             startDate: $startDate
             endDate: $endDate
+            search: $search
           ) {
             items {
               id
@@ -414,6 +275,7 @@ export default function ActivityLogsPage() {
         entity: filterEntity || undefined,
         startDate: filterStartDate || undefined,
         endDate: filterEndDate || undefined,
+        search: filterSearch || undefined,
       };
 
       const res = await fetch("/api/graphql", {
@@ -439,7 +301,7 @@ export default function ActivityLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, filterUserId, filterAction, filterEntity, filterStartDate, filterEndDate]);
+  }, [page, pageSize, filterUserId, filterAction, filterEntity, filterStartDate, filterEndDate, filterSearch]);
 
   // 初始載入（只執行一次）
   useEffect(() => {
@@ -457,7 +319,7 @@ export default function ActivityLogsPage() {
       fetchLogs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filterUserId, filterAction, filterEntity, filterStartDate, filterEndDate]);
+  }, [page, filterUserId, filterAction, filterEntity, filterStartDate, filterEndDate, filterSearch]);
 
   // 重置篩選
   const handleResetFilter = () => {
@@ -466,6 +328,7 @@ export default function ActivityLogsPage() {
     setFilterEntity("");
     setFilterStartDate("");
     setFilterEndDate("");
+    setFilterSearch("");
     setPage(1);
   };
 
@@ -644,7 +507,7 @@ export default function ActivityLogsPage() {
 
   const totalPages = Math.ceil(total / pageSize);
 
-  // 導出 Excel - 獲取全部資料
+  // 導出 Excel - 使用 GraphQL 獲取全部資料
   const handleExportExcel = async () => {
     if (total === 0) {
       alert("沒有資料可以導出");
@@ -653,22 +516,64 @@ export default function ActivityLogsPage() {
 
     setExporting(true);
     try {
-      // 獲取所有資料（不分頁）
-      const queryParams = new URLSearchParams({
-        page: "1",
-        pageSize: "99999", // 獲取全部
-        ...(filterUserId && { userId: filterUserId }),
-        ...(filterAction && { action: filterAction }),
-        ...(filterEntity && { entity: filterEntity }),
-        ...(filterStartDate && { startDate: filterStartDate }),
-        ...(filterEndDate && { endDate: filterEndDate }),
+      // 使用 GraphQL 獲取所有資料
+      const query = `
+        query($page: Int, $pageSize: Int, $userId: String, $action: String, $entity: String, $startDate: String, $endDate: String, $search: String) {
+          activityLogs(
+            page: $page
+            pageSize: $pageSize
+            userId: $userId
+            action: $action
+            entity: $entity
+            startDate: $startDate
+            endDate: $endDate
+            search: $search
+          ) {
+            items {
+              id
+              userId
+              action
+              entity
+              entityId
+              details
+              user {
+                id
+                name
+                email
+                role
+              }
+              createdAt
+            }
+            total
+          }
+        }
+      `;
+
+      const variables = {
+        page: 1,
+        pageSize: 99999, // 獲取全部
+        userId: filterUserId || undefined,
+        action: filterAction || undefined,
+        entity: filterEntity || undefined,
+        startDate: filterStartDate || undefined,
+        endDate: filterEndDate || undefined,
+        search: filterSearch || undefined,
+      };
+
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query, variables }),
       });
 
-      const response = await fetch(`/api/admin/activity-logs?${queryParams}`);
-      if (!response.ok) throw new Error("獲取資料失敗");
+      const json = await res.json();
 
-      const data = await response.json();
-      const allLogs = data.logs || [];
+      if (json.errors) {
+        throw new Error(json.errors[0]?.message || "查詢失敗");
+      }
+
+      const allLogs = json.data?.activityLogs?.items || [];
 
       if (allLogs.length === 0) {
         alert("沒有資料可以導出");
@@ -687,7 +592,6 @@ export default function ActivityLogsPage() {
           { key: "entity", header: "對象", width: 15, format: (value) => entityLabels[value] || value },
           { key: "entityId", header: "對象ID", width: 12 },
           { key: "details", header: "詳情", width: 40, format: (value, row) => formatDetails(row.action, row.entity, value) },
-          { key: "ipAddress", header: "IP位址", width: 15 },
         ],
         data: allLogs,
       });
@@ -717,31 +621,13 @@ export default function ActivityLogsPage() {
           </button>
         </div>
 
-        {/* 統計卡片 */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">今日活動</div>
-              <div className="text-2xl font-bold text-blue-600">{stats.totalToday}</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">本週活動</div>
-              <div className="text-2xl font-bold text-green-600">{stats.totalThisWeek}</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">本月活動</div>
-              <div className="text-2xl font-bold text-purple-600">{stats.totalThisMonth}</div>
-            </div>
-          </div>
-        )}
-
         {/* 統計圖表 */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 操作類型統計 */}
             <div className="bg-white rounded-lg shadow p-4">
               <h3 className="font-medium text-gray-900 mb-3">操作類型分布</h3>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {stats.byAction.map((item) => (
                   <div key={item.action} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">
@@ -769,7 +655,7 @@ export default function ActivityLogsPage() {
             {/* 實體類型統計 */}
             <div className="bg-white rounded-lg shadow p-4">
               <h3 className="font-medium text-gray-900 mb-3">操作對象分布</h3>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {stats.byEntity.map((item) => (
                   <div key={item.entity} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">
@@ -798,6 +684,20 @@ export default function ActivityLogsPage() {
 
         {/* 篩選區 */}
         <div className="bg-white rounded-lg shadow p-4">
+          {/* 搜尋框 */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">搜尋任務編號或名稱</label>
+            <input
+              type="text"
+              value={filterSearch}
+              onChange={(e) => {
+                setFilterSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="輸入任務編號（如 AT-20260107-0001）或任務名稱"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {/* 用戶篩選 */}
             <div>
@@ -943,14 +843,6 @@ export default function ActivityLogsPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         詳情
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        IP 位址
-                      </th>
-                      {isSuperAdmin && (
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          操作
-                        </th>
-                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -1028,27 +920,11 @@ export default function ActivityLogsPage() {
                                 <span className="text-gray-400">-</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
-                              {log.ipAddress || "-"}
-                            </td>
-                            {isSuperAdmin && (
-                              <td className="px-4 py-3">
-                                {showRestoreButton && (
-                                  <button
-                                    onClick={() => handleRestore(log.id)}
-                                    disabled={restoringLogId === log.id}
-                                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {restoringLogId === log.id ? "復原中..." : "復原"}
-                                  </button>
-                                )}
-                              </td>
-                            )}
                           </tr>
                           {/* 展開的詳情列 */}
                           {isExpanded && snapshot && (
                             <tr className="bg-gray-50">
-                              <td colSpan={isSuperAdmin ? 7 : 6} className="px-4 py-4">
+                              <td colSpan={5} className="px-4 py-4">
                                 <div className="bg-white rounded-lg border border-gray-200 p-4">
                                   <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
                                     <span className="text-red-500">🗑</span>

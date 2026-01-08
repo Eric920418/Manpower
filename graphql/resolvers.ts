@@ -201,6 +201,8 @@ const Mutation = {
   ...pendingTaskReminderResolvers.Mutation,
   // 加盟店管理 mutations
   ...franchiseResolvers.Mutation,
+  // 活動日誌 mutations
+  ...activityLogResolvers.Mutation,
 };
 
 const resolvers = {

@@ -26,6 +26,14 @@ type TaskUser {
   role: String!
 }
 
+# 備註編輯記錄
+type RemarkRecord {
+  userId: String!
+  userName: String!
+  content: String!
+  timestamp: String!
+}
+
 # 行政任務附件
 type AdminTaskAttachment {
   id: ID!
@@ -96,6 +104,7 @@ type AdminTask {
 
   # 備註（負責人/複審人後續添加）
   remarks: String
+  remarksHistory: [RemarkRecord!]!  # 備註編輯記錄
 
   # 附件
   attachments: [AdminTaskAttachment!]!

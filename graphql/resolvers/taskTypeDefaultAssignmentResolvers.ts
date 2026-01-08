@@ -235,6 +235,60 @@ export const taskTypeDefaultAssignmentResolvers = {
         include: defaultAssignmentInclude,
       });
 
+      // 實時同步：將新分配套用到該類型所有未完成的現有任務
+      const existingTasks = await prisma.adminTask.findMany({
+        where: {
+          taskTypeId: args.input.taskTypeId,
+          status: {
+            notIn: [AdminTaskStatus.COMPLETED, AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
+          },
+        },
+        select: { id: true },
+      });
+
+      let syncedCount = 0;
+      for (const task of existingTasks) {
+        // 檢查是否已存在相同分配
+        const existingAssignment = await prisma.adminTaskAssignment.findFirst({
+          where: {
+            taskId: task.id,
+            userId: args.input.userId,
+            role: args.input.role,
+          },
+        });
+
+        if (!existingAssignment) {
+          await prisma.adminTaskAssignment.create({
+            data: {
+              taskId: task.id,
+              userId: args.input.userId,
+              role: args.input.role,
+              assignedBy: currentUser.id,
+              notes: "依全局分配設定自動同步",
+            },
+          });
+          syncedCount++;
+        }
+      }
+
+      // 記錄活動日誌
+      if (syncedCount > 0) {
+        await prisma.activityLog.create({
+          data: {
+            userId: currentUser.id,
+            action: "sync_global_assignment_add",
+            entity: "task_assignment",
+            entityId: assignment.id.toString(),
+            details: {
+              taskTypeId: args.input.taskTypeId,
+              userId: args.input.userId,
+              role: args.input.role,
+              syncedTaskCount: syncedCount,
+            },
+          },
+        });
+      }
+
       return formatDefaultAssignment(assignment);
     },
 
@@ -244,7 +298,7 @@ export const taskTypeDefaultAssignmentResolvers = {
       args: { id: number },
       context: Context
     ) => {
-      requirePermission(context, "task_assignment:assign");
+      const currentUser = requirePermission(context, "task_assignment:assign");
 
       const assignment = await prisma.taskTypeDefaultAssignment.findUnique({
         where: { id: args.id },
@@ -253,9 +307,42 @@ export const taskTypeDefaultAssignmentResolvers = {
         throw new Error("分配不存在");
       }
 
+      // 實時同步：從該類型所有未完成的現有任務中移除對應分配
+      const deleteResult = await prisma.adminTaskAssignment.deleteMany({
+        where: {
+          userId: assignment.userId,
+          role: assignment.role,
+          task: {
+            taskTypeId: assignment.taskTypeId,
+            status: {
+              notIn: [AdminTaskStatus.COMPLETED, AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
+            },
+          },
+        },
+      });
+
+      // 刪除全局分配設定
       await prisma.taskTypeDefaultAssignment.delete({
         where: { id: args.id },
       });
+
+      // 記錄活動日誌
+      if (deleteResult.count > 0) {
+        await prisma.activityLog.create({
+          data: {
+            userId: currentUser.id,
+            action: "sync_global_assignment_remove",
+            entity: "task_assignment",
+            entityId: args.id.toString(),
+            details: {
+              taskTypeId: assignment.taskTypeId,
+              userId: assignment.userId,
+              role: assignment.role,
+              removedFromTaskCount: deleteResult.count,
+            },
+          },
+        });
+      }
 
       return true;
     },
@@ -369,7 +456,7 @@ export const taskTypeDefaultAssignmentResolvers = {
       };
     },
 
-    // 批量設定某類型的全局分配（覆蓋現有設定）
+    // 批量設定某類型的全局分配（覆蓋現有設定）+ 實時雙向同步
     setTaskTypeDefaultAssignments: async (
       _: unknown,
       args: {
@@ -391,7 +478,26 @@ export const taskTypeDefaultAssignmentResolvers = {
         throw new Error("任務類型不存在");
       }
 
-      // 使用事務處理
+      // 獲取舊的全局分配設定（用於比對差異）
+      const oldAssignments = await prisma.taskTypeDefaultAssignment.findMany({
+        where: { taskTypeId: args.input.taskTypeId },
+      });
+
+      // 計算新的分配組合
+      const newHandlers = new Set(args.input.handlerIds);
+      const newReviewers = new Set(args.input.reviewerIds);
+
+      // 計算舊的分配組合
+      const oldHandlers = new Set(oldAssignments.filter(a => a.role === "HANDLER").map(a => a.userId));
+      const oldReviewers = new Set(oldAssignments.filter(a => a.role === "REVIEWER").map(a => a.userId));
+
+      // 計算需要新增和移除的分配
+      const handlersToAdd = [...newHandlers].filter(id => !oldHandlers.has(id));
+      const handlersToRemove = [...oldHandlers].filter(id => !newHandlers.has(id));
+      const reviewersToAdd = [...newReviewers].filter(id => !oldReviewers.has(id));
+      const reviewersToRemove = [...oldReviewers].filter(id => !newReviewers.has(id));
+
+      // 使用事務處理全局分配設定
       const result = await prisma.$transaction(async (tx) => {
         // 刪除該類型的所有現有分配
         await tx.taskTypeDefaultAssignment.deleteMany({
@@ -428,6 +534,105 @@ export const taskTypeDefaultAssignmentResolvers = {
           include: defaultAssignmentInclude,
         });
       });
+
+      // 實時同步到現有任務（在事務外執行，避免長時間鎖定）
+      // 找出該類型所有未完成的任務
+      const existingTasks = await prisma.adminTask.findMany({
+        where: {
+          taskTypeId: args.input.taskTypeId,
+          status: {
+            notIn: [AdminTaskStatus.COMPLETED, AdminTaskStatus.REJECTED, AdminTaskStatus.REVIEWED],
+          },
+        },
+        select: { id: true },
+      });
+
+      let addedCount = 0;
+      let removedCount = 0;
+
+      // 處理需要移除的分配
+      for (const userId of handlersToRemove) {
+        const deleteResult = await prisma.adminTaskAssignment.deleteMany({
+          where: {
+            userId,
+            role: "HANDLER",
+            taskId: { in: existingTasks.map(t => t.id) },
+          },
+        });
+        removedCount += deleteResult.count;
+      }
+
+      for (const userId of reviewersToRemove) {
+        const deleteResult = await prisma.adminTaskAssignment.deleteMany({
+          where: {
+            userId,
+            role: "REVIEWER",
+            taskId: { in: existingTasks.map(t => t.id) },
+          },
+        });
+        removedCount += deleteResult.count;
+      }
+
+      // 處理需要新增的分配
+      for (const task of existingTasks) {
+        for (const userId of handlersToAdd) {
+          const existing = await prisma.adminTaskAssignment.findFirst({
+            where: { taskId: task.id, userId, role: "HANDLER" },
+          });
+          if (!existing) {
+            await prisma.adminTaskAssignment.create({
+              data: {
+                taskId: task.id,
+                userId,
+                role: "HANDLER",
+                assignedBy: currentUser.id,
+                notes: "依全局分配設定自動同步",
+              },
+            });
+            addedCount++;
+          }
+        }
+
+        for (const userId of reviewersToAdd) {
+          const existing = await prisma.adminTaskAssignment.findFirst({
+            where: { taskId: task.id, userId, role: "REVIEWER" },
+          });
+          if (!existing) {
+            await prisma.adminTaskAssignment.create({
+              data: {
+                taskId: task.id,
+                userId,
+                role: "REVIEWER",
+                assignedBy: currentUser.id,
+                notes: "依全局分配設定自動同步",
+              },
+            });
+            addedCount++;
+          }
+        }
+      }
+
+      // 記錄活動日誌
+      if (addedCount > 0 || removedCount > 0) {
+        await prisma.activityLog.create({
+          data: {
+            userId: currentUser.id,
+            action: "sync_global_assignment_batch",
+            entity: "task_assignment",
+            entityId: args.input.taskTypeId.toString(),
+            details: {
+              taskTypeId: args.input.taskTypeId,
+              handlersToAdd,
+              handlersToRemove,
+              reviewersToAdd,
+              reviewersToRemove,
+              affectedTaskCount: existingTasks.length,
+              addedAssignmentCount: addedCount,
+              removedAssignmentCount: removedCount,
+            },
+          },
+        });
+      }
 
       return result.map(formatDefaultAssignment);
     },

@@ -49,6 +49,7 @@ extend type Query {
     entity: String
     startDate: String
     endDate: String
+    search: String
   ): ActivityLogList!
 
   # 獲取活動統計（僅 SUPER_ADMIN）
