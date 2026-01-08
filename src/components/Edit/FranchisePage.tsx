@@ -285,7 +285,10 @@ export const FranchisePage = () => {
                 onChange={(e) =>
                   setPageData((prev) => ({
                     ...prev,
-                    marketOpportunity: { ...prev.marketOpportunity, title: e.target.value },
+                    marketOpportunity: {
+                      ...prev.marketOpportunity,
+                      title: e.target.value,
+                    },
                   }))
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
@@ -308,7 +311,10 @@ export const FranchisePage = () => {
                 onImageUpload={(data) =>
                   setPageData((prev) => ({
                     ...prev,
-                    marketOpportunity: { ...prev.marketOpportunity, backgroundImage: data.imageUrl },
+                    marketOpportunity: {
+                      ...prev.marketOpportunity,
+                      backgroundImage: data.imageUrl,
+                    },
                   }))
                 }
               />
@@ -325,7 +331,12 @@ export const FranchisePage = () => {
                         ...prev.marketOpportunity,
                         opportunities: [
                           ...prev.marketOpportunity.opportunities,
-                          { title: "", subtitle: "", features: [], gradient: "from-blue-600 to-cyan-500" },
+                          {
+                            title: "",
+                            subtitle: "",
+                            features: [],
+                            gradient: "from-blue-600 to-cyan-500",
+                          },
                         ],
                       },
                     }))
@@ -336,52 +347,85 @@ export const FranchisePage = () => {
                 </button>
               </div>
               {pageData.marketOpportunity.opportunities.map((opp, oppIndex) => (
-                <div key={oppIndex} className="bg-white p-4 rounded-lg border mb-4">
+                <div
+                  key={oppIndex}
+                  className="bg-white p-4 rounded-lg border mb-4"
+                >
                   <h4 className="font-medium mb-3">機會 #{oppIndex + 1}</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">標題</label>
+                      <label className="block text-sm font-medium mb-1">
+                        標題
+                      </label>
                       <input
                         type="text"
                         value={opp.title}
                         onChange={(e) => {
-                          const newOpps = [...pageData.marketOpportunity.opportunities];
-                          newOpps[oppIndex] = { ...newOpps[oppIndex], title: e.target.value };
+                          const newOpps = [
+                            ...pageData.marketOpportunity.opportunities,
+                          ];
+                          newOpps[oppIndex] = {
+                            ...newOpps[oppIndex],
+                            title: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                            marketOpportunity: {
+                              ...prev.marketOpportunity,
+                              opportunities: newOpps,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">副標題</label>
+                      <label className="block text-sm font-medium mb-1">
+                        副標題
+                      </label>
                       <input
                         type="text"
                         value={opp.subtitle}
                         onChange={(e) => {
-                          const newOpps = [...pageData.marketOpportunity.opportunities];
-                          newOpps[oppIndex] = { ...newOpps[oppIndex], subtitle: e.target.value };
+                          const newOpps = [
+                            ...pageData.marketOpportunity.opportunities,
+                          ];
+                          newOpps[oppIndex] = {
+                            ...newOpps[oppIndex],
+                            subtitle: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                            marketOpportunity: {
+                              ...prev.marketOpportunity,
+                              opportunities: newOpps,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">漸層顏色</label>
+                      <label className="block text-sm font-medium mb-1">
+                        漸層顏色
+                      </label>
                       <input
                         type="text"
                         value={opp.gradient}
                         onChange={(e) => {
-                          const newOpps = [...pageData.marketOpportunity.opportunities];
-                          newOpps[oppIndex] = { ...newOpps[oppIndex], gradient: e.target.value };
+                          const newOpps = [
+                            ...pageData.marketOpportunity.opportunities,
+                          ];
+                          newOpps[oppIndex] = {
+                            ...newOpps[oppIndex],
+                            gradient: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                            marketOpportunity: {
+                              ...prev.marketOpportunity,
+                              opportunities: newOpps,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
@@ -394,14 +438,22 @@ export const FranchisePage = () => {
                       <label className="block text-sm font-medium">特點</label>
                       <button
                         onClick={() => {
-                          const newOpps = [...pageData.marketOpportunity.opportunities];
+                          const newOpps = [
+                            ...pageData.marketOpportunity.opportunities,
+                          ];
                           newOpps[oppIndex] = {
                             ...newOpps[oppIndex],
-                            features: [...newOpps[oppIndex].features, { icon: "", label: "" }],
+                            features: [
+                              ...newOpps[oppIndex].features,
+                              { icon: "", label: "" },
+                            ],
                           };
                           setPageData((prev) => ({
                             ...prev,
-                            marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                            marketOpportunity: {
+                              ...prev.marketOpportunity,
+                              opportunities: newOpps,
+                            },
                           }));
                         }}
                         className="bg-green-500 text-white px-2 py-1 rounded text-xs"
@@ -415,13 +467,24 @@ export const FranchisePage = () => {
                           type="text"
                           value={feature.icon}
                           onChange={(e) => {
-                            const newOpps = [...pageData.marketOpportunity.opportunities];
+                            const newOpps = [
+                              ...pageData.marketOpportunity.opportunities,
+                            ];
                             const newFeatures = [...newOpps[oppIndex].features];
-                            newFeatures[featureIndex] = { ...newFeatures[featureIndex], icon: e.target.value };
-                            newOpps[oppIndex] = { ...newOpps[oppIndex], features: newFeatures };
+                            newFeatures[featureIndex] = {
+                              ...newFeatures[featureIndex],
+                              icon: e.target.value,
+                            };
+                            newOpps[oppIndex] = {
+                              ...newOpps[oppIndex],
+                              features: newFeatures,
+                            };
                             setPageData((prev) => ({
                               ...prev,
-                              marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                              marketOpportunity: {
+                                ...prev.marketOpportunity,
+                                opportunities: newOpps,
+                              },
                             }));
                           }}
                           className="flex-1 rounded-md bg-white px-3 py-2 border border-gray-300"
@@ -431,13 +494,24 @@ export const FranchisePage = () => {
                           type="text"
                           value={feature.label}
                           onChange={(e) => {
-                            const newOpps = [...pageData.marketOpportunity.opportunities];
+                            const newOpps = [
+                              ...pageData.marketOpportunity.opportunities,
+                            ];
                             const newFeatures = [...newOpps[oppIndex].features];
-                            newFeatures[featureIndex] = { ...newFeatures[featureIndex], label: e.target.value };
-                            newOpps[oppIndex] = { ...newOpps[oppIndex], features: newFeatures };
+                            newFeatures[featureIndex] = {
+                              ...newFeatures[featureIndex],
+                              label: e.target.value,
+                            };
+                            newOpps[oppIndex] = {
+                              ...newOpps[oppIndex],
+                              features: newFeatures,
+                            };
                             setPageData((prev) => ({
                               ...prev,
-                              marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                              marketOpportunity: {
+                                ...prev.marketOpportunity,
+                                opportunities: newOpps,
+                              },
                             }));
                           }}
                           className="flex-1 rounded-md bg-white px-3 py-2 border border-gray-300"
@@ -445,14 +519,21 @@ export const FranchisePage = () => {
                         />
                         <button
                           onClick={() => {
-                            const newOpps = [...pageData.marketOpportunity.opportunities];
+                            const newOpps = [
+                              ...pageData.marketOpportunity.opportunities,
+                            ];
                             newOpps[oppIndex] = {
                               ...newOpps[oppIndex],
-                              features: newOpps[oppIndex].features.filter((_, i) => i !== featureIndex),
+                              features: newOpps[oppIndex].features.filter(
+                                (_, i) => i !== featureIndex
+                              ),
                             };
                             setPageData((prev) => ({
                               ...prev,
-                              marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                              marketOpportunity: {
+                                ...prev.marketOpportunity,
+                                opportunities: newOpps,
+                              },
                             }));
                           }}
                           className="bg-red-500 text-white px-2 py-1 rounded text-xs"
@@ -465,10 +546,16 @@ export const FranchisePage = () => {
 
                   <button
                     onClick={() => {
-                      const newOpps = pageData.marketOpportunity.opportunities.filter((_, i) => i !== oppIndex);
+                      const newOpps =
+                        pageData.marketOpportunity.opportunities.filter(
+                          (_, i) => i !== oppIndex
+                        );
                       setPageData((prev) => ({
                         ...prev,
-                        marketOpportunity: { ...prev.marketOpportunity, opportunities: newOpps },
+                        marketOpportunity: {
+                          ...prev.marketOpportunity,
+                          opportunities: newOpps,
+                        },
                       }));
                     }}
                     className="mt-3 bg-red-500 text-white px-3 py-1 rounded text-sm"
@@ -482,10 +569,10 @@ export const FranchisePage = () => {
         </div>
       )}
 
-      {/* 合作優勢 */}
+      {/* 加盟詳情優勢 */}
       {activeSection === "partnershipAdvantages" && (
         <div className="bg-gray-100 p-6 rounded-lg mb-6">
-          <h2 className="text-2xl font-bold mb-4">合作優勢設定</h2>
+          <h2 className="text-2xl font-bold mb-4">加盟詳情設定</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">標題</label>
@@ -495,7 +582,10 @@ export const FranchisePage = () => {
                 onChange={(e) =>
                   setPageData((prev) => ({
                     ...prev,
-                    partnershipAdvantages: { ...prev.partnershipAdvantages, title: e.target.value },
+                    partnershipAdvantages: {
+                      ...prev.partnershipAdvantages,
+                      title: e.target.value,
+                    },
                   }))
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
@@ -509,7 +599,10 @@ export const FranchisePage = () => {
                 onChange={(e) =>
                   setPageData((prev) => ({
                     ...prev,
-                    partnershipAdvantages: { ...prev.partnershipAdvantages, subtitle: e.target.value },
+                    partnershipAdvantages: {
+                      ...prev.partnershipAdvantages,
+                      subtitle: e.target.value,
+                    },
                   }))
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
@@ -518,7 +611,9 @@ export const FranchisePage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">CTA 按鈕文字</label>
+                <label className="block text-sm font-medium mb-1">
+                  CTA 按鈕文字
+                </label>
                 <input
                   type="text"
                   value={pageData.partnershipAdvantages.ctaButton?.text || ""}
@@ -527,7 +622,10 @@ export const FranchisePage = () => {
                       ...prev,
                       partnershipAdvantages: {
                         ...prev.partnershipAdvantages,
-                        ctaButton: { ...prev.partnershipAdvantages.ctaButton, text: e.target.value },
+                        ctaButton: {
+                          ...prev.partnershipAdvantages.ctaButton,
+                          text: e.target.value,
+                        },
                       },
                     }))
                   }
@@ -535,7 +633,9 @@ export const FranchisePage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">CTA 按鈕連結</label>
+                <label className="block text-sm font-medium mb-1">
+                  CTA 按鈕連結
+                </label>
                 <input
                   type="text"
                   value={pageData.partnershipAdvantages.ctaButton?.link || ""}
@@ -544,7 +644,10 @@ export const FranchisePage = () => {
                       ...prev,
                       partnershipAdvantages: {
                         ...prev.partnershipAdvantages,
-                        ctaButton: { ...prev.partnershipAdvantages.ctaButton, link: e.target.value },
+                        ctaButton: {
+                          ...prev.partnershipAdvantages.ctaButton,
+                          link: e.target.value,
+                        },
                       },
                     }))
                   }
@@ -564,7 +667,14 @@ export const FranchisePage = () => {
                         ...prev.partnershipAdvantages,
                         advantages: [
                           ...prev.partnershipAdvantages.advantages,
-                          { number: "", title: "", subtitle: "", description: "", image: "", imagePosition: "right" },
+                          {
+                            number: "",
+                            title: "",
+                            subtitle: "",
+                            description: "",
+                            image: "",
+                            imagePosition: "right",
+                          },
                         ],
                       },
                     }))
@@ -575,51 +685,84 @@ export const FranchisePage = () => {
                 </button>
               </div>
               {pageData.partnershipAdvantages.advantages.map((adv, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg border mb-4">
+                <div
+                  key={index}
+                  className="bg-white p-4 rounded-lg border mb-4"
+                >
                   <h4 className="font-medium mb-3">優勢 #{index + 1}</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">編號</label>
+                      <label className="block text-sm font-medium mb-1">
+                        編號
+                      </label>
                       <input
                         type="text"
                         value={adv.number}
                         onChange={(e) => {
-                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
-                          newAdvs[index] = { ...newAdvs[index], number: e.target.value };
+                          const newAdvs = [
+                            ...pageData.partnershipAdvantages.advantages,
+                          ];
+                          newAdvs[index] = {
+                            ...newAdvs[index],
+                            number: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                            partnershipAdvantages: {
+                              ...prev.partnershipAdvantages,
+                              advantages: newAdvs,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">標題</label>
+                      <label className="block text-sm font-medium mb-1">
+                        標題
+                      </label>
                       <input
                         type="text"
                         value={adv.title}
                         onChange={(e) => {
-                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
-                          newAdvs[index] = { ...newAdvs[index], title: e.target.value };
+                          const newAdvs = [
+                            ...pageData.partnershipAdvantages.advantages,
+                          ];
+                          newAdvs[index] = {
+                            ...newAdvs[index],
+                            title: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                            partnershipAdvantages: {
+                              ...prev.partnershipAdvantages,
+                              advantages: newAdvs,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">圖片位置</label>
+                      <label className="block text-sm font-medium mb-1">
+                        圖片位置
+                      </label>
                       <select
                         value={adv.imagePosition}
                         onChange={(e) => {
-                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
-                          newAdvs[index] = { ...newAdvs[index], imagePosition: e.target.value };
+                          const newAdvs = [
+                            ...pageData.partnershipAdvantages.advantages,
+                          ];
+                          newAdvs[index] = {
+                            ...newAdvs[index],
+                            imagePosition: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                            partnershipAdvantages: {
+                              ...prev.partnershipAdvantages,
+                              advantages: newAdvs,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
@@ -629,31 +772,51 @@ export const FranchisePage = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">副標題</label>
+                      <label className="block text-sm font-medium mb-1">
+                        副標題
+                      </label>
                       <input
                         type="text"
                         value={adv.subtitle}
                         onChange={(e) => {
-                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
-                          newAdvs[index] = { ...newAdvs[index], subtitle: e.target.value };
+                          const newAdvs = [
+                            ...pageData.partnershipAdvantages.advantages,
+                          ];
+                          newAdvs[index] = {
+                            ...newAdvs[index],
+                            subtitle: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                            partnershipAdvantages: {
+                              ...prev.partnershipAdvantages,
+                              advantages: newAdvs,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">描述</label>
+                      <label className="block text-sm font-medium mb-1">
+                        描述
+                      </label>
                       <textarea
                         value={adv.description}
                         onChange={(e) => {
-                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
-                          newAdvs[index] = { ...newAdvs[index], description: e.target.value };
+                          const newAdvs = [
+                            ...pageData.partnershipAdvantages.advantages,
+                          ];
+                          newAdvs[index] = {
+                            ...newAdvs[index],
+                            description: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                            partnershipAdvantages: {
+                              ...prev.partnershipAdvantages,
+                              advantages: newAdvs,
+                            },
                           }));
                         }}
                         rows={3}
@@ -661,7 +824,9 @@ export const FranchisePage = () => {
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">優勢圖片</label>
+                      <label className="block text-sm font-medium mb-1">
+                        優勢圖片
+                      </label>
                       {adv.image && (
                         <div className="mb-3">
                           <Image
@@ -675,11 +840,19 @@ export const FranchisePage = () => {
                       )}
                       <ImageUploader
                         onImageUpload={(data) => {
-                          const newAdvs = [...pageData.partnershipAdvantages.advantages];
-                          newAdvs[index] = { ...newAdvs[index], image: data.imageUrl };
+                          const newAdvs = [
+                            ...pageData.partnershipAdvantages.advantages,
+                          ];
+                          newAdvs[index] = {
+                            ...newAdvs[index],
+                            image: data.imageUrl,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                            partnershipAdvantages: {
+                              ...prev.partnershipAdvantages,
+                              advantages: newAdvs,
+                            },
                           }));
                         }}
                       />
@@ -687,10 +860,16 @@ export const FranchisePage = () => {
                   </div>
                   <button
                     onClick={() => {
-                      const newAdvs = pageData.partnershipAdvantages.advantages.filter((_, i) => i !== index);
+                      const newAdvs =
+                        pageData.partnershipAdvantages.advantages.filter(
+                          (_, i) => i !== index
+                        );
                       setPageData((prev) => ({
                         ...prev,
-                        partnershipAdvantages: { ...prev.partnershipAdvantages, advantages: newAdvs },
+                        partnershipAdvantages: {
+                          ...prev.partnershipAdvantages,
+                          advantages: newAdvs,
+                        },
                       }));
                     }}
                     className="mt-3 bg-red-500 text-white px-3 py-1 rounded text-sm"
@@ -704,10 +883,10 @@ export const FranchisePage = () => {
         </div>
       )}
 
-      {/* 加盟詳情 */}
+      {/* 加盟流程 */}
       {activeSection === "franchiseProcess" && (
         <div className="bg-gray-100 p-6 rounded-lg mb-6">
-          <h2 className="text-2xl font-bold mb-4">加盟詳情設定</h2>
+          <h2 className="text-2xl font-bold mb-4">加盟流程設定</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">標題</label>
@@ -717,7 +896,10 @@ export const FranchisePage = () => {
                 onChange={(e) =>
                   setPageData((prev) => ({
                     ...prev,
-                    franchiseProcess: { ...prev.franchiseProcess, title: e.target.value },
+                    franchiseProcess: {
+                      ...prev.franchiseProcess,
+                      title: e.target.value,
+                    },
                   }))
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
@@ -731,7 +913,10 @@ export const FranchisePage = () => {
                 onChange={(e) =>
                   setPageData((prev) => ({
                     ...prev,
-                    franchiseProcess: { ...prev.franchiseProcess, subtitle: e.target.value },
+                    franchiseProcess: {
+                      ...prev.franchiseProcess,
+                      subtitle: e.target.value,
+                    },
                   }))
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
@@ -749,7 +934,11 @@ export const FranchisePage = () => {
                         ...prev.franchiseProcess,
                         steps: [
                           ...prev.franchiseProcess.steps,
-                          { number: prev.franchiseProcess.steps.length + 1, title: "", image: "" },
+                          {
+                            number: prev.franchiseProcess.steps.length + 1,
+                            title: "",
+                            image: "",
+                          },
                         ],
                       },
                     }))
@@ -760,42 +949,63 @@ export const FranchisePage = () => {
                 </button>
               </div>
               {pageData.franchiseProcess.steps.map((step, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg border mb-4">
+                <div
+                  key={index}
+                  className="bg-white p-4 rounded-lg border mb-4"
+                >
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">步驟編號</label>
+                      <label className="block text-sm font-medium mb-1">
+                        步驟編號
+                      </label>
                       <input
                         type="number"
                         value={step.number}
                         onChange={(e) => {
                           const newSteps = [...pageData.franchiseProcess.steps];
-                          newSteps[index] = { ...newSteps[index], number: parseInt(e.target.value) || 0 };
+                          newSteps[index] = {
+                            ...newSteps[index],
+                            number: parseInt(e.target.value) || 0,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            franchiseProcess: { ...prev.franchiseProcess, steps: newSteps },
+                            franchiseProcess: {
+                              ...prev.franchiseProcess,
+                              steps: newSteps,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">標題</label>
+                      <label className="block text-sm font-medium mb-1">
+                        標題
+                      </label>
                       <input
                         type="text"
                         value={step.title}
                         onChange={(e) => {
                           const newSteps = [...pageData.franchiseProcess.steps];
-                          newSteps[index] = { ...newSteps[index], title: e.target.value };
+                          newSteps[index] = {
+                            ...newSteps[index],
+                            title: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            franchiseProcess: { ...prev.franchiseProcess, steps: newSteps },
+                            franchiseProcess: {
+                              ...prev.franchiseProcess,
+                              steps: newSteps,
+                            },
                           }));
                         }}
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium mb-1">步驟圖片</label>
+                      <label className="block text-sm font-medium mb-1">
+                        步驟圖片
+                      </label>
                       {step.image && (
                         <div className="mb-3">
                           <Image
@@ -810,10 +1020,16 @@ export const FranchisePage = () => {
                       <ImageUploader
                         onImageUpload={(data) => {
                           const newSteps = [...pageData.franchiseProcess.steps];
-                          newSteps[index] = { ...newSteps[index], image: data.imageUrl };
+                          newSteps[index] = {
+                            ...newSteps[index],
+                            image: data.imageUrl,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            franchiseProcess: { ...prev.franchiseProcess, steps: newSteps },
+                            franchiseProcess: {
+                              ...prev.franchiseProcess,
+                              steps: newSteps,
+                            },
                           }));
                         }}
                       />
@@ -821,10 +1037,15 @@ export const FranchisePage = () => {
                   </div>
                   <button
                     onClick={() => {
-                      const newSteps = pageData.franchiseProcess.steps.filter((_, i) => i !== index);
+                      const newSteps = pageData.franchiseProcess.steps.filter(
+                        (_, i) => i !== index
+                      );
                       setPageData((prev) => ({
                         ...prev,
-                        franchiseProcess: { ...prev.franchiseProcess, steps: newSteps },
+                        franchiseProcess: {
+                          ...prev.franchiseProcess,
+                          steps: newSteps,
+                        },
                       }));
                     }}
                     className="mt-3 bg-red-500 text-white px-3 py-1 rounded text-sm"
@@ -851,7 +1072,10 @@ export const FranchisePage = () => {
                 onChange={(e) =>
                   setPageData((prev) => ({
                     ...prev,
-                    franchiseeSharing: { ...prev.franchiseeSharing, title: e.target.value },
+                    franchiseeSharing: {
+                      ...prev.franchiseeSharing,
+                      title: e.target.value,
+                    },
                   }))
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
@@ -865,7 +1089,10 @@ export const FranchisePage = () => {
                 onChange={(e) =>
                   setPageData((prev) => ({
                     ...prev,
-                    franchiseeSharing: { ...prev.franchiseeSharing, subtitle: e.target.value },
+                    franchiseeSharing: {
+                      ...prev.franchiseeSharing,
+                      subtitle: e.target.value,
+                    },
                   }))
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
@@ -911,173 +1138,263 @@ export const FranchisePage = () => {
               <p className="text-sm text-gray-500 mb-4">
                 這些文章會顯示在「加盟主分享」分頁中，點擊卡片可進入文章詳情頁
               </p>
-              {(pageData.franchiseeSharing?.stories || []).map((story, index) => (
-                <div key={story.id || index} className="bg-white p-4 rounded-lg border mb-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="font-medium">文章 #{index + 1}</h4>
-                    <button
-                      onClick={() => {
-                        const newStories = (pageData.franchiseeSharing?.stories || []).filter((_, i) => i !== index);
-                        setPageData((prev) => ({
-                          ...prev,
-                          franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
-                        }));
-                      }}
-                      className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-                    >
-                      刪除
-                    </button>
-                  </div>
+              {(pageData.franchiseeSharing?.stories || []).map(
+                (story, index) => (
+                  <div
+                    key={story.id || index}
+                    className="bg-white p-4 rounded-lg border mb-4"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h4 className="font-medium">文章 #{index + 1}</h4>
+                      <button
+                        onClick={() => {
+                          const newStories = (
+                            pageData.franchiseeSharing?.stories || []
+                          ).filter((_, i) => i !== index);
+                          setPageData((prev) => ({
+                            ...prev,
+                            franchiseeSharing: {
+                              ...prev.franchiseeSharing,
+                              stories: newStories,
+                            },
+                          }));
+                        }}
+                        className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                      >
+                        刪除
+                      </button>
+                    </div>
 
-                  {/* 封面圖片 */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">封面圖片</label>
-                    {story.image && (
-                      <div className="mb-3">
-                        <Image
-                          src={story.image}
-                          alt={story.title || "封面圖片"}
-                          width={300}
-                          height={200}
-                          className="rounded-lg object-cover"
+                    {/* 封面圖片 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1">
+                        封面圖片
+                      </label>
+                      {story.image && (
+                        <div className="mb-3">
+                          <Image
+                            src={story.image}
+                            alt={story.title || "封面圖片"}
+                            width={300}
+                            height={200}
+                            className="rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
+                      <ImageUploader
+                        onImageUpload={(data) => {
+                          const newStories = [
+                            ...(pageData.franchiseeSharing?.stories || []),
+                          ];
+                          newStories[index] = {
+                            ...newStories[index],
+                            image: data.imageUrl,
+                          };
+                          setPageData((prev) => ({
+                            ...prev,
+                            franchiseeSharing: {
+                              ...prev.franchiseeSharing,
+                              stories: newStories,
+                            },
+                          }));
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          標題
+                        </label>
+                        <input
+                          type="text"
+                          value={story.title}
+                          onChange={(e) => {
+                            const newStories = [
+                              ...(pageData.franchiseeSharing?.stories || []),
+                            ];
+                            newStories[index] = {
+                              ...newStories[index],
+                              title: e.target.value,
+                            };
+                            setPageData((prev) => ({
+                              ...prev,
+                              franchiseeSharing: {
+                                ...prev.franchiseeSharing,
+                                stories: newStories,
+                              },
+                            }));
+                          }}
+                          placeholder="例如：保險員轉職"
+                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                         />
                       </div>
-                    )}
-                    <ImageUploader
-                      onImageUpload={(data) => {
-                        const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                        newStories[index] = { ...newStories[index], image: data.imageUrl };
-                        setPageData((prev) => ({
-                          ...prev,
-                          franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
-                        }));
-                      }}
-                    />
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          副標題
+                        </label>
+                        <input
+                          type="text"
+                          value={story.subtitle}
+                          onChange={(e) => {
+                            const newStories = [
+                              ...(pageData.franchiseeSharing?.stories || []),
+                            ];
+                            newStories[index] = {
+                              ...newStories[index],
+                              subtitle: e.target.value,
+                            };
+                            setPageData((prev) => ({
+                              ...prev,
+                              franchiseeSharing: {
+                                ...prev.franchiseeSharing,
+                                stories: newStories,
+                              },
+                            }));
+                          }}
+                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          日期
+                        </label>
+                        <input
+                          type="text"
+                          value={story.date}
+                          onChange={(e) => {
+                            const newStories = [
+                              ...(pageData.franchiseeSharing?.stories || []),
+                            ];
+                            newStories[index] = {
+                              ...newStories[index],
+                              date: e.target.value,
+                            };
+                            setPageData((prev) => ({
+                              ...prev,
+                              franchiseeSharing: {
+                                ...prev.franchiseeSharing,
+                                stories: newStories,
+                              },
+                            }));
+                          }}
+                          placeholder="例如：December 24, 2025"
+                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          分類
+                        </label>
+                        <input
+                          type="text"
+                          value={story.category}
+                          onChange={(e) => {
+                            const newStories = [
+                              ...(pageData.franchiseeSharing?.stories || []),
+                            ];
+                            newStories[index] = {
+                              ...newStories[index],
+                              category: e.target.value,
+                            };
+                            setPageData((prev) => ({
+                              ...prev,
+                              franchiseeSharing: {
+                                ...prev.franchiseeSharing,
+                                stories: newStories,
+                              },
+                            }));
+                          }}
+                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                        />
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">標題</label>
-                      <input
-                        type="text"
-                        value={story.title}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1">
+                        摘要描述
+                      </label>
+                      <textarea
+                        value={story.description}
                         onChange={(e) => {
-                          const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                          newStories[index] = { ...newStories[index], title: e.target.value };
+                          const newStories = [
+                            ...(pageData.franchiseeSharing?.stories || []),
+                          ];
+                          newStories[index] = {
+                            ...newStories[index],
+                            description: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
+                            franchiseeSharing: {
+                              ...prev.franchiseeSharing,
+                              stories: newStories,
+                            },
                           }));
                         }}
-                        placeholder="例如：保險員轉職"
+                        rows={2}
+                        placeholder="顯示在卡片上的簡短描述"
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">副標題</label>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1">
+                        YouTube 影片網址（選填，會顯示在文章最下方）
+                      </label>
                       <input
                         type="text"
-                        value={story.subtitle}
+                        value={story.youtubeUrl}
                         onChange={(e) => {
-                          const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                          newStories[index] = { ...newStories[index], subtitle: e.target.value };
+                          const newStories = [
+                            ...(pageData.franchiseeSharing?.stories || []),
+                          ];
+                          newStories[index] = {
+                            ...newStories[index],
+                            youtubeUrl: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
+                            franchiseeSharing: {
+                              ...prev.franchiseeSharing,
+                              stories: newStories,
+                            },
                           }));
                         }}
+                        placeholder="例如: https://www.youtube.com/watch?v=xxxxx"
                         className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
                       />
                     </div>
+
                     <div>
-                      <label className="block text-sm font-medium mb-1">日期</label>
-                      <input
-                        type="text"
-                        value={story.date}
-                        onChange={(e) => {
-                          const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                          newStories[index] = { ...newStories[index], date: e.target.value };
+                      <label className="block text-sm font-medium mb-1">
+                        文章內容
+                      </label>
+                      <CustomEditor
+                        initialData={story.content || ""}
+                        onContentChange={(value) => {
+                          const newStories = [
+                            ...(pageData.franchiseeSharing?.stories || []),
+                          ];
+                          newStories[index] = {
+                            ...newStories[index],
+                            content: value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
+                            franchiseeSharing: {
+                              ...prev.franchiseeSharing,
+                              stories: newStories,
+                            },
                           }));
                         }}
-                        placeholder="例如：December 24, 2025"
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">分類</label>
-                      <input
-                        type="text"
-                        value={story.category}
-                        onChange={(e) => {
-                          const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                          newStories[index] = { ...newStories[index], category: e.target.value };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
-                          }));
-                        }}
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                        height={300}
+                        placeholder="撰寫文章內容..."
                       />
                     </div>
                   </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">摘要描述</label>
-                    <textarea
-                      value={story.description}
-                      onChange={(e) => {
-                        const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                        newStories[index] = { ...newStories[index], description: e.target.value };
-                        setPageData((prev) => ({
-                          ...prev,
-                          franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
-                        }));
-                      }}
-                      rows={2}
-                      placeholder="顯示在卡片上的簡短描述"
-                      className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">YouTube 影片網址（選填，會顯示在文章最下方）</label>
-                    <input
-                      type="text"
-                      value={story.youtubeUrl}
-                      onChange={(e) => {
-                        const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                        newStories[index] = { ...newStories[index], youtubeUrl: e.target.value };
-                        setPageData((prev) => ({
-                          ...prev,
-                          franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
-                        }));
-                      }}
-                      placeholder="例如: https://www.youtube.com/watch?v=xxxxx"
-                      className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">文章內容</label>
-                    <CustomEditor
-                      initialData={story.content || ""}
-                      onContentChange={(value) => {
-                        const newStories = [...(pageData.franchiseeSharing?.stories || [])];
-                        newStories[index] = { ...newStories[index], content: value };
-                        setPageData((prev) => ({
-                          ...prev,
-                          franchiseeSharing: { ...prev.franchiseeSharing, stories: newStories },
-                        }));
-                      }}
-                      height={300}
-                      placeholder="撰寫文章內容..."
-                    />
-                  </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </div>
         </div>
@@ -1148,7 +1465,10 @@ export const FranchisePage = () => {
                       ...prev,
                       cta: {
                         ...prev.cta,
-                        buttons: [...prev.cta.buttons, { text: "", link: "", icon: "", variant: "primary" }],
+                        buttons: [
+                          ...prev.cta.buttons,
+                          { text: "", link: "", icon: "", variant: "primary" },
+                        ],
                       },
                     }))
                   }
@@ -1158,16 +1478,24 @@ export const FranchisePage = () => {
                 </button>
               </div>
               {pageData.cta.buttons.map((btn, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg border mb-4">
+                <div
+                  key={index}
+                  className="bg-white p-4 rounded-lg border mb-4"
+                >
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">按鈕文字</label>
+                      <label className="block text-sm font-medium mb-1">
+                        按鈕文字
+                      </label>
                       <input
                         type="text"
                         value={btn.text}
                         onChange={(e) => {
                           const newButtons = [...pageData.cta.buttons];
-                          newButtons[index] = { ...newButtons[index], text: e.target.value };
+                          newButtons[index] = {
+                            ...newButtons[index],
+                            text: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
                             cta: { ...prev.cta, buttons: newButtons },
@@ -1177,13 +1505,18 @@ export const FranchisePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">連結</label>
+                      <label className="block text-sm font-medium mb-1">
+                        連結
+                      </label>
                       <input
                         type="text"
                         value={btn.link}
                         onChange={(e) => {
                           const newButtons = [...pageData.cta.buttons];
-                          newButtons[index] = { ...newButtons[index], link: e.target.value };
+                          newButtons[index] = {
+                            ...newButtons[index],
+                            link: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
                             cta: { ...prev.cta, buttons: newButtons },
@@ -1193,13 +1526,18 @@ export const FranchisePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">圖標</label>
+                      <label className="block text-sm font-medium mb-1">
+                        圖標
+                      </label>
                       <input
                         type="text"
                         value={btn.icon}
                         onChange={(e) => {
                           const newButtons = [...pageData.cta.buttons];
-                          newButtons[index] = { ...newButtons[index], icon: e.target.value };
+                          newButtons[index] = {
+                            ...newButtons[index],
+                            icon: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
                             cta: { ...prev.cta, buttons: newButtons },
@@ -1209,12 +1547,17 @@ export const FranchisePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">樣式</label>
+                      <label className="block text-sm font-medium mb-1">
+                        樣式
+                      </label>
                       <select
                         value={btn.variant}
                         onChange={(e) => {
                           const newButtons = [...pageData.cta.buttons];
-                          newButtons[index] = { ...newButtons[index], variant: e.target.value };
+                          newButtons[index] = {
+                            ...newButtons[index],
+                            variant: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
                             cta: { ...prev.cta, buttons: newButtons },
@@ -1229,7 +1572,9 @@ export const FranchisePage = () => {
                   </div>
                   <button
                     onClick={() => {
-                      const newButtons = pageData.cta.buttons.filter((_, i) => i !== index);
+                      const newButtons = pageData.cta.buttons.filter(
+                        (_, i) => i !== index
+                      );
                       setPageData((prev) => ({
                         ...prev,
                         cta: { ...prev.cta, buttons: newButtons },
@@ -1252,7 +1597,10 @@ export const FranchisePage = () => {
                       ...prev,
                       cta: {
                         ...prev.cta,
-                        contactInfo: [...prev.cta.contactInfo, { icon: "", label: "", value: "" }],
+                        contactInfo: [
+                          ...prev.cta.contactInfo,
+                          { icon: "", label: "", value: "" },
+                        ],
                       },
                     }))
                   }
@@ -1262,16 +1610,24 @@ export const FranchisePage = () => {
                 </button>
               </div>
               {pageData.cta.contactInfo.map((info, index) => (
-                <div key={index} className="bg-white p-4 rounded-lg border mb-4">
+                <div
+                  key={index}
+                  className="bg-white p-4 rounded-lg border mb-4"
+                >
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">圖標</label>
+                      <label className="block text-sm font-medium mb-1">
+                        圖標
+                      </label>
                       <input
                         type="text"
                         value={info.icon}
                         onChange={(e) => {
                           const newInfo = [...pageData.cta.contactInfo];
-                          newInfo[index] = { ...newInfo[index], icon: e.target.value };
+                          newInfo[index] = {
+                            ...newInfo[index],
+                            icon: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
                             cta: { ...prev.cta, contactInfo: newInfo },
@@ -1281,13 +1637,18 @@ export const FranchisePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">標籤</label>
+                      <label className="block text-sm font-medium mb-1">
+                        標籤
+                      </label>
                       <input
                         type="text"
                         value={info.label}
                         onChange={(e) => {
                           const newInfo = [...pageData.cta.contactInfo];
-                          newInfo[index] = { ...newInfo[index], label: e.target.value };
+                          newInfo[index] = {
+                            ...newInfo[index],
+                            label: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
                             cta: { ...prev.cta, contactInfo: newInfo },
@@ -1297,13 +1658,18 @@ export const FranchisePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">值</label>
+                      <label className="block text-sm font-medium mb-1">
+                        值
+                      </label>
                       <input
                         type="text"
                         value={info.value}
                         onChange={(e) => {
                           const newInfo = [...pageData.cta.contactInfo];
-                          newInfo[index] = { ...newInfo[index], value: e.target.value };
+                          newInfo[index] = {
+                            ...newInfo[index],
+                            value: e.target.value,
+                          };
                           setPageData((prev) => ({
                             ...prev,
                             cta: { ...prev.cta, contactInfo: newInfo },
@@ -1315,7 +1681,9 @@ export const FranchisePage = () => {
                   </div>
                   <button
                     onClick={() => {
-                      const newInfo = pageData.cta.contactInfo.filter((_, i) => i !== index);
+                      const newInfo = pageData.cta.contactInfo.filter(
+                        (_, i) => i !== index
+                      );
                       setPageData((prev) => ({
                         ...prev,
                         cta: { ...prev.cta, contactInfo: newInfo },
