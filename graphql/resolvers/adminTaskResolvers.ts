@@ -1912,10 +1912,7 @@ export const adminTaskResolvers = {
         updateData.payload = args.input.payload as Prisma.InputJsonValue;
       }
 
-      // 如果有更新備註
-      if (args.input.notes !== undefined) {
-        updateData.notes = args.input.notes;
-      }
+      // 注意：notes 參數只用於審批記錄的 comment，不更新任務的細節欄位
 
       const updatedTask = await prisma.adminTask.update({
         where: { id: args.input.taskId },

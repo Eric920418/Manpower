@@ -10,6 +10,7 @@ const UPDATE_PAGE = gql`
   mutation UpdateStaffPage($input: UpdateStaffPageInput!) {
     updateStaffPage(input: $input) {
       hero
+      listSection
       staffList
       ctaSection
     }
@@ -20,6 +21,7 @@ const query = `
   query staffPage {
     staffPage {
       hero
+      listSection
       staffList
       ctaSection
     }
@@ -45,6 +47,11 @@ interface PageData {
     description: string;
     image: string;
   };
+  listSection: {
+    tag: string;
+    title: string;
+    description: string;
+  };
   staffList: Staff[];
   ctaSection: {
     title: string;
@@ -59,6 +66,7 @@ export const StaffPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pageData, setPageData] = useState<PageData>({
     hero: { title: "", description: "", image: "" },
+    listSection: { tag: "", title: "", description: "" },
     staffList: [],
     ctaSection: { title: "", description: "", buttonText: "", buttonLink: "" },
   });
@@ -165,6 +173,58 @@ export const StaffPage = () => {
                   hero: { ...prev.hero, image: data.imageUrl },
                 }))
               }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 列表區塊標題設定 */}
+      <div className="bg-gray-100 p-6 rounded-lg mb-6">
+        <h2 className="text-2xl font-bold mb-4">列表區塊標題設定</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">標籤</label>
+            <input
+              type="text"
+              value={pageData.listSection.tag}
+              onChange={(e) =>
+                setPageData((prev) => ({
+                  ...prev,
+                  listSection: { ...prev.listSection, tag: e.target.value },
+                }))
+              }
+              className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
+              placeholder="例如：專業團隊"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">標題</label>
+            <input
+              type="text"
+              value={pageData.listSection.title}
+              onChange={(e) =>
+                setPageData((prev) => ({
+                  ...prev,
+                  listSection: { ...prev.listSection, title: e.target.value },
+                }))
+              }
+              className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
+              placeholder="例如：認識我們的業務團隊"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">描述</label>
+            <textarea
+              value={pageData.listSection.description}
+              onChange={(e) =>
+                setPageData((prev) => ({
+                  ...prev,
+                  listSection: { ...prev.listSection, description: e.target.value },
+                }))
+              }
+              rows={2}
+              className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
+              placeholder="例如：每位業務人員都經過專業培訓，致力於為您提供最優質的服務"
             />
           </div>
         </div>
@@ -283,7 +343,12 @@ export const StaffPage = () => {
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">個人簡介</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium">個人簡介</label>
+                  <span className={`text-xs ${staff.bio.length > 80 ? 'text-orange-500' : 'text-gray-500'}`}>
+                    {staff.bio.length} / 80 字
+                  </span>
+                </div>
                 <textarea
                   value={staff.bio}
                   onChange={(e) => {
@@ -292,8 +357,10 @@ export const StaffPage = () => {
                     setPageData((prev) => ({ ...prev, staffList: newStaffList }));
                   }}
                   rows={3}
-                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                  className={`block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border ${staff.bio.length > 80 ? 'border-orange-400' : 'border-gray-300'}`}
+                  placeholder="建議 80 字以內，前台最多顯示 4 行"
                 />
+                <p className="text-xs text-gray-400 mt-1">前台最多顯示 4 行，超出部分會以「...」截斷</p>
               </div>
 
               <div className="mt-4">

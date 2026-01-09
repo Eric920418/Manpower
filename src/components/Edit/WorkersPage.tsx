@@ -300,6 +300,12 @@ export const WorkersPage = () => {
       if (response.errors) {
         alert("儲存失敗：" + JSON.stringify(response.errors));
       } else {
+        // 清除前台快取
+        await fetch("/api/revalidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: "/workers" }),
+        });
         setPageData(newPageData);
         setIsModalOpen(false);
         setEditingWorker(null);
@@ -329,6 +335,12 @@ export const WorkersPage = () => {
       if (response.errors) {
         alert("刪除失敗：" + JSON.stringify(response.errors));
       } else {
+        // 清除前台快取
+        await fetch("/api/revalidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: "/workers" }),
+        });
         setPageData(newPageData);
         alert("刪除成功");
       }
@@ -351,6 +363,12 @@ export const WorkersPage = () => {
       if (response.errors) {
         alert("更新失敗：" + JSON.stringify(response.errors));
       } else {
+        // 清除前台快取
+        await fetch("/api/revalidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: "/workers" }),
+        });
         alert("更新成功");
       }
     } catch (err) {
@@ -1075,15 +1093,22 @@ export const WorkersPage = () => {
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">個人描述</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium">個人描述</label>
+                  <span className={`text-xs ${editingWorker.description.length > 50 ? 'text-orange-500' : 'text-gray-500'}`}>
+                    {editingWorker.description.length} / 50 字
+                  </span>
+                </div>
                 <textarea
                   value={editingWorker.description}
                   onChange={(e) =>
                     setEditingWorker({ ...editingWorker, description: e.target.value })
                   }
                   rows={3}
-                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                  className={`block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border ${editingWorker.description.length > 50 ? 'border-orange-400' : 'border-gray-300'}`}
+                  placeholder="建議 50 字以內，前台最多顯示 2 行"
                 />
+                <p className="text-xs text-gray-400 mt-1">前台最多顯示 2 行，超出部分會以「...」截斷</p>
               </div>
 
               <div className="mt-4">

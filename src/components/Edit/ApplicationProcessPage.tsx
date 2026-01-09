@@ -95,6 +95,12 @@ export const ApplicationProcessPage = () => {
       if (response.errors) {
         alert("更新失敗：" + JSON.stringify(response.errors));
       } else {
+        // 清除前台快取，讓更新立即生效
+        await fetch("/api/revalidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: "/application-process" }),
+        });
         alert("更新成功");
       }
     } catch (err) {

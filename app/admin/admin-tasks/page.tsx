@@ -1965,14 +1965,13 @@ function AdminTasksContent() {
     t.applicant?.id === currentUserId
   ).length;
 
-  // 待複審打勾：用戶是複審人
-  const myAwaitingReviewCheck = myReminderTasks.filter(t =>
-    t.status === "APPROVED" &&
-    t.reviewers?.some(r => r.id === currentUserId) &&
-    !t.reviewedAt
+  // 待複審：用戶是複審人
+  const myPendingReviewTasks = myReminderTasks.filter(t =>
+    t.status === "PENDING_REVIEW" &&
+    t.reviewers?.some(r => r.id === currentUserId)
   ).length;
 
-  const totalPendingCount = myPendingTasks + myPendingDocsTasks + myRevisionTasks + myAwaitingReviewCheck;
+  const totalPendingCount = myPendingTasks + myPendingDocsTasks + myRevisionTasks + myPendingReviewTasks;
 
   // 導出 Excel - 獲取全部資料
   const handleExportExcel = async () => {
@@ -2167,13 +2166,13 @@ function AdminTasksContent() {
                       </button>
                     </div>
                   )}
-                  {/* 待複審打勾：用戶是複審人 */}
-                  {myAwaitingReviewCheck > 0 && (
+                  {/* 待複審：用戶是複審人 */}
+                  {myPendingReviewTasks > 0 && (
                     <div className="border-b border-gray-100">
                       <button
                         onClick={() => {
                           // 清除所有篩選器，只保留狀態篩選
-                          setStatusFilter("AWAITING_REVIEW_CHECK");
+                          setStatusFilter("PENDING_REVIEW");
                           setTypeFilter("all");
                           setApplicantFilter("all");
                           setHandlerFilter("all");
@@ -2184,13 +2183,13 @@ function AdminTasksContent() {
                       >
                         <div className="flex items-center gap-3">
                           <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-                          <span className="text-gray-700">待複審打勾</span>
+                          <span className="text-gray-700">待複審</span>
                           <span className="text-xs text-gray-400">
                             （您是複審人）
                           </span>
                         </div>
                         <span className="px-2.5 py-1 text-sm font-semibold bg-purple-100 text-purple-800 rounded-full">
-                          {myAwaitingReviewCheck}
+                          {myPendingReviewTasks}
                         </span>
                       </button>
                     </div>
@@ -2422,7 +2421,7 @@ function AdminTasksContent() {
                 <option value="COMPLETED">已完成</option>
                 <option value="PENDING_REVIEW">待複審</option>
                 <option value="REVIEWED">已複審</option>
-                <option value="OVERDUE">逾期的</option>
+                <option value="OVERDUE">逾期</option>
               </select>
             </div>
 

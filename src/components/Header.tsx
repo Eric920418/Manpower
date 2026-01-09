@@ -44,6 +44,12 @@ export default function Header({ navigation, contactButton }: HeaderProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-6 md:flex">
+            <Link
+              href="/"
+              className="text-sm font-medium text-text-on-brand/90 transition-colors hover:text-brand-primary"
+            >
+              首頁
+            </Link>
             {navigation.map((item, index) => (
               <Link
                 key={index}
@@ -76,6 +82,13 @@ export default function Header({ navigation, contactButton }: HeaderProps) {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 bg-brand-secondary/95 backdrop-blur-sm rounded-lg mt-2 shadow-lg border border-brand-primary/20">
             <nav className="flex flex-col gap-2">
+              <Link
+                href="/"
+                className="px-4 py-2 text-sm font-medium text-text-on-brand/90 hover:bg-brand-primary/20 hover:text-brand-primary transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                首頁
+              </Link>
               {navigation.map((item, index) => (
                 <Link
                   key={index}

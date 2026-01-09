@@ -1026,7 +1026,12 @@ export const HomePage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">描述</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium">描述</label>
+                  <span className={`text-xs ${pageData.newsSection.featuredArticle.description.length > 120 ? 'text-orange-500' : 'text-gray-500'}`}>
+                    {pageData.newsSection.featuredArticle.description.length} / 120 字
+                  </span>
+                </div>
                 <textarea
                   value={pageData.newsSection.featuredArticle.description}
                   onChange={(e) =>
@@ -1039,8 +1044,10 @@ export const HomePage = () => {
                     }))
                   }
                   rows={3}
-                  className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
+                  className={`block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border ${pageData.newsSection.featuredArticle.description.length > 120 ? 'border-orange-400' : 'border-gray-300'}`}
+                  placeholder="建議 120 字以內，前台最多顯示 5 行"
                 />
+                <p className="text-xs text-gray-400 mt-1">前台最多顯示 5 行，超出部分會以「...」截斷</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">連結</label>
@@ -1189,7 +1196,12 @@ export const HomePage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">描述</label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-sm font-medium">描述</label>
+                        <span className={`text-xs ${article.description.length > 80 ? 'text-orange-500' : 'text-gray-500'}`}>
+                          {article.description.length} / 80 字
+                        </span>
+                      </div>
                       <textarea
                         value={article.description}
                         onChange={(e) => {
@@ -1201,8 +1213,10 @@ export const HomePage = () => {
                           }));
                         }}
                         rows={2}
-                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                        className={`block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border ${article.description.length > 80 ? 'border-orange-400' : 'border-gray-300'}`}
+                        placeholder="建議 80 字以內，前台最多顯示 3 行"
                       />
+                      <p className="text-xs text-gray-400 mt-1">前台最多顯示 3 行</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">連結</label>
@@ -1512,103 +1526,6 @@ export const HomePage = () => {
             </div>
           </div>
 
-          {/* 快速連結 */}
-          <div className="bg-white p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-3">快速連結</h3>
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">標題</label>
-              <input
-                type="text"
-                value={pageData.footer.quickLinks.title}
-                onChange={(e) =>
-                  setPageData((prev) => ({
-                    ...prev,
-                    footer: {
-                      ...prev.footer,
-                      quickLinks: { ...prev.footer.quickLinks, title: e.target.value },
-                    },
-                  }))
-                }
-                className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
-              />
-            </div>
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-medium">連結項目</h4>
-              <button
-                onClick={() =>
-                  setPageData((prev) => ({
-                    ...prev,
-                    footer: {
-                      ...prev.footer,
-                      quickLinks: {
-                        ...prev.footer.quickLinks,
-                        links: [...prev.footer.quickLinks.links, { label: "", link: "#" }],
-                      },
-                    },
-                  }))
-                }
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                新增連結
-              </button>
-            </div>
-            <div className="space-y-2">
-              {pageData.footer.quickLinks.links.map((link, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={link.label}
-                    onChange={(e) => {
-                      const newLinks = [...pageData.footer.quickLinks.links];
-                      newLinks[index] = { ...newLinks[index], label: e.target.value };
-                      setPageData((prev) => ({
-                        ...prev,
-                        footer: {
-                          ...prev.footer,
-                          quickLinks: { ...prev.footer.quickLinks, links: newLinks },
-                        },
-                      }));
-                    }}
-                    placeholder="標籤"
-                    className="flex-1 rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
-                  />
-                  <input
-                    type="text"
-                    value={link.link}
-                    onChange={(e) => {
-                      const newLinks = [...pageData.footer.quickLinks.links];
-                      newLinks[index] = { ...newLinks[index], link: e.target.value };
-                      setPageData((prev) => ({
-                        ...prev,
-                        footer: {
-                          ...prev.footer,
-                          quickLinks: { ...prev.footer.quickLinks, links: newLinks },
-                        },
-                      }));
-                    }}
-                    placeholder="連結"
-                    className="flex-1 rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
-                  />
-                  <button
-                    onClick={() => {
-                      const newLinks = pageData.footer.quickLinks.links.filter((_, i) => i !== index);
-                      setPageData((prev) => ({
-                        ...prev,
-                        footer: {
-                          ...prev.footer,
-                          quickLinks: { ...prev.footer.quickLinks, links: newLinks },
-                        },
-                      }));
-                    }}
-                    className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600"
-                  >
-                    刪除
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Google Maps */}
           <div className="bg-white p-4 rounded-lg">
             <h3 className="text-lg font-semibold mb-3">Google Maps</h3>
@@ -1659,10 +1576,10 @@ export const HomePage = () => {
             )}
           </div>
 
-          {/* 版權與底部連結 */}
+          {/* 版權資訊 */}
           <div className="bg-white p-4 rounded-lg">
             <h3 className="text-lg font-semibold mb-3">版權資訊</h3>
-            <div className="mb-3">
+            <div>
               <label className="block text-sm font-medium mb-1">版權文字</label>
               <input
                 type="text"
@@ -1675,69 +1592,6 @@ export const HomePage = () => {
                 }
                 className="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 border border-gray-300"
               />
-            </div>
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-medium">底部連結</h4>
-              <button
-                onClick={() =>
-                  setPageData((prev) => ({
-                    ...prev,
-                    footer: {
-                      ...prev.footer,
-                      bottomLinks: [...prev.footer.bottomLinks, { label: "", link: "#" }],
-                    },
-                  }))
-                }
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                新增連結
-              </button>
-            </div>
-            <div className="space-y-2">
-              {pageData.footer.bottomLinks.map((link, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={link.label}
-                    onChange={(e) => {
-                      const newLinks = [...pageData.footer.bottomLinks];
-                      newLinks[index] = { ...newLinks[index], label: e.target.value };
-                      setPageData((prev) => ({
-                        ...prev,
-                        footer: { ...prev.footer, bottomLinks: newLinks },
-                      }));
-                    }}
-                    placeholder="標籤"
-                    className="flex-1 rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
-                  />
-                  <input
-                    type="text"
-                    value={link.link}
-                    onChange={(e) => {
-                      const newLinks = [...pageData.footer.bottomLinks];
-                      newLinks[index] = { ...newLinks[index], link: e.target.value };
-                      setPageData((prev) => ({
-                        ...prev,
-                        footer: { ...prev.footer, bottomLinks: newLinks },
-                      }));
-                    }}
-                    placeholder="連結"
-                    className="flex-1 rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
-                  />
-                  <button
-                    onClick={() => {
-                      const newLinks = pageData.footer.bottomLinks.filter((_, i) => i !== index);
-                      setPageData((prev) => ({
-                        ...prev,
-                        footer: { ...prev.footer, bottomLinks: newLinks },
-                      }));
-                    }}
-                    className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600"
-                  >
-                    刪除
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
         </div>

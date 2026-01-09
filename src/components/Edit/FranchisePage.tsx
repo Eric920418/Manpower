@@ -1311,9 +1311,12 @@ export const FranchisePage = () => {
                     </div>
 
                     <div className="mb-4">
-                      <label className="block text-sm font-medium mb-1">
-                        摘要描述
-                      </label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-sm font-medium">摘要描述</label>
+                        <span className={`text-xs ${story.description.length > 80 ? 'text-orange-500' : 'text-gray-500'}`}>
+                          {story.description.length} / 80 字
+                        </span>
+                      </div>
                       <textarea
                         value={story.description}
                         onChange={(e) => {
@@ -1333,9 +1336,10 @@ export const FranchisePage = () => {
                           }));
                         }}
                         rows={2}
-                        placeholder="顯示在卡片上的簡短描述"
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                        placeholder="建議 80 字以內，前台最多顯示 3 行"
+                        className={`block w-full rounded-md bg-white px-3 py-2 border ${story.description.length > 80 ? 'border-orange-400' : 'border-gray-300'}`}
                       />
+                      <p className="text-xs text-gray-400 mt-1">前台最多顯示 3 行，超出部分會以「...」截斷</p>
                     </div>
 
                     <div className="mb-4">

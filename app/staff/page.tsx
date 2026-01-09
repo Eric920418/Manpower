@@ -27,6 +27,7 @@ async function getPageData() {
       }
       staffPage {
         hero
+        listSection
         staffList
         ctaSection
       }
@@ -59,13 +60,14 @@ async function getPageData() {
     header: data?.homePage[0]?.header || null,
     footer: data?.homePage[0]?.footer || null,
     pageData: data?.staffPage[0] || null,
+    listSection: data?.staffPage[0]?.listSection || { tag: "專業團隊", title: "認識我們的業務團隊", description: "每位業務人員都經過專業培訓，致力於為您提供最優質的服務" },
     staffList: data?.staffPage[0]?.staffList || [],
     navigations: data?.activeNavigations || [],
   };
 }
 
 export default async function StaffPage() {
-  const { header, footer, pageData, staffList, navigations } = await getPageData();
+  const { header, footer, pageData, listSection, staffList, navigations } = await getPageData();
 
   if (!header || !footer || !pageData) {
     return (
@@ -117,7 +119,7 @@ export default async function StaffPage() {
         image={pageData.hero.image}
       />
 
-      <StaffList staffList={formattedStaffList} />
+      <StaffList staffList={formattedStaffList} listSection={listSection} />
 
       <StaffCTA
         title={pageData.ctaSection.title}

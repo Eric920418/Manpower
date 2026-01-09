@@ -17,11 +17,18 @@ interface Staff {
   detailUrl?: string;
 }
 
-interface Props {
-  staffList: Staff[];
+interface ListSection {
+  tag: string;
+  title: string;
+  description: string;
 }
 
-export default function StaffList({ staffList }: Props) {
+interface Props {
+  staffList: Staff[];
+  listSection: ListSection;
+}
+
+export default function StaffList({ staffList, listSection }: Props) {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
 
@@ -48,13 +55,13 @@ export default function StaffList({ staffList }: Props) {
             viewport={{ once: true }}
           >
             <span className="inline-block px-4 py-2 bg-brand-primary/10 text-brand-primary rounded-full text-sm font-medium mb-4">
-              專業團隊
+              {listSection.tag}
             </span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              認識我們的業務團隊
+              {listSection.title}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              每位業務人員都經過專業培訓，致力於為您提供最優質的服務
+              {listSection.description}
             </p>
           </motion.div>
         </div>
@@ -67,15 +74,15 @@ export default function StaffList({ staffList }: Props) {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group"
+              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 group h-full flex flex-col"
             >
               {/* 照片區域 */}
-              <div className="relative h-72 overflow-hidden">
+              <div className="relative overflow-hidden aspect-[3/4] bg-gray-100 shrink-0">
                 <Image
                   src={staff.photo}
                   alt={staff.name}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="object-contain group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4">
@@ -85,28 +92,26 @@ export default function StaffList({ staffList }: Props) {
               </div>
 
               {/* 資訊區域 */}
-              <div className="p-6">
-                <p className="text-gray-600 mb-4 line-clamp-3">{staff.bio}</p>
+              <div className="p-6 flex-1 flex flex-col">
+                <p className="text-gray-600 mb-4 whitespace-pre-line line-clamp-4 min-h-[120px]">{staff.bio}</p>
 
                 {/* 專長標籤 */}
-                {staff.specialties.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 mb-2">專長領域</p>
-                    <div className="flex flex-wrap gap-2">
-                      {staff.specialties.map((specialty, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-xs rounded-full"
-                        >
-                          {specialty}
-                        </span>
-                      ))}
-                    </div>
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 mb-2">專長領域</p>
+                  <div className="flex flex-wrap gap-2 min-h-[60px]">
+                    {staff.specialties.map((specialty, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-xs rounded-full"
+                      >
+                        {specialty}
+                      </span>
+                    ))}
                   </div>
-                )}
+                </div>
 
                 {/* 聯絡資訊 */}
-                <div className="space-y-2 pt-4 border-t border-gray-100">
+                <div className="space-y-2 pt-4 border-t border-gray-100 flex-1">
                   {staff.phone && (
                     <a
                       href={`tel:${staff.phone.replace(/-/g, "")}`}
@@ -139,7 +144,7 @@ export default function StaffList({ staffList }: Props) {
                 <button
                   onClick={() => handleViewDetail(staff)}
                   disabled={!staff.detailUrl}
-                  className={`mt-4 w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                  className={`mt-4 w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shrink-0 ${
                     staff.detailUrl
                       ? "bg-brand-primary text-white hover:bg-brand-accent cursor-pointer"
                       : "bg-gray-200 text-gray-400 cursor-not-allowed"

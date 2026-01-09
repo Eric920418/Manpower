@@ -84,12 +84,12 @@ export default function Footer({
 
           </div>
 
-          {/* 快速連結 */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* 網站導覽 */}
+          <div className="lg:col-span-3 flex flex-col gap-6">
             <h3 className="text-lg font-semibold text-text-on-brand">
               {quickLinks.title}
             </h3>
-            <nav className="flex flex-col gap-3 text-text-on-brand/90">
+            <nav className="grid grid-cols-2 gap-x-6 gap-y-3 text-text-on-brand/90">
               {quickLinks.links.map((link, index) => (
                 <Link
                   key={index}
@@ -103,7 +103,7 @@ export default function Footer({
           </div>
 
           {/* Google Maps */}
-          <div className="lg:col-span-6 w-full h-64 md:h-auto rounded-lg overflow-hidden">
+          <div className="lg:col-span-5 w-full h-64 md:h-auto rounded-lg overflow-hidden">
             {map.embedUrl && (
               <iframe
                 src={(() => {

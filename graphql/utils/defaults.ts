@@ -89,12 +89,16 @@ const homePageDefaults = {
       { platform: "LinkedIn", link: "#", svgPath: "M20.447 20.452H24V12.574C24 8.867 23.238 5.792 18.062 5.792C15.688 5.792 14.2 6.984 13.52 8.182H13.437V6.109H9.891V20.452H13.629V13.619C13.629 11.841 13.977 10.09 16.031 10.09C18.055 10.09 18.359 12.125 18.359 13.91V20.452H20.447ZM0 6.109H3.738V20.452H0V6.109ZM1.869 0C0.746 0 0 0.746 0 1.869C0 2.992 0.746 3.738 1.869 3.738C2.992 3.738 3.738 2.992 3.738 1.869C3.738 0.746 2.992 0 1.869 0Z" },
     ],
     quickLinks: {
-      title: "快速連結",
+      title: "網站導覽",
       links: [
-        { label: "尋找工作", link: "#" },
-        { label: "雇主專區", link: "#" },
-        { label: "關於我們", link: "#" },
-        { label: "常見問題", link: "#" },
+        { label: "首頁", link: "/" },
+        { label: "優質人才", link: "/workers" },
+        { label: "申請流程", link: "/application-process" },
+        { label: "創業加盟", link: "/franchise" },
+        { label: "主力人力", link: "/staff" },
+        { label: "最新消息", link: "/news" },
+        { label: "常見問題", link: "/faq" },
+        { label: "聯絡我們", link: "/contact" },
       ],
     },
     map: {
@@ -559,6 +563,11 @@ const staffPageDefaults = {
     title: "主力人力",
     description: "我們的專業業務團隊，竭誠為您提供最優質的人力仲介服務",
     image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=600&fit=crop",
+  },
+  listSection: {
+    tag: "專業團隊",
+    title: "認識我們的業務團隊",
+    description: "每位業務人員都經過專業培訓，致力於為您提供最優質的服務",
   },
   staffList: [
     {

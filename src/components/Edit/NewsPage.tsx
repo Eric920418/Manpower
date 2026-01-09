@@ -236,7 +236,12 @@ export const NewsPage = () => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">摘要</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium">摘要</label>
+              <span className={`text-xs ${pageData.featuredNews.excerpt.length > 80 ? 'text-orange-500' : 'text-gray-500'}`}>
+                {pageData.featuredNews.excerpt.length} / 80 字
+              </span>
+            </div>
             <textarea
               value={pageData.featuredNews.excerpt}
               onChange={(e) =>
@@ -246,8 +251,10 @@ export const NewsPage = () => {
                 }))
               }
               rows={3}
-              className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+              className={`block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border ${pageData.featuredNews.excerpt.length > 80 ? 'border-orange-400' : 'border-gray-300'}`}
+              placeholder="建議 80 字以內，前台最多顯示 3 行"
             />
+            <p className="text-xs text-gray-400 mt-1">前台最多顯示 3 行，超出部分會以「...」截斷</p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">內文</label>
@@ -392,7 +399,12 @@ export const NewsPage = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">摘要</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium">摘要</label>
+                    <span className={`text-xs ${news.excerpt.length > 80 ? 'text-orange-500' : 'text-gray-500'}`}>
+                      {news.excerpt.length} / 80 字
+                    </span>
+                  </div>
                   <textarea
                     value={news.excerpt}
                     onChange={(e) => {
@@ -401,8 +413,10 @@ export const NewsPage = () => {
                       setPageData((prev) => ({ ...prev, newsList: newNewsList }));
                     }}
                     rows={2}
-                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
+                    className={`block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border ${news.excerpt.length > 80 ? 'border-orange-400' : 'border-gray-300'}`}
+                    placeholder="建議 80 字以內，前台最多顯示 3 行"
                   />
+                  <p className="text-xs text-gray-400 mt-1">前台最多顯示 3 行，超出部分會以「...」截斷</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">內文</label>

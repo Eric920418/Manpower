@@ -1,6 +1,7 @@
 type StaffPage {
   id: ID!
   hero: JSON
+  listSection: JSON
   staffList: JSON
   ctaSection: JSON
 }
@@ -11,6 +12,7 @@ extend type Query {
 
 input UpdateStaffPageInput {
   hero: JSON
+  listSection: JSON
   staffList: JSON
   ctaSection: JSON
 }

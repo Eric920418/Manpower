@@ -39,15 +39,17 @@ const menuGroups: MenuGroup[] = [
     roles: ['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF'],
     permissions: ['web_content:read', 'web_content:update'],
     items: [
+      // 左排：首頁內容、申請流程、履歷表、常見問題、最新消息
+      // 右排：創業計畫、主力人力、聯絡我們、懸浮連結
       { label: "首頁內容", href: "/admin/home-page", permission: 'web_content:read' },
-      { label: "聯絡我們", href: "/admin/contact-page", permission: 'web_content:read' },
+      { label: "創業計畫", href: "/admin/franchise", permission: 'web_content:read' },
       { label: "申請流程", href: "/admin/application-process", permission: 'web_content:read' },
-      { label: "移工列表", href: "/admin/workers", permission: 'web_content:read' },
-      { label: "常見問題", href: "/admin/faq", permission: 'web_content:read' },
-      { label: "最新消息", href: "/admin/news", permission: 'web_content:read' },
       { label: "主力人力", href: "/admin/staff", permission: 'web_content:read' },
-      { label: "創業加盟", href: "/admin/franchise", permission: 'web_content:read' },
+      { label: "履歷表", href: "/admin/workers", permission: 'web_content:read' },
+      { label: "聯絡我們", href: "/admin/contact-page", permission: 'web_content:read' },
+      { label: "常見問題", href: "/admin/faq", permission: 'web_content:read' },
       { label: "懸浮連結", href: "/admin/floating-links", permission: 'web_content:read' },
+      { label: "最新消息", href: "/admin/news", permission: 'web_content:read' },
     ],
   },
   {
