@@ -962,6 +962,16 @@ function AdminTasksContent() {
       return;
     }
 
+    // 驗證完成限期（必填）
+    if (deadlineType === "date" && !createForm.deadline) {
+      alert("請選擇完成限期");
+      return;
+    }
+    if (deadlineType === "text" && !createForm.deadlineText.trim()) {
+      alert("請輸入完成限期");
+      return;
+    }
+
     // 驗證必填問題
     for (const question of currentQuestions) {
       if (question.required) {
@@ -1793,6 +1803,12 @@ function AdminTasksContent() {
           updateTaskRemarks(taskId: $taskId, remarks: $remarks) {
             id
             remarks
+            remarksHistory {
+              userId
+              userName
+              content
+              timestamp
+            }
           }
         }
       `;
@@ -1813,18 +1829,24 @@ function AdminTasksContent() {
         throw new Error(data.errors[0].message);
       }
 
+      const updatedTaskData = data.data.updateTaskRemarks;
+
       // 更新本地狀態
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
-            ? { ...t, remarks: editableRemarks }
+            ? { ...t, remarks: updatedTaskData.remarks, remarksHistory: updatedTaskData.remarksHistory }
             : t
         )
       );
 
       // 更新 selectedTask
       if (selectedTask && selectedTask.id === task.id) {
-        setSelectedTask({ ...selectedTask, remarks: editableRemarks });
+        setSelectedTask({
+          ...selectedTask,
+          remarks: updatedTaskData.remarks,
+          remarksHistory: updatedTaskData.remarksHistory
+        });
       }
 
       addToast({ type: "success", title: "備註已更新" });
@@ -3780,7 +3802,7 @@ function AdminTasksContent() {
                   {/* 完成限期 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      完成限期
+                      完成限期 <span className="text-red-500">*</span>
                     </label>
                     {/* 類型切換 */}
                     <div className="flex gap-2 mb-2">

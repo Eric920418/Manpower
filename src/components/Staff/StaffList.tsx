@@ -98,11 +98,11 @@ export default function StaffList({ staffList, listSection }: Props) {
                 {/* 專長標籤 */}
                 <div className="mb-4">
                   <p className="text-xs text-gray-500 mb-2">專長領域</p>
-                  <div className="flex flex-wrap gap-2 min-h-[60px]">
+                  <div className="flex flex-wrap gap-2 min-h-[70px] content-start">
                     {staff.specialties.map((specialty, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-xs rounded-full"
+                        className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-xs rounded-full h-fit"
                       >
                         {specialty}
                       </span>
