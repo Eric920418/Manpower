@@ -51,11 +51,11 @@ export default function Partners({
         </div>
 
         {/* Logo 展示區塊 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
+        <div className="flex flex-wrap justify-center gap-6 md:gap-8">
           {validPartners.map((partner) => (
             <div
               key={partner.id}
-              className="group flex items-center justify-center p-6 bg-bg-primary rounded-xl border border-border hover:border-brand-primary hover:shadow-lg transition-all duration-300"
+              className="group flex items-center justify-center p-6 bg-bg-primary rounded-xl border border-border hover:border-brand-primary hover:shadow-lg transition-all duration-300 w-[calc(50%-12px)] sm:w-[calc(33.333%-16px)] md:w-[calc(25%-18px)] lg:w-[calc(20%-19.2px)] xl:w-[calc(16.666%-20px)]"
             >
               {partner.url ? (
                 <Link

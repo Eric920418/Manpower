@@ -282,6 +282,7 @@ manpower/
 - **CSRF Protection**：跨站請求偽造防護
 - **輸入驗證**：Zod schema 驗證
 - **SQL Injection 防護**：Prisma ORM 參數化查詢
+- **Google reCAPTCHA v3**：聯絡表單隱形驗證（分數 < 0.5 自動攔截）
 
 ## ⚡ 效能優化
 
@@ -350,6 +351,10 @@ ALLOWED_ORIGINS       # CORS 允許的域名
 NEXT_PUBLIC_GA_MEASUREMENT_ID  # Google Analytics ID
 DEBUG_QUERIES         # 顯示所有 Prisma 查詢
 DEBUG_GRAPHQL         # 顯示所有 GraphQL 操作
+
+# Google reCAPTCHA v3（聯絡表單防護）
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY  # reCAPTCHA 網站金鑰（前端用）
+RECAPTCHA_SECRET_KEY            # reCAPTCHA 私密金鑰（後端驗證用）
 ```
 
 ## 🎉 功能完成總結
@@ -394,6 +399,7 @@ DEBUG_GRAPHQL         # 顯示所有 GraphQL 操作
 - `/admin/news` - 最新消息編輯
 - `/admin/staff` - 業務人員編輯
 - `/admin/franchise` - 創業加盟編輯
+- `/admin/privacy-policy` - 隱私權政策編輯
 
 ### 前台展示頁面
 - `/` - 首頁
@@ -408,6 +414,7 @@ DEBUG_GRAPHQL         # 顯示所有 GraphQL 操作
 - `/franchise` - 創業加盟（分頁切換、加盟主分享卡片列表）
 - `/franchise/stories/[id]` - 加盟主分享文章詳情
 - `/faq` - 常見問題
+- `/privacy-policy` - 隱私權與網站使用說明
 
 ## 📚 相關文檔
 

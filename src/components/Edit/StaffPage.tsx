@@ -383,14 +383,23 @@ export const StaffPage = () => {
 
               <div className="mt-4">
                 <label className="block text-sm font-medium mb-1">照片</label>
+                <div className="mb-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-500 text-lg">💡</span>
+                    <div className="text-sm text-amber-700">
+                      <p className="font-medium">建議上傳 3:4 直式比例的圖片</p>
+                      <p className="text-xs mt-1">推薦尺寸：600×800 px 或 750×1000 px，避免前台顯示出現白邊</p>
+                    </div>
+                  </div>
+                </div>
                 {staff.photo && (
                   <div className="mb-2">
                     <Image
                       src={staff.photo}
                       alt={staff.name}
                       width={150}
-                      height={150}
-                      className="rounded-lg"
+                      height={200}
+                      className="rounded-lg object-cover"
                     />
                   </div>
                 )}

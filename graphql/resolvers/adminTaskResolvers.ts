@@ -2000,7 +2000,8 @@ export const adminTaskResolvers = {
         where: { id: args.taskId },
         data: {
           status: newStatus,
-          completedAt: args.checked && !hasReviewer ? new Date() : null,
+          // 打勾時記錄完成時間，取消時清空
+          completedAt: args.checked ? new Date() : null,
         },
         include: taskInclude,
       });
@@ -2069,7 +2070,6 @@ export const adminTaskResolvers = {
         data: {
           reviewedAt: args.checked ? new Date() : null,
           reviewedBy: args.checked ? user.id : null,
-          completedAt: args.checked ? new Date() : null,
           // 打勾時狀態改為已複審，取消打勾時改回待複審
           status: args.checked ? "REVIEWED" : "PENDING_REVIEW",
         },

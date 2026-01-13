@@ -73,6 +73,7 @@ const pageLabels: Record<BlockKey, string> = {
   franchisePage: "創業加盟頁",
   contactPage: "聯絡我們頁",
   floatingLinks: "懸浮連結",
+  privacyPolicyPage: "隱私權政策頁",
 };
 
 interface MutationContext {
@@ -145,6 +146,7 @@ const Query = {
   franchisePage: createQueryResolver("franchisePage"),
   contactPage: createQueryResolver("contactPage"),
   floatingLinks: createQueryResolver("floatingLinks"),
+  privacyPolicyPage: createQueryResolver("privacyPolicyPage"),
   // 用戶管理 queries
   ...userResolvers.Query,
   // 導航管理 queries
@@ -181,6 +183,7 @@ const Mutation = {
   updateFranchisePage: createMutationResolver("franchisePage"),
   updateContactPage: createMutationResolver("contactPage"),
   updateFloatingLinks: createMutationResolver("floatingLinks"),
+  updatePrivacyPolicyPage: createMutationResolver("privacyPolicyPage"),
   // 用戶管理 mutations
   ...userResolvers.Mutation,
   // 導航管理 mutations

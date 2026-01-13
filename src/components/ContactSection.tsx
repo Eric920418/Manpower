@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 interface FormField {
   label: string;
@@ -53,6 +54,7 @@ export default function ContactSection({
 }: ContactSectionProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [formData, setFormData] = useState({
     questionType: "",
     name: "",
@@ -61,30 +63,46 @@ export default function ContactSection({
     message: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus("idle");
+    setErrorMessage("");
 
     try {
+      // 取得 reCAPTCHA token（如果有設定的話）
+      let recaptchaToken = "";
+      if (executeRecaptcha) {
+        recaptchaToken = await executeRecaptcha("contact_form");
+      }
+
       const response = await fetch("/api/contact-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken,
+        }),
       });
+
+      const result = await response.json();
 
       if (response.ok) {
         setSubmitStatus("success");
         setFormData({ questionType: "", name: "", email: "", phone: "", message: "" });
       } else {
         setSubmitStatus("error");
+        setErrorMessage(result.error || "送出失敗，請稍後再試。");
       }
     } catch {
       setSubmitStatus("error");
+      setErrorMessage("送出失敗，請稍後再試。");
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [executeRecaptcha, formData]);
 
   return (
     <section className="bg-bg-primary py-20">
@@ -125,7 +143,7 @@ export default function ContactSection({
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center gap-2 text-red-700">
                   <span className="material-symbols-outlined">error</span>
-                  <span className="font-semibold">送出失敗，請稍後再試。</span>
+                  <span className="font-semibold">{errorMessage || "送出失敗，請稍後再試。"}</span>
                 </div>
               </div>
             )}

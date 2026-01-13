@@ -106,8 +106,7 @@ const homePageDefaults = {
     },
     copyright: "© 2024 佑羲人力. 版權所有.",
     bottomLinks: [
-      { label: "隱私權政策", link: "#" },
-      { label: "服務條款", link: "#" },
+      { label: "隱私權與網站使用說明", link: "/privacy-policy" },
     ],
   },
   newsSection: {
@@ -915,6 +914,87 @@ const floatingLinksDefaults = {
   ],
 };
 
+// 隱私權與網站使用說明頁面預設值
+const privacyPolicyPageDefaults = {
+  hero: {
+    title: "隱私權與網站使用說明",
+    description: "感謝您使用本網站，以下說明本公司對於個人資料蒐集、使用及保護的相關政策。",
+  },
+  sections: [
+    {
+      id: "privacy-collection",
+      title: "一、個人資料的蒐集",
+      content: `<p>當您使用本網站的聯絡表單或其他服務時，我們可能會請您提供以下個人資料：</p>
+<ul>
+<li>姓名</li>
+<li>電子郵件地址</li>
+<li>聯絡電話</li>
+<li>其他您主動提供的資訊</li>
+</ul>
+<p>這些資料僅用於回覆您的詢問、提供服務或與您聯繫之用途。</p>`,
+    },
+    {
+      id: "privacy-usage",
+      title: "二、個人資料的使用",
+      content: `<p>您所提供的個人資料將用於以下目的：</p>
+<ul>
+<li>回覆您的諮詢與問題</li>
+<li>提供您所要求的服務或資訊</li>
+<li>改善我們的服務品質</li>
+<li>遵循法律規定或配合司法機關之要求</li>
+</ul>
+<p>我們不會將您的個人資料出售、交換或出租予第三方。</p>`,
+    },
+    {
+      id: "privacy-protection",
+      title: "三、個人資料的保護",
+      content: `<p>我們採取適當的安全措施保護您的個人資料，防止未經授權的存取、使用或揭露。然而，請注意透過網際網路傳輸的資料無法保證絕對安全。</p>`,
+    },
+    {
+      id: "privacy-retention",
+      title: "四、資料保存期限",
+      content: `<p>我們會在達成蒐集目的之必要期間內保存您的個人資料。當資料不再需要時，我們將依照相關法規安全地刪除或匿名化處理。</p>`,
+    },
+    {
+      id: "privacy-rights",
+      title: "五、您的權利",
+      content: `<p>依據個人資料保護法，您對於您的個人資料享有以下權利：</p>
+<ul>
+<li>查詢或請求閱覽</li>
+<li>請求製給複製本</li>
+<li>請求補充或更正</li>
+<li>請求停止蒐集、處理或利用</li>
+<li>請求刪除</li>
+</ul>
+<p>如需行使上述權利，請透過下方聯絡方式與我們聯繫。</p>`,
+    },
+    {
+      id: "website-usage",
+      title: "六、網站使用說明",
+      content: `<p>使用本網站即表示您同意以下條款：</p>
+<ul>
+<li>本網站內容僅供參考，我們保留隨時修改之權利</li>
+<li>您不得將本網站用於任何非法目的</li>
+<li>本網站可能包含第三方網站的連結，我們不對該等網站的內容負責</li>
+<li>我們保留隨時修改本政策的權利，修改後將於網站上公告</li>
+</ul>`,
+    },
+    {
+      id: "cookies",
+      title: "七、Cookie 使用說明",
+      content: `<p>本網站可能使用 Cookie 技術來提升您的瀏覽體驗。Cookie 是儲存在您瀏覽器中的小型文字檔案，用於記住您的偏好設定。您可以透過瀏覽器設定來管理或停用 Cookie。</p>`,
+    },
+  ],
+  lastUpdated: "2024-01-01",
+  contactInfo: {
+    title: "聯絡我們",
+    description: "如對本隱私權政策有任何疑問，歡迎與我們聯繫：",
+    email: "info@youshi-hr.com",
+    phone: "+886-2-1234-5678",
+    address: "新北市永和區永貞路107號3樓",
+  },
+};
+
 // 最新消息頁面預設值
 const newsPageDefaults = {
   hero: {
@@ -966,6 +1046,7 @@ export const blockDefaults = {
   franchisePage: () => clone(franchisePageDefaults),
   contactPage: () => clone(contactPageDefaults),
   floatingLinks: () => clone(floatingLinksDefaults),
+  privacyPolicyPage: () => clone(privacyPolicyPageDefaults),
 } as const;
 
 export type BlockKey = keyof typeof blockDefaults;

@@ -50,6 +50,7 @@ const menuGroups: MenuGroup[] = [
       { label: "常見問題", href: "/admin/faq", permission: 'web_content:read' },
       { label: "懸浮連結", href: "/admin/floating-links", permission: 'web_content:read' },
       { label: "最新消息", href: "/admin/news", permission: 'web_content:read' },
+      { label: "隱私權政策", href: "/admin/privacy-policy", permission: 'web_content:read' },
     ],
   },
   {

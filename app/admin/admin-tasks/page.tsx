@@ -5045,6 +5045,154 @@ function AdminTasksContent() {
                         </div>
                       )}
 
+                    {/* 完成確認 & 複審確認區塊 */}
+                    {(() => {
+                      const isHandler = selectedTask.handlers?.some(
+                        (h) => h.id === session?.user?.id
+                      );
+                      const isReviewer = selectedTask.reviewers?.some(
+                        (r) => r.id === session?.user?.id
+                      );
+                      const isSuperAdmin = userRole === "SUPER_ADMIN";
+                      const hasHandlers = selectedTask.handlers && selectedTask.handlers.length > 0;
+                      const hasReviewers = selectedTask.reviewers && selectedTask.reviewers.length > 0;
+
+                      // 完成確認狀態
+                      const isCompleteChecked =
+                        selectedTask.status === "COMPLETED" ||
+                        selectedTask.status === "REVIEWED" ||
+                        selectedTask.status === "PENDING_REVIEW";
+                      const canToggleComplete =
+                        selectedTask.status === "APPROVED" ||
+                        selectedTask.status === "COMPLETED" ||
+                        selectedTask.status === "PENDING_REVIEW";
+                      const canCompleteCheck =
+                        canToggleComplete && (isHandler || isSuperAdmin);
+                      const isCompleteLoading = togglingCompleteId === selectedTask.id;
+
+                      // 複審確認狀態
+                      const isReviewChecked = !!selectedTask.reviewedAt;
+                      const canReviewStatus =
+                        selectedTask.status === "PENDING_REVIEW" ||
+                        selectedTask.status === "COMPLETED" ||
+                        selectedTask.status === "REVIEWED";
+                      const canReviewCheck =
+                        canReviewStatus && (isReviewer || isSuperAdmin);
+                      const isReviewLoading = togglingReviewId === selectedTask.id;
+
+                      // 只有當有負責人或複審人時才顯示此區域
+                      if (!hasHandlers && !hasReviewers) return null;
+
+                      return (
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-4">
+                            確認狀態
+                          </h3>
+                          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                            {/* 完成確認 */}
+                            {hasHandlers && (
+                              <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-3">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={isCompleteChecked}
+                                      disabled={!canCompleteCheck || isCompleteLoading}
+                                      onChange={(e) =>
+                                        handleToggleCompleteCheck(
+                                          selectedTask,
+                                          e.target.checked
+                                        )
+                                      }
+                                      className={`w-5 h-5 rounded border-2 ${
+                                        isCompleteChecked
+                                          ? "bg-green-500 border-green-500"
+                                          : "border-gray-300"
+                                      } ${
+                                        canCompleteCheck
+                                          ? "cursor-pointer"
+                                          : "cursor-not-allowed opacity-50"
+                                      }`}
+                                    />
+                                    <span
+                                      className={`text-sm font-medium ${
+                                        canCompleteCheck
+                                          ? "text-gray-700"
+                                          : "text-gray-400"
+                                      }`}
+                                    >
+                                      完成確認
+                                    </span>
+                                  </label>
+                                  {isCompleteLoading && (
+                                    <span className="text-xs text-gray-500">處理中...</span>
+                                  )}
+                                </div>
+                                {selectedTask.completedAt && (
+                                  <div className="text-right">
+                                    <p className="text-xs text-gray-500">打勾時間</p>
+                                    <p className="text-sm text-green-600 font-medium">
+                                      {new Date(selectedTask.completedAt).toLocaleString("zh-TW")}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* 複審確認 */}
+                            {hasReviewers && (
+                              <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-3">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={isReviewChecked}
+                                      disabled={!canReviewCheck || isReviewLoading}
+                                      onChange={(e) =>
+                                        handleToggleReviewCheck(
+                                          selectedTask,
+                                          e.target.checked
+                                        )
+                                      }
+                                      className={`w-5 h-5 rounded border-2 ${
+                                        isReviewChecked
+                                          ? "bg-purple-500 border-purple-500"
+                                          : "border-gray-300"
+                                      } ${
+                                        canReviewCheck
+                                          ? "cursor-pointer"
+                                          : "cursor-not-allowed opacity-50"
+                                      }`}
+                                    />
+                                    <span
+                                      className={`text-sm font-medium ${
+                                        canReviewCheck
+                                          ? "text-gray-700"
+                                          : "text-gray-400"
+                                      }`}
+                                    >
+                                      複審確認
+                                    </span>
+                                  </label>
+                                  {isReviewLoading && (
+                                    <span className="text-xs text-gray-500">處理中...</span>
+                                  )}
+                                </div>
+                                {selectedTask.reviewedAt && (
+                                  <div className="text-right">
+                                    <p className="text-xs text-gray-500">打勾時間</p>
+                                    <p className="text-sm text-purple-600 font-medium">
+                                      {new Date(selectedTask.reviewedAt).toLocaleString("zh-TW")}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* 重新送出區塊（申請人可見，當狀態為要求修改或待補件時） */}
                     {selectedTask.applicant?.id === session?.user?.id &&
                       (selectedTask.status === "REVISION_REQUESTED" ||

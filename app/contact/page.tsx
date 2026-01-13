@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContactSection from "@/components/ContactSection";
+import ReCaptchaProvider from "@/components/ReCaptchaProvider";
 
 export default function ContactPage() {
   const [pageData, setPageData] = useState<any>(null);
@@ -84,15 +85,17 @@ export default function ContactPage() {
       {/* 頂部間距，為 Header 留出空間 */}
       <div className="pt-20" />
 
-      <ContactSection
-        badge={pageData.badge}
-        title={pageData.title}
-        description={pageData.description}
-        questionTypes={pageData.questionTypes}
-        formFields={pageData.formFields}
-        submitButton={pageData.submitButton}
-        contactInfo={pageData.contactInfo}
-      />
+      <ReCaptchaProvider>
+        <ContactSection
+          badge={pageData.badge}
+          title={pageData.title}
+          description={pageData.description}
+          questionTypes={pageData.questionTypes}
+          formFields={pageData.formFields}
+          submitButton={pageData.submitButton}
+          contactInfo={pageData.contactInfo}
+        />
+      </ReCaptchaProvider>
 
       <Footer
         logo={footerData.logo}

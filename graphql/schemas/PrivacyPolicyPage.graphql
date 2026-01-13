@@ -1,0 +1,22 @@
+type PrivacyPolicyPage {
+  id: ID!
+  hero: JSON
+  sections: JSON
+  lastUpdated: JSON
+  contactInfo: JSON
+}
+
+extend type Query {
+  privacyPolicyPage: [PrivacyPolicyPage!]!
+}
+
+input UpdatePrivacyPolicyPageInput {
+  hero: JSON
+  sections: JSON
+  lastUpdated: JSON
+  contactInfo: JSON
+}
+
+extend type Mutation {
+  updatePrivacyPolicyPage(input: UpdatePrivacyPolicyPageInput!): PrivacyPolicyPage
+}

@@ -31,7 +31,7 @@ interface FooterProps {
     embedUrl: string;
   };
   copyright: string;
-  bottomLinks: QuickLink[];
+  bottomLinks?: QuickLink[]; // 已棄用，保留向後相容
 }
 
 export default function Footer({
@@ -41,7 +41,6 @@ export default function Footer({
   quickLinks,
   map,
   copyright,
-  bottomLinks,
 }: FooterProps) {
   return (
     <footer className="bg-brand-secondary text-text-on-brand w-full pt-16 pb-8">
@@ -132,17 +131,13 @@ export default function Footer({
         <div className="border-t border-text-on-brand/20 pt-8 text-center text-sm">
           <p className="text-text-on-brand/80">
             {copyright}
-            {bottomLinks.map((link, index) => (
-              <span key={index}>
-                {" | "}
-                <Link
-                  href={link.link}
-                  className="hover:text-brand-primary transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </span>
-            ))}
+            {" | "}
+            <Link
+              href="/privacy-policy"
+              className="hover:text-brand-primary transition-colors"
+            >
+              隱私權與網站使用說明
+            </Link>
           </p>
         </div>
       </div>

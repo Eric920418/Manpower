@@ -1,11 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/graphql/prismaClient";
 
+// 驗證 reCAPTCHA token
+async function verifyRecaptcha(token: string): Promise<{ success: boolean; score?: number }> {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+
+  if (!secretKey) {
+    // 如果沒有設定 secret key，跳過驗證
+    return { success: true };
+  }
+
+  try {
+    const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        secret: secretKey,
+        response: token,
+      }),
+    });
+
+    const data = await response.json();
+    return { success: data.success, score: data.score };
+  } catch {
+    return { success: false };
+  }
+}
+
 // POST - 建立新的聯絡表單提交
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { questionType, name, email, phone, message } = body;
+    const { questionType, name, email, phone, message, recaptchaToken } = body;
+
+    // 驗證 reCAPTCHA（如果有設定的話）
+    if (process.env.RECAPTCHA_SECRET_KEY) {
+      if (!recaptchaToken) {
+        return NextResponse.json(
+          { error: "驗證失敗，請重新整理頁面後再試" },
+          { status: 400 }
+        );
+      }
+
+      const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+
+      if (!recaptchaResult.success) {
+        return NextResponse.json(
+          { error: "驗證失敗，請重新整理頁面後再試" },
+          { status: 400 }
+        );
+      }
+
+      // reCAPTCHA v3 分數檢查（0.0 - 1.0，分數越高越可能是真人）
+      // 建議閾值：0.5，可根據需求調整
+      if (recaptchaResult.score !== undefined && recaptchaResult.score < 0.5) {
+        return NextResponse.json(
+          { error: "系統偵測到異常行為，請稍後再試" },
+          { status: 400 }
+        );
+      }
+    }
 
     // 驗證必填欄位
     if (!name || !email || !phone || !message) {
