@@ -22,11 +22,18 @@ interface Worker {
   skills: string[];
   languages: string[];
   availability: string;
-  category: string;
+  category: string | string[]; // 支援單選和複選
   sourceType?: string;
   description: string;
   isNew?: boolean;
 }
+
+// 輔助函式：確保 category 是陣列格式
+const ensureCategoryArray = (category: string | string[] | undefined): string[] => {
+  if (!category) return [];
+  if (Array.isArray(category)) return category;
+  return category ? [category] : [];
+};
 
 async function getResumeDetailData(id: string) {
   const query = `
@@ -306,9 +313,17 @@ export default async function ResumeDetailPage({
                       </div>
                       <div className="flex border-b border-gray-100 pb-2">
                         <span className="text-gray-500 w-24 shrink-0">工作類別</span>
-                        <span className="font-semibold text-gray-900">
-                          {worker.category}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {ensureCategoryArray(worker.category).length > 0 ? (
+                            ensureCategoryArray(worker.category).map((cat, idx) => (
+                              <span key={idx} className="font-semibold text-gray-900 bg-purple-100 px-2 py-0.5 rounded text-sm">
+                                {cat}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-400">未設定</span>
+                          )}
+                        </div>
                       </div>
                       {worker.sourceType && (
                         <div className="flex border-b border-gray-100 pb-2">

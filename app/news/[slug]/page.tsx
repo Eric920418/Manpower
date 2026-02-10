@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/SEO/JsonLd";
 import { NewsContentStyles } from "@/components/News/NewsContentStyles";
+import { getYoutubeVideoId } from "@/utils/youtube";
 
 interface News {
   title: string;
@@ -17,6 +18,9 @@ interface News {
   date: string;
   category: string;
   link: string;
+  videoType?: "youtube" | "local";
+  youtubeUrl?: string;
+  localVideoUrl?: string;
 }
 
 interface PageData {
@@ -262,6 +266,37 @@ export default async function NewsDetailPage({ params }: PageProps) {
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
             />
           </article>
+
+          {/* 影片區塊 */}
+          {((news.videoType === "local" && news.localVideoUrl) || getYoutubeVideoId(news.youtubeUrl || "")) && (
+            <div className="mt-12 pt-8 border-t border-gray-200">
+              <h3 className="text-2xl font-bold text-gray-800 mb-6">影片分享</h3>
+              <div className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-xl bg-gray-900">
+                {news.videoType === "local" && news.localVideoUrl ? (
+                  <video
+                    src={news.localVideoUrl}
+                    controls
+                    className="absolute inset-0 w-full h-full object-contain"
+                    preload="metadata"
+                    playsInline
+                  >
+                    您的瀏覽器不支援影片播放
+                  </video>
+                ) : (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${getYoutubeVideoId(news.youtubeUrl || "")}`}
+                    title={news.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0"
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Back Button */}
           <div className="mt-12 pt-8 border-t border-gray-200">

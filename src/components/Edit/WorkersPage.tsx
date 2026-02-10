@@ -44,7 +44,7 @@ interface Worker {
   skills: string[];
   languages: string[];
   availability: string;
-  category: string;
+  category: string | string[]; // 支援單選和複選
   sourceType: string;
   description: string;
 }
@@ -89,9 +89,22 @@ const emptyWorker: Worker = {
   skills: [],
   languages: [],
   availability: "",
-  category: "",
+  category: [], // 改為陣列支援複選
   sourceType: "國外引進工",
   description: "",
+};
+
+// 輔助函式：確保 category 是陣列格式
+const ensureCategoryArray = (category: string | string[] | undefined): string[] => {
+  if (!category) return [];
+  if (Array.isArray(category)) return category;
+  return category ? [category] : [];
+};
+
+// 輔助函式：顯示職業類別
+const formatCategories = (category: string | string[] | undefined): string => {
+  const cats = ensureCategoryArray(category);
+  return cats.length > 0 ? cats.join("、") : "-";
 };
 
 export const WorkersPage = () => {
@@ -166,7 +179,10 @@ export const WorkersPage = () => {
 
     // 篩選
     if (filterCategory) {
-      result = result.filter((w) => w.category === filterCategory);
+      result = result.filter((w) => {
+        const cats = ensureCategoryArray(w.category);
+        return cats.includes(filterCategory);
+      });
     }
     if (filterCountry) {
       result = result.filter((w) => w.country === filterCountry);
@@ -421,7 +437,7 @@ export const WorkersPage = () => {
           { key: "age", header: "年齡", width: 8 },
           { key: "gender", header: "性別", width: 8 },
           { key: "country", header: "國家", width: 12 },
-          { key: "category", header: "職業類別", width: 12 },
+          { key: "category", header: "職業類別", width: 20, format: (value) => Array.isArray(value) ? value.join(", ") : (value || "") },
           { key: "sourceType", header: "來源類型", width: 12 },
           { key: "education", header: "學歷", width: 12 },
           { key: "height", header: "身高(cm)", width: 10 },
@@ -716,9 +732,17 @@ export const WorkersPage = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm">
-                            {worker.category || "-"}
-                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {ensureCategoryArray(worker.category).length > 0 ? (
+                              ensureCategoryArray(worker.category).map((cat, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm">
+                                  {cat}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -1026,22 +1050,42 @@ export const WorkersPage = () => {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">職業類別</label>
-                  <select
-                    value={editingWorker.category}
-                    onChange={(e) =>
-                      setEditingWorker({ ...editingWorker, category: e.target.value })
-                    }
-                    className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 border border-gray-300"
-                  >
-                    <option value="">請選擇</option>
-                    {pageData.filterOptions.categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-2">職業類別 (可複選)</label>
+                  <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    {pageData.filterOptions.categories.map((cat) => {
+                      const currentCategories = ensureCategoryArray(editingWorker.category);
+                      const isChecked = currentCategories.includes(cat);
+                      return (
+                        <label
+                          key={cat}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+                            isChecked
+                              ? "bg-purple-100 border-purple-300 border-2"
+                              : "bg-white border border-gray-300 hover:bg-gray-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const newCategories = e.target.checked
+                                ? [...currentCategories, cat]
+                                : currentCategories.filter((c) => c !== cat);
+                              setEditingWorker({ ...editingWorker, category: newCategories });
+                            }}
+                            className="w-4 h-4 text-purple-600 rounded"
+                          />
+                          <span className={isChecked ? "text-purple-800 font-medium" : "text-gray-700"}>
+                            {cat}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {ensureCategoryArray(editingWorker.category).length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">請至少選擇一個職業類別</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">工作經驗</label>

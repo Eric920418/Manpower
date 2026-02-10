@@ -6,6 +6,7 @@ type FranchisePage {
   franchiseProcess: JSON
   cta: JSON
   franchiseeSharing: JSON
+  videoSection: JSON
 }
 
 extend type Query {
@@ -19,6 +20,7 @@ input UpdateFranchisePageInput {
   franchiseProcess: JSON
   cta: JSON
   franchiseeSharing: JSON
+  videoSection: JSON
 }
 
 extend type Mutation {

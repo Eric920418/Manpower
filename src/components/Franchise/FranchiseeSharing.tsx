@@ -2,11 +2,14 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
+import { getYoutubeVideoId } from "@/utils/youtube";
 
 interface SharingVideo {
   id: string;
   title: string;
+  videoType?: "youtube" | "local"; // 影片來源類型
   youtubeUrl: string;
+  localVideoUrl?: string; // 本地影片 URL
   description: string;
   franchiseeName: string;
   location: string;
@@ -20,28 +23,6 @@ interface FranchiseeSharingData {
 
 interface FranchiseeSharingProps {
   data?: FranchiseeSharingData;
-}
-
-// 從 YouTube URL 提取影片 ID
-function getYoutubeVideoId(url: string): string {
-  if (!url) return "";
-
-  // 處理 watch?v= 格式
-  if (url.includes("watch?v=")) {
-    return url.split("watch?v=")[1]?.split("&")[0] || "";
-  }
-
-  // 處理 youtu.be/ 格式
-  if (url.includes("youtu.be/")) {
-    return url.split("youtu.be/")[1]?.split("?")[0] || "";
-  }
-
-  // 處理 embed/ 格式
-  if (url.includes("embed/")) {
-    return url.split("embed/")[1]?.split("?")[0] || "";
-  }
-
-  return "";
 }
 
 export default function FranchiseeSharing({ data }: FranchiseeSharingProps) {
@@ -84,7 +65,20 @@ export default function FranchiseeSharing({ data }: FranchiseeSharingProps) {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <div className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-gray-900">
-              {getYoutubeVideoId(videos[activeVideo]?.youtubeUrl || "") ? (
+              {/* 本地影片播放 */}
+              {videos[activeVideo]?.videoType === "local" && videos[activeVideo]?.localVideoUrl ? (
+                <video
+                  key={videos[activeVideo]?.localVideoUrl}
+                  src={videos[activeVideo]?.localVideoUrl}
+                  controls
+                  className="absolute inset-0 w-full h-full object-contain"
+                  preload="metadata"
+                  playsInline
+                >
+                  您的瀏覽器不支援影片播放
+                </video>
+              ) : getYoutubeVideoId(videos[activeVideo]?.youtubeUrl || "") ? (
+                /* YouTube 影片播放 */
                 <iframe
                   key={videos[activeVideo]?.youtubeUrl}
                   width="100%"
@@ -151,6 +145,7 @@ export default function FranchiseeSharing({ data }: FranchiseeSharingProps) {
             >
               {videos.map((video, index) => {
                 const videoId = getYoutubeVideoId(video.youtubeUrl);
+                const isLocalVideo = video.videoType === "local" && video.localVideoUrl;
                 return (
                   <motion.button
                     key={video.id || index}
@@ -163,8 +158,14 @@ export default function FranchiseeSharing({ data }: FranchiseeSharingProps) {
                     whileHover={{ scale: activeVideo === index ? 1.05 : 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {/* YouTube 縮圖或佔位圖 */}
-                    {videoId ? (
+                    {/* 影片縮圖 */}
+                    {isLocalVideo ? (
+                      /* 本地影片使用 video 標籤的 poster 或預覽 */
+                      <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-4xl text-white/80">movie</span>
+                      </div>
+                    ) : videoId ? (
+                      /* YouTube 縮圖 */
                       <img
                         src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
                         alt={video.title}
@@ -196,6 +197,13 @@ export default function FranchiseeSharing({ data }: FranchiseeSharingProps) {
                         </span>
                       </div>
                     </div>
+
+                    {/* 本地影片標籤 */}
+                    {isLocalVideo && (
+                      <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                        本地影片
+                      </div>
+                    )}
 
                     {/* 影片標題 */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">

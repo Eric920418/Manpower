@@ -7,6 +7,7 @@ import PartnershipAdvantages from "./PartnershipAdvantages";
 import FranchiseProcess from "./FranchiseProcess";
 import FranchiseCTA from "./FranchiseCTA";
 import FranchiseeStories from "./FranchiseeStories";
+import FranchiseVideoSection from "./FranchiseVideoSection";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any;
@@ -18,6 +19,7 @@ interface FranchisePageContentProps {
     franchiseProcess?: AnyData;
     franchiseeSharing?: AnyData;
     cta?: AnyData;
+    videoSection?: AnyData;
   } | null;
 }
 
@@ -34,6 +36,7 @@ export default function FranchisePageContent({ franchisePage }: FranchisePageCon
       <MarketOpportunity data={franchisePage?.marketOpportunity} />
       <PartnershipAdvantages data={franchisePage?.partnershipAdvantages} />
       <FranchiseProcess data={franchisePage?.franchiseProcess} />
+      <FranchiseVideoSection data={franchisePage?.videoSection} />
       <FranchiseCTA data={franchisePage?.cta} />
     </>
   );

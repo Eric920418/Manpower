@@ -32,6 +32,55 @@ function EditorSkeleton({ height }: { height: string | number }) {
   );
 }
 
+// 自定義圖片上傳適配器 - 將圖片上傳到伺服器而不是嵌入 Base64
+class ServerUploadAdapter {
+  loader: any;
+
+  constructor(loader: any) {
+    this.loader = loader;
+  }
+
+  upload() {
+    return this.loader.file.then((file: File) => {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('upload', file);
+
+        fetch('/api/uploadImage', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include', // 包含認證 cookie
+        })
+          .then(response => {
+            if (!response.ok) {
+              return response.json().then(data => {
+                throw new Error(data.error || '上傳失敗');
+              });
+            }
+            return response.json();
+          })
+          .then(data => {
+            resolve({ default: data.url });
+          })
+          .catch(error => {
+            reject(error.message || '圖片上傳失敗');
+          });
+      });
+    });
+  }
+
+  abort() {
+    // 取消上傳的邏輯（如果需要）
+  }
+}
+
+// 自定義上傳適配器插件
+function ServerUploadAdapterPlugin(editor: any) {
+  editor.plugins.get('FileRepository').createUploadAdapter = (loader: any) => {
+    return new ServerUploadAdapter(loader);
+  };
+}
+
 // 實際的 CKEditor 組件（懶載入）
 function CKEditorCore({
   placeholder,
@@ -85,7 +134,7 @@ function CKEditorCore({
       AutoImage,
       AutoLink,
       Autosave,
-      Base64UploadAdapter,
+      // Base64UploadAdapter, // 移除 - 改用自定義伺服器上傳
       BlockQuote,
       Bold,
       Emoji,
@@ -162,13 +211,14 @@ function CKEditorCore({
         ],
         shouldNotGroupWhenFull: false,
       },
+      extraPlugins: [ServerUploadAdapterPlugin], // 自定義上傳插件
       plugins: [
         Alignment,
         Autoformat,
         AutoImage,
         AutoLink,
         Autosave,
-        Base64UploadAdapter,
+        // Base64UploadAdapter, // 移除 - 改用自定義伺服器上傳
         BlockQuote,
         Bold,
         Emoji,

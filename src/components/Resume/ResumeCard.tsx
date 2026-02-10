@@ -18,6 +18,7 @@ export interface Resume {
   sourceType?: string;
   // 保留舊欄位以兼容
   title?: string;
+  categories?: string[]; // 新增：職業類別陣列
   experience?: string;
   location?: string;
   skills?: string[];

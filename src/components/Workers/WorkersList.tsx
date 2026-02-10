@@ -14,11 +14,18 @@ interface Worker {
   skills: string[];
   languages: string[];
   availability: string;
-  category: string;
+  category: string | string[]; // 支援單選和複選
   sourceType: string;
   description: string;
   position?: string;
 }
+
+// 輔助函式：確保 category 是陣列格式
+const ensureCategoryArray = (category: string | string[] | undefined): string[] => {
+  if (!category) return [];
+  if (Array.isArray(category)) return category;
+  return category ? [category] : [];
+};
 
 interface FilterOptions {
   categories: string[];
@@ -39,7 +46,10 @@ export default function WorkersList({ workers, filterOptions }: Props) {
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
 
   const filteredWorkers = workers.filter((worker) => {
-    if (selectedCategory !== "全部" && worker.category !== selectedCategory) return false;
+    if (selectedCategory !== "全部") {
+      const workerCategories = ensureCategoryArray(worker.category);
+      if (!workerCategories.includes(selectedCategory)) return false;
+    }
     if (selectedCountry !== "全部" && worker.country !== selectedCountry) return false;
     if (selectedSourceType !== "全部" && worker.sourceType !== selectedSourceType) return false;
     return true;
@@ -184,7 +194,17 @@ export default function WorkersList({ workers, filterOptions }: Props) {
                   )}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                     <h3 className="text-xl font-bold text-white">{worker.name}</h3>
-                    <p className="text-sm text-white/90">{worker.position || worker.category}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {worker.position ? (
+                        <span className="text-sm text-white/90">{worker.position}</span>
+                      ) : (
+                        ensureCategoryArray(worker.category).map((cat, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-white/20 text-white text-xs rounded">
+                            {cat}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -209,7 +229,7 @@ export default function WorkersList({ workers, filterOptions }: Props) {
                     </div>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                  <p className="text-gray-600 text-sm mb-4">
                     {worker.description}
                   </p>
 

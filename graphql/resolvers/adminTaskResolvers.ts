@@ -411,7 +411,7 @@ export const adminTaskResolvers = {
       const user = requirePermission(context, "admin_task:read");
 
       const page = args.page || 1;
-      const pageSize = Math.min(args.pageSize || 20, 100);
+      const pageSize = Math.min(args.pageSize || 20, 500);
       const skip = (page - 1) * pageSize;
 
       const where: Prisma.AdminTaskWhereInput = {};

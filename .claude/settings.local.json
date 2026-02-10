@@ -33,7 +33,13 @@
       "Bash(pnpm prisma generate:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm exec tsc:*)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Bash(node:*)",
+      "Bash(sudo tee:*)",
+      "Bash(sudo chmod:*)",
+      "Bash(openssl s_client:*)",
+      "Bash(openssl x509:*)",
+      "Bash(PGPASSWORD=KO5C5nQpkLdKcQgt psql:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import Image from "next/image";
 import DOMPurify from "isomorphic-dompurify";
+import { getYoutubeVideoId } from "@/utils/youtube";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,9 @@ interface Story {
   category: string;
   description: string;
   content: string;
+  videoType?: "youtube" | "local";
   youtubeUrl?: string;
+  localVideoUrl?: string;
 }
 
 async function getPageData(storyId: string) {
@@ -64,21 +67,6 @@ async function getPageData(storyId: string) {
     story,
     allStories: stories,
   };
-}
-
-// 從 YouTube URL 提取影片 ID
-function getYoutubeVideoId(url: string): string {
-  if (!url) return "";
-  if (url.includes("watch?v=")) {
-    return url.split("watch?v=")[1]?.split("&")[0] || "";
-  }
-  if (url.includes("youtu.be/")) {
-    return url.split("youtu.be/")[1]?.split("?")[0] || "";
-  }
-  if (url.includes("embed/")) {
-    return url.split("embed/")[1]?.split("?")[0] || "";
-  }
-  return "";
 }
 
 export default async function StoryDetailPage({
@@ -147,10 +135,10 @@ export default async function StoryDetailPage({
         contactButton={header.contactButton}
       />
 
-      {/* Hero 區塊 */}
+      {/* Hero 區塊 - 限制最大高度讓使用者能看到文章內容 */}
       <section className="relative pt-20">
         {/* 封面圖片 */}
-        <div className="relative h-[400px] md:h-[500px] w-full">
+        <div className="relative w-full h-[50vh] md:h-[60vh] max-h-[500px]">
           {story.image ? (
             <Image
               src={story.image}
@@ -222,26 +210,40 @@ export default async function StoryDetailPage({
               }}
             />
 
-            {/* YouTube 影片（放在文章最下面） */}
-            {videoId && (
+            {/* 影片區塊（放在文章最下面） */}
+            {(story.videoType === "local" && story.localVideoUrl) || videoId ? (
               <div className="mt-12 pt-8 border-t border-gray-200">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6">
                   影片分享
                 </h3>
                 <div className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-xl bg-gray-900">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    title={story.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0"
-                  />
+                  {story.videoType === "local" && story.localVideoUrl ? (
+                    /* 本地影片播放 */
+                    <video
+                      src={story.localVideoUrl}
+                      controls
+                      className="absolute inset-0 w-full h-full object-contain"
+                      preload="metadata"
+                      playsInline
+                    >
+                      您的瀏覽器不支援影片播放
+                    </video>
+                  ) : (
+                    /* YouTube 影片播放 */
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={`https://www.youtube.com/embed/${videoId}`}
+                      title={story.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0"
+                    />
+                  )}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </article>

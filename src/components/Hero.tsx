@@ -37,7 +37,7 @@ export default function Hero({
             <h1 className="text-4xl font-black leading-tight tracking-tight text-text-primary md:text-5xl lg:text-6xl">
               {title}
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-text-secondary">
+            <p className="mt-6 max-w-xl text-lg text-text-secondary whitespace-pre-line">
               {description}
             </p>
             <div className="mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">

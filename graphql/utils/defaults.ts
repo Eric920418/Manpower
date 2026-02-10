@@ -481,7 +481,7 @@ const workersPageDefaults = {
       skills: ["品質檢驗", "機械操作", "團隊合作"],
       languages: ["中文", "英文", "他加祿語"],
       availability: "即時可上工",
-      category: "製造業",
+      category: ["製造業"], // 改為陣列格式支援複選
       sourceType: "國外引進工",
       description: "具備豐富的工廠生產線經驗，熟悉品質管理流程。",
       isNew: true,
@@ -501,7 +501,7 @@ const workersPageDefaults = {
       skills: ["鋼筋綁紮", "模板施工", "工地安全"],
       languages: ["中文", "越南語"],
       availability: "一個月內",
-      category: "營建業",
+      category: ["營建業", "製造業"], // 改為陣列格式支援複選，可同時屬於多個類別
       sourceType: "國內轉出工",
       description: "擁有多項營建證照，工作態度認真負責。",
       isNew: false,
@@ -731,7 +731,9 @@ const franchisePageDefaults = {
       {
         id: "1",
         title: "加盟主分享影片",
+        videoType: "youtube", // "youtube" 或 "local"
         youtubeUrl: "",
+        localVideoUrl: "", // 本地影片 URL
         description: "加盟主分享創業心得",
         franchiseeName: "",
         location: "",
@@ -747,7 +749,9 @@ const franchisePageDefaults = {
         category: "萬達人力 行銷課",
         description: "從保險到照護，用專業走進人生最需要的時刻",
         content: "<p>這是文章內容...</p>",
+        videoType: "youtube",
         youtubeUrl: "",
+        localVideoUrl: "",
       },
       {
         id: "2",
@@ -758,7 +762,9 @@ const franchisePageDefaults = {
         category: "萬達人力 行銷課",
         description: "業務跑出創業路，開啟斜槓新人生",
         content: "<p>這是文章內容...</p>",
+        videoType: "youtube",
         youtubeUrl: "",
+        localVideoUrl: "",
       },
       {
         id: "3",
@@ -769,7 +775,9 @@ const franchisePageDefaults = {
         category: "萬達人力 行銷課",
         description: "從照服員到創業者，用心打造「助人事業」",
         content: "<p>這是文章內容...</p>",
+        videoType: "youtube",
         youtubeUrl: "",
+        localVideoUrl: "",
       },
       {
         id: "4",
@@ -780,7 +788,9 @@ const franchisePageDefaults = {
         category: "萬達人力 行銷課",
         description: "從員工到老闘，新的挑戰與機會",
         content: "<p>這是文章內容...</p>",
+        videoType: "youtube",
         youtubeUrl: "",
+        localVideoUrl: "",
       },
       {
         id: "5",
@@ -791,7 +801,9 @@ const franchisePageDefaults = {
         category: "萬達人力 行銷課",
         description: "用經營超商的精神投資新人生",
         content: "<p>這是文章內容...</p>",
+        videoType: "youtube",
         youtubeUrl: "",
+        localVideoUrl: "",
       },
       {
         id: "6",
@@ -802,9 +814,18 @@ const franchisePageDefaults = {
         category: "萬達人力 行銷課",
         description: "退休後的新征程，服務再出發",
         content: "<p>這是文章內容...</p>",
+        videoType: "youtube",
         youtubeUrl: "",
+        localVideoUrl: "",
       },
     ],
+  },
+  // YouTube 影片區塊
+  videoSection: {
+    enabled: true,
+    title: "影片介紹",
+    subtitle: "了解更多關於我們的加盟計畫",
+    youtubeUrl: "",
   },
 };
 
@@ -1001,7 +1022,7 @@ const newsPageDefaults = {
     title: "最新消息",
     description: "掌握最新的產業動態、政策更新和成功案例分享",
   },
-  categories: ["全部", "政策公告", "產業新聞", "成功案例", "活動訊息"],
+  categories: ["全部", "政策公告", "產業新聞", "成功案例", "活動訊息", "加盟主分享"],
   featuredNews: {
     title: "2024年外籍勞工新制上路",
     slug: "2024-new-regulations",
@@ -1011,6 +1032,9 @@ const newsPageDefaults = {
     date: "2024-01-15",
     category: "政策公告",
     link: "/news/2024-new-regulations",
+    videoType: "youtube",
+    youtubeUrl: "",
+    localVideoUrl: "",
   },
   newsList: [
     {
@@ -1022,6 +1046,9 @@ const newsPageDefaults = {
       date: "2024-01-10",
       category: "產業新聞",
       link: "/news/manufacturing-labor-shortage",
+      videoType: "youtube",
+      youtubeUrl: "",
+      localVideoUrl: "",
     },
     {
       title: "成功案例分享：如何建立友善的多元文化職場",
@@ -1032,6 +1059,9 @@ const newsPageDefaults = {
       date: "2024-01-05",
       category: "成功案例",
       link: "/news/multicultural-workplace",
+      videoType: "youtube",
+      youtubeUrl: "",
+      localVideoUrl: "",
     },
   ],
 };

@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { sortByDateDesc } from "@/utils/dateSort";
 
 interface Story {
   id: string;
@@ -12,7 +13,9 @@ interface Story {
   category: string;
   description: string;
   content?: string;
+  videoType?: "youtube" | "local";
   youtubeUrl?: string;
+  localVideoUrl?: string;
 }
 
 interface FranchiseeStoriesData {
@@ -26,7 +29,7 @@ interface FranchiseeStoriesProps {
 }
 
 export default function FranchiseeStories({ data }: FranchiseeStoriesProps) {
-  const stories = data?.stories || [];
+  const stories = sortByDateDesc(data?.stories || []);
 
   if (stories.length === 0) {
     return (

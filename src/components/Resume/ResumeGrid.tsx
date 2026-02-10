@@ -22,14 +22,22 @@ interface Worker {
   skills: string[];
   languages: string[];
   availability: string;
-  category: string;
+  category: string | string[]; // 支援單選和複選
   sourceType?: string;
   description: string;
   isNew?: boolean;
 }
 
+// 輔助函式：確保 category 是陣列格式
+const ensureCategoryArray = (category: string | string[] | undefined): string[] => {
+  if (!category) return [];
+  if (Array.isArray(category)) return category;
+  return category ? [category] : [];
+};
+
 // 將 Worker 轉換為 Resume 格式
 const convertWorkerToResume = (worker: Worker): Resume => {
+  const categories = ensureCategoryArray(worker.category);
   return {
     id: worker.id,
     name: worker.name,
@@ -42,8 +50,9 @@ const convertWorkerToResume = (worker: Worker): Resume => {
     weight: worker.weight || 0,
     isNew: worker.isNew ?? false,
     sourceType: worker.sourceType || "",
-    // 保留舊欄位以兼容
-    title: worker.category || "專業人才",
+    // 保留舊欄位以兼容，多個類別用頓號連接
+    title: categories.length > 0 ? categories.join("、") : "專業人才",
+    categories: categories, // 新增：保留陣列格式供篩選使用
     experience: worker.experience || `${worker.age}歲`,
     location: worker.country,
     skills: worker.skills || [],
@@ -179,10 +188,10 @@ export default function ResumeGrid() {
       );
     }
 
-    // 產業類別篩選 (使用 title 欄位，直接匹配後台設定的類別)
+    // 產業類別篩選 (使用 categories 陣列，直接匹配後台設定的類別)
     if (filters.industry) {
       filtered = filtered.filter((resume) =>
-        resume.title?.includes(filters.industry!) ?? false
+        (resume.categories || []).includes(filters.industry!)
       );
     }
 

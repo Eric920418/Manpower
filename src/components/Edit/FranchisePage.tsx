@@ -3,6 +3,7 @@ import { gql } from "graphql-tag";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ImageUploader } from "@/components/Admin/ImageUploader";
+import { VideoUploader } from "@/components/Admin/VideoUploader";
 import { useSession } from "next-auth/react";
 import { graphqlRequest } from "@/utils/graphqlClient";
 import CustomEditor from "@/components/CustomEditor";
@@ -16,6 +17,7 @@ const UPDATE_PAGE = gql`
       franchiseProcess
       cta
       franchiseeSharing
+      videoSection
     }
   }
 `;
@@ -29,6 +31,7 @@ const query = `
       franchiseProcess
       cta
       franchiseeSharing
+      videoSection
     }
   }
 `;
@@ -82,6 +85,15 @@ interface SharingStory {
   category: string;
   description: string;
   content: string;
+  videoType?: "youtube" | "local";
+  youtubeUrl: string;
+  localVideoUrl?: string;
+}
+
+interface VideoSection {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
   youtubeUrl: string;
 }
 
@@ -121,6 +133,7 @@ interface PageData {
     subtitle: string;
     stories: SharingStory[];
   };
+  videoSection: VideoSection;
 }
 
 const defaultPageData: PageData = {
@@ -130,6 +143,7 @@ const defaultPageData: PageData = {
   franchiseProcess: { title: "", subtitle: "", steps: [] },
   cta: { title: "", subtitle: "", backgroundImage: "", buttons: [], contactInfo: [] },
   franchiseeSharing: { title: "", subtitle: "", stories: [] },
+  videoSection: { enabled: true, title: "", subtitle: "", youtubeUrl: "" },
 };
 
 export const FranchisePage = () => {
@@ -137,6 +151,7 @@ export const FranchisePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [pageData, setPageData] = useState<PageData>(defaultPageData);
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -166,19 +181,25 @@ export const FranchisePage = () => {
       if (response.errors) {
         alert("更新失敗：" + JSON.stringify(response.errors));
       } else {
-        // 清除前台快取
-        await Promise.all([
-          fetch("/api/revalidate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: "/franchise" }),
-          }),
-          fetch("/api/revalidate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: "/franchise/stories" }),
-          }),
-        ]);
+        // 清除前台快取（包含所有文章頁面）
+        const revalidatePaths = [
+          "/franchise",
+          "/franchise/stories",
+          // 清除每個文章的獨立頁面快取
+          ...(pageData.franchiseeSharing?.stories || []).map(
+            (story) => `/franchise/stories/${story.id}`
+          ),
+        ];
+
+        await Promise.all(
+          revalidatePaths.map((path) =>
+            fetch("/api/revalidate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path }),
+            })
+          )
+        );
         alert("更新成功");
       }
     } catch (err) {
@@ -194,6 +215,7 @@ export const FranchisePage = () => {
     { id: "partnershipAdvantages", label: "加盟詳情" },
     { id: "franchiseProcess", label: "加盟流程" },
     { id: "franchiseeSharing", label: "加盟主分享" },
+    { id: "videoSection", label: "影片區塊" },
     { id: "cta", label: "CTA 區塊" },
   ];
 
@@ -1104,7 +1126,8 @@ export const FranchisePage = () => {
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-bold text-lg">加盟主分享文章</h3>
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    const newStoryId = Date.now().toString();
                     setPageData((prev) => ({
                       ...prev,
                       franchiseeSharing: {
@@ -1112,7 +1135,7 @@ export const FranchisePage = () => {
                         stories: [
                           ...(prev.franchiseeSharing?.stories || []),
                           {
-                            id: Date.now().toString(),
+                            id: newStoryId,
                             image: "",
                             title: "",
                             subtitle: "加盟主分享｜萬達人力行銷課",
@@ -1124,282 +1147,584 @@ export const FranchisePage = () => {
                             category: "萬達人力 行銷課",
                             description: "",
                             content: "",
+                            videoType: "youtube",
                             youtubeUrl: "",
+                            localVideoUrl: "",
                           },
                         ],
                       },
-                    }))
-                  }
+                    }));
+                    setEditingStoryId(newStoryId);
+                  }}
                   className="bg-green-500 text-white px-3 py-1 rounded text-sm"
                 >
                   新增文章
                 </button>
               </div>
               <p className="text-sm text-gray-500 mb-4">
-                這些文章會顯示在「加盟主分享」分頁中，點擊卡片可進入文章詳情頁
+                點擊文章卡片可展開編輯，這些文章會顯示在「加盟主分享」分頁中
               </p>
-              {(pageData.franchiseeSharing?.stories || []).map(
-                (story, index) => (
-                  <div
-                    key={story.id || index}
-                    className="bg-white p-4 rounded-lg border mb-4"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-medium">文章 #{index + 1}</h4>
-                      <button
-                        onClick={() => {
-                          const newStories = (
-                            pageData.franchiseeSharing?.stories || []
-                          ).filter((_, i) => i !== index);
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: {
-                              ...prev.franchiseeSharing,
-                              stories: newStories,
-                            },
-                          }));
-                        }}
-                        className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-                      >
-                        刪除
-                      </button>
-                    </div>
 
-                    {/* 封面圖片 */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium mb-1">
-                        封面圖片
-                      </label>
-                      {story.image && (
-                        <div className="mb-3">
-                          <Image
-                            src={story.image}
-                            alt={story.title || "封面圖片"}
-                            width={300}
-                            height={200}
-                            className="rounded-lg object-cover"
-                          />
+              {/* 文章列表 - 卡片模式 */}
+              <div className="space-y-3">
+                {(pageData.franchiseeSharing?.stories || []).map(
+                  (story, index) => (
+                    <div
+                      key={story.id || index}
+                      className="bg-white rounded-lg border overflow-hidden"
+                    >
+                      {/* 文章卡片標題列 - 點擊展開/收合 */}
+                      <div
+                        onClick={() =>
+                          setEditingStoryId(
+                            editingStoryId === story.id ? null : story.id
+                          )
+                        }
+                        className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50 transition"
+                      >
+                        {/* 縮圖 */}
+                        <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
+                          {story.image ? (
+                            <Image
+                              src={story.image}
+                              alt={story.title || "封面"}
+                              width={64}
+                              height={64}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <span className="material-symbols-outlined">image</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 文章資訊 */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 truncate">
+                            {story.title || "(未命名文章)"}
+                          </h4>
+                          <p className="text-sm text-gray-500 truncate">
+                            {story.date} · {story.category}
+                          </p>
+                        </div>
+
+                        {/* 展開/收合圖示 */}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`material-symbols-outlined text-gray-400 transition-transform ${
+                              editingStoryId === story.id ? "rotate-180" : ""
+                            }`}
+                          >
+                            expand_more
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 展開的編輯區域 */}
+                      {editingStoryId === story.id && (
+                        <div className="border-t p-4 bg-gray-50">
+                          <div className="flex justify-between items-center mb-4">
+                            <h4 className="font-medium text-lg">編輯文章</h4>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("確定要刪除這篇文章嗎？")) {
+                                  const newStories = (
+                                    pageData.franchiseeSharing?.stories || []
+                                  ).filter((_, i) => i !== index);
+                                  setPageData((prev) => ({
+                                    ...prev,
+                                    franchiseeSharing: {
+                                      ...prev.franchiseeSharing,
+                                      stories: newStories,
+                                    },
+                                  }));
+                                  setEditingStoryId(null);
+                                }
+                              }}
+                              className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                            >
+                              刪除文章
+                            </button>
+                          </div>
+
+                          {/* 封面圖片 */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium mb-1">
+                              封面圖片
+                            </label>
+                            <p className="text-xs text-blue-600 mb-2 bg-blue-50 p-2 rounded">
+                              此圖片會同時顯示於：列表頁的卡片封面、文章頁頂端的 Hero 區塊
+                            </p>
+                            {story.image && (
+                              <div className="mb-3">
+                                <Image
+                                  src={story.image}
+                                  alt={story.title || "封面圖片"}
+                                  width={300}
+                                  height={200}
+                                  className="rounded-lg object-cover"
+                                />
+                              </div>
+                            )}
+                            <ImageUploader
+                              onImageUpload={(data) => {
+                                const newStories = [
+                                  ...(pageData.franchiseeSharing?.stories || []),
+                                ];
+                                newStories[index] = {
+                                  ...newStories[index],
+                                  image: data.imageUrl,
+                                };
+                                setPageData((prev) => ({
+                                  ...prev,
+                                  franchiseeSharing: {
+                                    ...prev.franchiseeSharing,
+                                    stories: newStories,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                標題
+                              </label>
+                              <input
+                                type="text"
+                                value={story.title}
+                                onChange={(e) => {
+                                  const newStories = [
+                                    ...(pageData.franchiseeSharing?.stories || []),
+                                  ];
+                                  newStories[index] = {
+                                    ...newStories[index],
+                                    title: e.target.value,
+                                  };
+                                  setPageData((prev) => ({
+                                    ...prev,
+                                    franchiseeSharing: {
+                                      ...prev.franchiseeSharing,
+                                      stories: newStories,
+                                    },
+                                  }));
+                                }}
+                                placeholder="例如：保險員轉職"
+                                className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                副標題
+                              </label>
+                              <input
+                                type="text"
+                                value={story.subtitle}
+                                onChange={(e) => {
+                                  const newStories = [
+                                    ...(pageData.franchiseeSharing?.stories || []),
+                                  ];
+                                  newStories[index] = {
+                                    ...newStories[index],
+                                    subtitle: e.target.value,
+                                  };
+                                  setPageData((prev) => ({
+                                    ...prev,
+                                    franchiseeSharing: {
+                                      ...prev.franchiseeSharing,
+                                      stories: newStories,
+                                    },
+                                  }));
+                                }}
+                                className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                日期
+                              </label>
+                              <input
+                                type="text"
+                                value={story.date}
+                                onChange={(e) => {
+                                  const newStories = [
+                                    ...(pageData.franchiseeSharing?.stories || []),
+                                  ];
+                                  newStories[index] = {
+                                    ...newStories[index],
+                                    date: e.target.value,
+                                  };
+                                  setPageData((prev) => ({
+                                    ...prev,
+                                    franchiseeSharing: {
+                                      ...prev.franchiseeSharing,
+                                      stories: newStories,
+                                    },
+                                  }));
+                                }}
+                                placeholder="例如：December 24, 2025"
+                                className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                分類
+                              </label>
+                              <input
+                                type="text"
+                                value={story.category}
+                                onChange={(e) => {
+                                  const newStories = [
+                                    ...(pageData.franchiseeSharing?.stories || []),
+                                  ];
+                                  newStories[index] = {
+                                    ...newStories[index],
+                                    category: e.target.value,
+                                  };
+                                  setPageData((prev) => ({
+                                    ...prev,
+                                    franchiseeSharing: {
+                                      ...prev.franchiseeSharing,
+                                      stories: newStories,
+                                    },
+                                  }));
+                                }}
+                                className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mb-4">
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="block text-sm font-medium">摘要描述</label>
+                              <span className={`text-xs ${story.description.length > 80 ? 'text-orange-500' : 'text-gray-500'}`}>
+                                {story.description.length} / 80 字
+                              </span>
+                            </div>
+                            <textarea
+                              value={story.description}
+                              onChange={(e) => {
+                                const newStories = [
+                                  ...(pageData.franchiseeSharing?.stories || []),
+                                ];
+                                newStories[index] = {
+                                  ...newStories[index],
+                                  description: e.target.value,
+                                };
+                                setPageData((prev) => ({
+                                  ...prev,
+                                  franchiseeSharing: {
+                                    ...prev.franchiseeSharing,
+                                    stories: newStories,
+                                  },
+                                }));
+                              }}
+                              rows={2}
+                              placeholder="建議 80 字以內，前台最多顯示 3 行"
+                              className={`block w-full rounded-md bg-white px-3 py-2 border ${story.description.length > 80 ? 'border-orange-400' : 'border-gray-300'}`}
+                            />
+                            <p className="text-xs text-gray-400 mt-1">前台最多顯示 3 行，超出部分會以「...」截斷</p>
+                          </div>
+
+                          {/* 影片設定區塊 */}
+                          <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+                            <label className="block text-sm font-medium mb-3">
+                              影片設定（選填，會顯示在文章最下方）
+                            </label>
+
+                            {/* 影片來源選擇 */}
+                            <div className="flex gap-4 mb-4">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`videoType-${story.id}`}
+                                  value="youtube"
+                                  checked={story.videoType !== "local"}
+                                  onChange={() => {
+                                    const newStories = [
+                                      ...(pageData.franchiseeSharing?.stories || []),
+                                    ];
+                                    newStories[index] = {
+                                      ...newStories[index],
+                                      videoType: "youtube",
+                                    };
+                                    setPageData((prev) => ({
+                                      ...prev,
+                                      franchiseeSharing: {
+                                        ...prev.franchiseeSharing,
+                                        stories: newStories,
+                                      },
+                                    }));
+                                  }}
+                                  className="w-4 h-4 text-blue-600"
+                                />
+                                <span className="text-sm">YouTube 連結</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`videoType-${story.id}`}
+                                  value="local"
+                                  checked={story.videoType === "local"}
+                                  onChange={() => {
+                                    const newStories = [
+                                      ...(pageData.franchiseeSharing?.stories || []),
+                                    ];
+                                    newStories[index] = {
+                                      ...newStories[index],
+                                      videoType: "local",
+                                    };
+                                    setPageData((prev) => ({
+                                      ...prev,
+                                      franchiseeSharing: {
+                                        ...prev.franchiseeSharing,
+                                        stories: newStories,
+                                      },
+                                    }));
+                                  }}
+                                  className="w-4 h-4 text-blue-600"
+                                />
+                                <span className="text-sm">上傳本地影片</span>
+                              </label>
+                            </div>
+
+                            {/* YouTube 連結輸入 */}
+                            {story.videoType !== "local" && (
+                              <div>
+                                <input
+                                  type="text"
+                                  value={story.youtubeUrl || ""}
+                                  onChange={(e) => {
+                                    const newStories = [
+                                      ...(pageData.franchiseeSharing?.stories || []),
+                                    ];
+                                    newStories[index] = {
+                                      ...newStories[index],
+                                      youtubeUrl: e.target.value,
+                                    };
+                                    setPageData((prev) => ({
+                                      ...prev,
+                                      franchiseeSharing: {
+                                        ...prev.franchiseeSharing,
+                                        stories: newStories,
+                                      },
+                                    }));
+                                  }}
+                                  placeholder="例如: https://www.youtube.com/watch?v=xxxxx"
+                                  className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                                />
+                              </div>
+                            )}
+
+                            {/* 本地影片上傳 */}
+                            {story.videoType === "local" && (
+                              <div>
+                                {story.localVideoUrl && (
+                                  <div className="mb-3">
+                                    <p className="text-sm text-gray-600 mb-2">目前影片：</p>
+                                    <video
+                                      src={story.localVideoUrl}
+                                      controls
+                                      className="w-full max-w-md rounded-lg"
+                                      preload="metadata"
+                                    />
+                                  </div>
+                                )}
+                                <VideoUploader
+                                  currentVideoUrl={story.localVideoUrl}
+                                  onVideoUpload={(data) => {
+                                    const newStories = [
+                                      ...(pageData.franchiseeSharing?.stories || []),
+                                    ];
+                                    newStories[index] = {
+                                      ...newStories[index],
+                                      localVideoUrl: data.videoUrl,
+                                    };
+                                    setPageData((prev) => ({
+                                      ...prev,
+                                      franchiseeSharing: {
+                                        ...prev.franchiseeSharing,
+                                        stories: newStories,
+                                      },
+                                    }));
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              文章內容
+                            </label>
+                            <CustomEditor
+                              initialData={story.content || ""}
+                              onContentChange={(value) => {
+                                const newStories = [
+                                  ...(pageData.franchiseeSharing?.stories || []),
+                                ];
+                                newStories[index] = {
+                                  ...newStories[index],
+                                  content: value,
+                                };
+                                setPageData((prev) => ({
+                                  ...prev,
+                                  franchiseeSharing: {
+                                    ...prev.franchiseeSharing,
+                                    stories: newStories,
+                                  },
+                                }));
+                              }}
+                              height={700}
+                              placeholder="撰寫文章內容..."
+                            />
+                          </div>
+
+                          {/* 收合按鈕 */}
+                          <div className="mt-4 pt-4 border-t flex justify-end">
+                            <button
+                              onClick={() => setEditingStoryId(null)}
+                              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                            >
+                              收合編輯區
+                            </button>
+                          </div>
                         </div>
                       )}
-                      <ImageUploader
-                        onImageUpload={(data) => {
-                          const newStories = [
-                            ...(pageData.franchiseeSharing?.stories || []),
-                          ];
-                          newStories[index] = {
-                            ...newStories[index],
-                            image: data.imageUrl,
-                          };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: {
-                              ...prev.franchiseeSharing,
-                              stories: newStories,
-                            },
-                          }));
-                        }}
-                      />
                     </div>
+                  )
+                )}
+              </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          標題
-                        </label>
-                        <input
-                          type="text"
-                          value={story.title}
-                          onChange={(e) => {
-                            const newStories = [
-                              ...(pageData.franchiseeSharing?.stories || []),
-                            ];
-                            newStories[index] = {
-                              ...newStories[index],
-                              title: e.target.value,
-                            };
-                            setPageData((prev) => ({
-                              ...prev,
-                              franchiseeSharing: {
-                                ...prev.franchiseeSharing,
-                                stories: newStories,
-                              },
-                            }));
-                          }}
-                          placeholder="例如：保險員轉職"
-                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          副標題
-                        </label>
-                        <input
-                          type="text"
-                          value={story.subtitle}
-                          onChange={(e) => {
-                            const newStories = [
-                              ...(pageData.franchiseeSharing?.stories || []),
-                            ];
-                            newStories[index] = {
-                              ...newStories[index],
-                              subtitle: e.target.value,
-                            };
-                            setPageData((prev) => ({
-                              ...prev,
-                              franchiseeSharing: {
-                                ...prev.franchiseeSharing,
-                                stories: newStories,
-                              },
-                            }));
-                          }}
-                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          日期
-                        </label>
-                        <input
-                          type="text"
-                          value={story.date}
-                          onChange={(e) => {
-                            const newStories = [
-                              ...(pageData.franchiseeSharing?.stories || []),
-                            ];
-                            newStories[index] = {
-                              ...newStories[index],
-                              date: e.target.value,
-                            };
-                            setPageData((prev) => ({
-                              ...prev,
-                              franchiseeSharing: {
-                                ...prev.franchiseeSharing,
-                                stories: newStories,
-                              },
-                            }));
-                          }}
-                          placeholder="例如：December 24, 2025"
-                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          分類
-                        </label>
-                        <input
-                          type="text"
-                          value={story.category}
-                          onChange={(e) => {
-                            const newStories = [
-                              ...(pageData.franchiseeSharing?.stories || []),
-                            ];
-                            newStories[index] = {
-                              ...newStories[index],
-                              category: e.target.value,
-                            };
-                            setPageData((prev) => ({
-                              ...prev,
-                              franchiseeSharing: {
-                                ...prev.franchiseeSharing,
-                                stories: newStories,
-                              },
-                            }));
-                          }}
-                          className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-sm font-medium">摘要描述</label>
-                        <span className={`text-xs ${story.description.length > 80 ? 'text-orange-500' : 'text-gray-500'}`}>
-                          {story.description.length} / 80 字
-                        </span>
-                      </div>
-                      <textarea
-                        value={story.description}
-                        onChange={(e) => {
-                          const newStories = [
-                            ...(pageData.franchiseeSharing?.stories || []),
-                          ];
-                          newStories[index] = {
-                            ...newStories[index],
-                            description: e.target.value,
-                          };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: {
-                              ...prev.franchiseeSharing,
-                              stories: newStories,
-                            },
-                          }));
-                        }}
-                        rows={2}
-                        placeholder="建議 80 字以內，前台最多顯示 3 行"
-                        className={`block w-full rounded-md bg-white px-3 py-2 border ${story.description.length > 80 ? 'border-orange-400' : 'border-gray-300'}`}
-                      />
-                      <p className="text-xs text-gray-400 mt-1">前台最多顯示 3 行，超出部分會以「...」截斷</p>
-                    </div>
-
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium mb-1">
-                        YouTube 影片網址（選填，會顯示在文章最下方）
-                      </label>
-                      <input
-                        type="text"
-                        value={story.youtubeUrl}
-                        onChange={(e) => {
-                          const newStories = [
-                            ...(pageData.franchiseeSharing?.stories || []),
-                          ];
-                          newStories[index] = {
-                            ...newStories[index],
-                            youtubeUrl: e.target.value,
-                          };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: {
-                              ...prev.franchiseeSharing,
-                              stories: newStories,
-                            },
-                          }));
-                        }}
-                        placeholder="例如: https://www.youtube.com/watch?v=xxxxx"
-                        className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        文章內容
-                      </label>
-                      <CustomEditor
-                        initialData={story.content || ""}
-                        onContentChange={(value) => {
-                          const newStories = [
-                            ...(pageData.franchiseeSharing?.stories || []),
-                          ];
-                          newStories[index] = {
-                            ...newStories[index],
-                            content: value,
-                          };
-                          setPageData((prev) => ({
-                            ...prev,
-                            franchiseeSharing: {
-                              ...prev.franchiseeSharing,
-                              stories: newStories,
-                            },
-                          }));
-                        }}
-                        height={300}
-                        placeholder="撰寫文章內容..."
-                      />
-                    </div>
-                  </div>
-                )
+              {/* 沒有文章時的提示 */}
+              {(pageData.franchiseeSharing?.stories || []).length === 0 && (
+                <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-dashed">
+                  <span className="material-symbols-outlined text-4xl mb-2">article</span>
+                  <p>尚無文章，點擊上方「新增文章」開始建立</p>
+                </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 影片區塊 */}
+      {activeSection === "videoSection" && (
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-lg mb-6 border-2 border-red-200">
+          <h2 className="text-2xl font-bold mb-4 text-red-900">YouTube 影片區塊設定</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            此區塊會顯示在頁面下方，讓訪客可以觀看 YouTube 影片介紹
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pageData.videoSection?.enabled ?? true}
+                  onChange={(e) =>
+                    setPageData((prev) => ({
+                      ...prev,
+                      videoSection: {
+                        ...prev.videoSection,
+                        enabled: e.target.checked,
+                      },
+                    }))
+                  }
+                  className="w-5 h-5 text-red-600 rounded"
+                />
+                <span className="font-medium">啟用影片區塊</span>
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">區塊標題</label>
+              <input
+                type="text"
+                value={pageData.videoSection?.title || ""}
+                onChange={(e) =>
+                  setPageData((prev) => ({
+                    ...prev,
+                    videoSection: {
+                      ...prev.videoSection,
+                      title: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="例如：影片介紹"
+                className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">副標題</label>
+              <input
+                type="text"
+                value={pageData.videoSection?.subtitle || ""}
+                onChange={(e) =>
+                  setPageData((prev) => ({
+                    ...prev,
+                    videoSection: {
+                      ...prev.videoSection,
+                      subtitle: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="例如：了解更多關於我們的加盟計畫"
+                className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">YouTube 影片連結</label>
+              <input
+                type="text"
+                value={pageData.videoSection?.youtubeUrl || ""}
+                onChange={(e) =>
+                  setPageData((prev) => ({
+                    ...prev,
+                    videoSection: {
+                      ...prev.videoSection,
+                      youtubeUrl: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="例如：https://www.youtube.com/watch?v=xxxxx"
+                className="block w-full rounded-md bg-white px-3.5 py-2 border border-gray-300"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                支援格式：youtube.com/watch?v=xxx、youtu.be/xxx、youtube.com/shorts/xxx
+              </p>
+            </div>
+
+            {/* 影片預覽 */}
+            {pageData.videoSection?.youtubeUrl && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-2">影片預覽</label>
+                <div className="relative w-full max-w-md pb-[56.25%] h-0 overflow-hidden rounded-lg border border-gray-300">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${(() => {
+                      const url = pageData.videoSection.youtubeUrl;
+                      const patterns = [
+                        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/,
+                        /youtube\.com\/shorts\/([^&\s?]+)/,
+                      ];
+                      for (const pattern of patterns) {
+                        const match = url.match(pattern);
+                        if (match) return match[1];
+                      }
+                      return "";
+                    })()}?rel=0`}
+                    title="影片預覽"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute top-0 left-0 w-full h-full border-0"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

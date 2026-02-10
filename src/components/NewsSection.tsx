@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { sortByDateDesc } from "@/utils/dateSort";
 
 interface Category {
   label: string;
@@ -49,10 +50,10 @@ export default function NewsSection({
   // 根據選擇的分類過濾文章（「全部」或第一個分類顯示所有文章）
   const filteredArticles = useMemo(() => {
     const isFirstCategory = categories.length > 0 && activeCategory === categories[0].label;
-    if (activeCategory === "all" || activeCategory === "全部" || isFirstCategory) {
-      return articles;
-    }
-    return articles.filter(article => article.category === activeCategory);
+    const filtered = (activeCategory === "all" || activeCategory === "全部" || isFirstCategory)
+      ? articles
+      : articles.filter(article => article.category === activeCategory);
+    return sortByDateDesc(filtered);
   }, [activeCategory, articles, categories]);
 
   return (

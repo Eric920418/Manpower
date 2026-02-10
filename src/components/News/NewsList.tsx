@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { sortByDateDesc } from "@/utils/dateSort";
 
 interface News {
   title: string;
@@ -19,9 +20,11 @@ interface Props {
 }
 
 export default function NewsList({ newsList, activeCategory }: Props) {
-  const filteredNews = activeCategory === "全部"
-    ? newsList
-    : newsList.filter((news) => news.category === activeCategory);
+  const filteredNews = sortByDateDesc(
+    activeCategory === "全部"
+      ? newsList
+      : newsList.filter((news) => news.category === activeCategory)
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

@@ -31,6 +31,7 @@ async function getPageData() {
         franchiseProcess
         franchiseeSharing
         cta
+        videoSection
       }
       activeNavigations {
         id

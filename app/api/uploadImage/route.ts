@@ -117,7 +117,8 @@ export async function POST(request: Request) {
 
     // 使用內建的 formData() 方法取得表單資料
     const formData = await request.formData();
-    const fileField = formData.get("image");
+    // 支援 CKEditor 的 "upload" 欄位名稱，以及原有的 "image" 欄位
+    const fileField = formData.get("upload") || formData.get("image");
 
     // 檢查是否有上傳檔案，且是否為 File 物件
     if (!fileField || !(fileField instanceof File)) {
@@ -181,9 +182,11 @@ export async function POST(request: Request) {
     const compressedSizeKB = (compressedBuffer.length / 1024).toFixed(1);
 
     // 回傳成功訊息以及檔案的完整路徑
+    // 同時支援 CKEditor 格式（url）和原有格式（fileUrl）
     return NextResponse.json({
       message: "上傳成功",
-      fileUrl: `/api/images/${fileName}`,
+      url: `/api/images/${fileName}`,           // CKEditor 期望的格式
+      fileUrl: `/api/images/${fileName}`,       // 保持向後相容
       originalSize: fileField.size,
       compressedSize: compressedBuffer.length,
       savedBytes,

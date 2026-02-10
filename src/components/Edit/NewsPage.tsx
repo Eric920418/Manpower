@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ImageUploader } from "@/components/Admin/ImageUploader";
+import { VideoUploader } from "@/components/Admin/VideoUploader";
 import { useSession } from "next-auth/react";
 import { graphqlRequest } from "@/utils/graphqlClient";
 
@@ -57,6 +58,9 @@ interface News {
   date: string;
   category: string;
   link: string;
+  videoType?: "youtube" | "local";
+  youtubeUrl?: string;
+  localVideoUrl?: string;
 }
 
 interface PageData {
@@ -342,6 +346,82 @@ export const NewsPage = () => {
               }
             />
           </div>
+          {/* 影片設定 */}
+          <div className="p-4 bg-white rounded-lg border border-gray-200">
+            <label className="block text-sm font-medium mb-3">影片設定（選填，會顯示在文章最下方）</label>
+            <div className="flex gap-4 mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="featuredVideoType"
+                  value="youtube"
+                  checked={pageData.featuredNews.videoType !== "local"}
+                  onChange={() =>
+                    setPageData((prev) => ({
+                      ...prev,
+                      featuredNews: { ...prev.featuredNews, videoType: "youtube" },
+                    }))
+                  }
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-sm">YouTube 連結</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="featuredVideoType"
+                  value="local"
+                  checked={pageData.featuredNews.videoType === "local"}
+                  onChange={() =>
+                    setPageData((prev) => ({
+                      ...prev,
+                      featuredNews: { ...prev.featuredNews, videoType: "local" },
+                    }))
+                  }
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-sm">上傳本地影片</span>
+              </label>
+            </div>
+            {pageData.featuredNews.videoType !== "local" && (
+              <input
+                type="text"
+                value={pageData.featuredNews.youtubeUrl || ""}
+                onChange={(e) =>
+                  setPageData((prev) => ({
+                    ...prev,
+                    featuredNews: { ...prev.featuredNews, youtubeUrl: e.target.value },
+                  }))
+                }
+                placeholder="例如: https://www.youtube.com/watch?v=xxxxx"
+                className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+              />
+            )}
+            {pageData.featuredNews.videoType === "local" && (
+              <div>
+                {pageData.featuredNews.localVideoUrl && (
+                  <div className="mb-3">
+                    <p className="text-sm text-gray-600 mb-2">目前影片：</p>
+                    <video
+                      src={pageData.featuredNews.localVideoUrl}
+                      controls
+                      className="w-full max-w-md rounded-lg"
+                      preload="metadata"
+                    />
+                  </div>
+                )}
+                <VideoUploader
+                  currentVideoUrl={pageData.featuredNews.localVideoUrl}
+                  onVideoUpload={(data) =>
+                    setPageData((prev) => ({
+                      ...prev,
+                      featuredNews: { ...prev.featuredNews, localVideoUrl: data.videoUrl },
+                    }))
+                  }
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -355,7 +435,7 @@ export const NewsPage = () => {
                 ...prev,
                 newsList: [
                   ...prev.newsList,
-                  { title: "", slug: "", excerpt: "", content: "", image: "", date: "", category: "", link: "" },
+                  { title: "", slug: "", excerpt: "", content: "", image: "", date: "", category: "", link: "", videoType: "youtube", youtubeUrl: "", localVideoUrl: "" },
                 ],
               }))
             }
@@ -498,6 +578,78 @@ export const NewsPage = () => {
                       setPageData((prev) => ({ ...prev, newsList: newNewsList }));
                     }}
                   />
+                </div>
+                {/* 影片設定 */}
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium mb-3">影片設定（選填，會顯示在文章最下方）</label>
+                  <div className="flex gap-4 mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`videoType-${index}`}
+                        value="youtube"
+                        checked={news.videoType !== "local"}
+                        onChange={() => {
+                          const newNewsList = [...pageData.newsList];
+                          newNewsList[index] = { ...newNewsList[index], videoType: "youtube" };
+                          setPageData((prev) => ({ ...prev, newsList: newNewsList }));
+                        }}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm">YouTube 連結</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`videoType-${index}`}
+                        value="local"
+                        checked={news.videoType === "local"}
+                        onChange={() => {
+                          const newNewsList = [...pageData.newsList];
+                          newNewsList[index] = { ...newNewsList[index], videoType: "local" };
+                          setPageData((prev) => ({ ...prev, newsList: newNewsList }));
+                        }}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm">上傳本地影片</span>
+                    </label>
+                  </div>
+                  {news.videoType !== "local" && (
+                    <input
+                      type="text"
+                      value={news.youtubeUrl || ""}
+                      onChange={(e) => {
+                        const newNewsList = [...pageData.newsList];
+                        newNewsList[index] = { ...newNewsList[index], youtubeUrl: e.target.value };
+                        setPageData((prev) => ({ ...prev, newsList: newNewsList }));
+                      }}
+                      placeholder="例如: https://www.youtube.com/watch?v=xxxxx"
+                      className="block w-full rounded-md bg-white px-3 py-2 border border-gray-300"
+                    />
+                  )}
+                  {news.videoType === "local" && (
+                    <div>
+                      {news.localVideoUrl && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 mb-2">目前影片：</p>
+                          <video
+                            src={news.localVideoUrl}
+                            controls
+                            className="w-full max-w-md rounded-lg"
+                            preload="metadata"
+                          />
+                        </div>
+                      )}
+                      <VideoUploader
+                        currentVideoUrl={news.localVideoUrl}
+                        onVideoUpload={(data) => {
+                          const newNewsList = [...pageData.newsList];
+                          newNewsList[index] = { ...newNewsList[index], localVideoUrl: data.videoUrl };
+                          setPageData((prev) => ({ ...prev, newsList: newNewsList }));
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <button

@@ -72,7 +72,7 @@ export default function ContactSection({
     setErrorMessage("");
 
     try {
-      // 取得 reCAPTCHA token（如果有設定的話）
+      // 取得 reCAPTCHA token
       let recaptchaToken = "";
       if (executeRecaptcha) {
         recaptchaToken = await executeRecaptcha("contact_form");
@@ -81,10 +81,7 @@ export default function ContactSection({
       const response = await fetch("/api/contact-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          recaptchaToken,
-        }),
+        body: JSON.stringify({ ...formData, recaptchaToken }),
       });
 
       const result = await response.json();

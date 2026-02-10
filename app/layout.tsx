@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Noto_Sans_TC } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { FloatingLinksWrapper } from "@/components/FloatingLinksWrapper";
 
 const notoSansTC = Noto_Sans_TC({
@@ -105,8 +103,6 @@ export default function RootLayout({
           {children}
           <FloatingLinksWrapper />
         </Providers>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );
