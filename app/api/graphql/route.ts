@@ -271,6 +271,8 @@ const yoga = createYoga({
         // 待處理任務提醒：不快取（需要即時）
         'Query.myPendingTaskReminders': 0,
         'Query.checkPendingReminders': 0,
+        // 維護模式：不快取（需要即時生效）
+        'Query.maintenanceMode': 0,
         // 全局分配設定：不快取（需要即時更新）
         'Query.taskTypeDefaultAssignments': 0,
         'Query.taskTypeDefaultAssignmentsByType': 0,

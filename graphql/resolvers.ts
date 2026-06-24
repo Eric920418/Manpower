@@ -14,6 +14,7 @@ import { dashboardResolvers } from "./resolvers/dashboardResolvers";
 import { activityLogResolvers } from "./resolvers/activityLogResolvers";
 import { pendingTaskReminderResolvers } from "./resolvers/pendingTaskReminderResolvers";
 import { franchiseResolvers } from "./resolvers/franchiseResolvers";
+import { maintenanceModeResolvers } from "./resolvers/maintenanceModeResolvers";
 import { hasPermissionWithCustom, type CustomPermissions } from "@/lib/permissions";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -171,6 +172,8 @@ const Query = {
   ...pendingTaskReminderResolvers.Query,
   // 加盟店管理 queries
   ...franchiseResolvers.Query,
+  // 維護模式 queries
+  ...maintenanceModeResolvers.Query,
 };
 
 const Mutation = {
@@ -206,6 +209,8 @@ const Mutation = {
   ...franchiseResolvers.Mutation,
   // 活動日誌 mutations
   ...activityLogResolvers.Mutation,
+  // 維護模式 mutations
+  ...maintenanceModeResolvers.Mutation,
 };
 
 const resolvers = {

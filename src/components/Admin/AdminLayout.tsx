@@ -62,6 +62,7 @@ const menuGroups: MenuGroup[] = [
       { label: "案件分配管理", href: "/admin/admin-assignments", permission: 'task_assignment:read' },
       { label: "加盟店管理", href: "/admin/franchises", permission: 'system:config' },
       { label: "用戶權限管理", href: "/admin/user-permissions", permission: 'user:manage_roles' },
+      { label: "維護模式", href: "/admin/maintenance-mode", permission: 'system:config' },
       { label: "活動日誌", href: "/admin/activity-logs", permission: 'system:logs' },
       { label: "數據分析", href: "/admin/analytics", permission: 'system:analytics' },
     ],

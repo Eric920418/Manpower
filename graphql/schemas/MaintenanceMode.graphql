@@ -1,0 +1,18 @@
+type MaintenanceMode {
+  id: ID!
+  enabled: Boolean!
+  message: String
+}
+
+extend type Query {
+  maintenanceMode: MaintenanceMode
+}
+
+input UpdateMaintenanceModeInput {
+  enabled: Boolean!
+  message: String
+}
+
+extend type Mutation {
+  updateMaintenanceMode(input: UpdateMaintenanceModeInput!): MaintenanceMode
+}

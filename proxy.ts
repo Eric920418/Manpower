@@ -47,6 +47,41 @@ export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const baseUrl = getBaseUrl(req);
 
+  // ============================================
+  // 維護模式檢查（前台路由）
+  // ============================================
+  if (
+    !pathname.startsWith('/admin') &&
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/_next') &&
+    pathname !== '/maintenance' &&
+    pathname !== '/favicon.ico'
+  ) {
+    try {
+      const res = await fetch(`${baseUrl}/api/maintenance-check`, {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.enabled) {
+          return NextResponse.rewrite(new URL('/maintenance', baseUrl));
+        }
+      }
+    } catch {
+      // 檢查失敗時不阻擋正常訪問
+    }
+    return NextResponse.next();
+  }
+
+  // ============================================
+  // 以下為 /admin/* 後台路由的權限保護
+  // ============================================
+
+  // 非 admin 路由直接通過
+  if (!pathname.startsWith('/admin')) {
+    return NextResponse.next();
+  }
+
   // 獲取 NextAuth token
   const token = await getToken({
     req,
@@ -140,7 +175,7 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // 保護所有 /admin 路徑
-    '/admin/:path*',
+    // 保護所有 /admin 路徑 + 前台維護模式檢查
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
