@@ -2,6 +2,10 @@
 
 基於 Next.js 15 + GraphQL + Prisma 的企業級人力資源管理與形象網站系統。
 
+## SSL 網域驗證
+
+2026-11-03：Sectigo `HTTP_CSR_HASH` 驗證檔位於 `public/.well-known/pki-validation/61969E7BCEA39E55F778D2CCC1BD121A.txt`。Nginx 對 `yoshi3166.com` 和 `www.yoshi3166.com` 的 HTTP 80 埠直接提供此路徑；其餘 HTTP 路徑維持轉址至 HTTPS。驗證檔可用 `curl http://yoshi3166.com/.well-known/pki-validation/61969E7BCEA39E55F778D2CCC1BD121A.txt` 核對。這只完成網域控制驗證檔的公開部署，憑證簽發及安裝需另行確認。
+
 ## 🎯 專案願景
 
 打造一個整合「品牌形象展示」與「業務營運管理」的全方位人力資源服務平台。
