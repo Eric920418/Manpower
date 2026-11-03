@@ -4,7 +4,9 @@
 
 ## SSL 網域驗證
 
-2026-11-03：Sectigo `HTTP_CSR_HASH` 驗證檔位於 `public/.well-known/pki-validation/61969E7BCEA39E55F778D2CCC1BD121A.txt`。Nginx 對 `yoshi3166.com` 和 `www.yoshi3166.com` 的 HTTP 80 埠直接提供此路徑；其餘 HTTP 路徑維持轉址至 HTTPS。驗證檔可用 `curl http://yoshi3166.com/.well-known/pki-validation/61969E7BCEA39E55F778D2CCC1BD121A.txt` 核對。這只完成網域控制驗證檔的公開部署，憑證簽發及安裝需另行確認。
+2026-11-03：Sectigo `HTTP_CSR_HASH` 驗證檔位於 `public/.well-known/pki-validation/61969E7BCEA39E55F778D2CCC1BD121A.txt`。Nginx 對 `yoshi3166.com` 和 `www.yoshi3166.com` 的 HTTP 80 埠直接提供此路徑；其餘 HTTP 路徑維持轉址至 HTTPS。驗證檔可用 `curl http://yoshi3166.com/.well-known/pki-validation/61969E7BCEA39E55F778D2CCC1BD121A.txt` 核對。
+
+同日已安裝新憑證，涵蓋 `yoshi3166.com` 與 `www.yoshi3166.com`，效期至 2027-05-20 23:59:59 UTC。Nginx 使用 `/etc/nginx/ssl/yoshi3166.crt` 的完整憑證鏈及 `/etc/nginx/ssl/yoshi3166.key` 私鑰；私鑰只存於伺服器且不納入 Git。更新前須確認新憑證與私鑰的公開金鑰相同，並在 `nginx -t` 通過後重載。外部驗收兩個 HTTPS 網域均回應 200、憑證驗證碼為 0，HTTP 驗證檔仍回應 200。
 
 ## 🎯 專案願景
 
